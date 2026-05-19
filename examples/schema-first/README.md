@@ -6,14 +6,14 @@ Use this when you know the local contract before you have real records. It defin
 
 ## Files To Inspect
 
-- `db/users.schema.jsonc`: collection with seed data.
-- `db/settings.schema.jsonc`: singleton document schema.
-- `db/auditEvents.schema.jsonc`: schema-only collection with an empty runtime state.
-- `src/generated/jsondb.types.ts`: committed generated types.
+- [db/users.schema.jsonc](./db/users.schema.jsonc): collection with seed data.
+- [db/settings.schema.jsonc](./db/settings.schema.jsonc): singleton document schema.
+- [db/auditEvents.schema.jsonc](./db/auditEvents.schema.jsonc): schema-only collection with an empty runtime state.
+- [src/generated/jsondb.types.ts](./src/generated/jsondb.types.ts): committed generated types.
 
 ## Run It
 
-From the repository root:
+From the repository root, use the repo-internal CLI path:
 
 ```bash
 node ./src/cli.js sync --cwd ./examples/schema-first
@@ -32,6 +32,8 @@ http://127.0.0.1:7331/__jsondb
 
 ## REST Request To Try
 
+Leave `serve` running and run this from another terminal:
+
 ```bash
 curl http://127.0.0.1:7331/audit-events
 ```
@@ -39,3 +41,8 @@ curl http://127.0.0.1:7331/audit-events
 ## Cleanup
 
 Generated `.jsondb/` output is ignored by git and can be removed whenever you want a fresh mirror.
+
+## More Docs
+
+- [Concepts](../../docs/concepts.md)
+- [Fixtures And Schemas](../../docs/fixtures-and-schemas.md)

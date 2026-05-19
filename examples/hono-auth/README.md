@@ -6,10 +6,10 @@ Use this when your app already has a Hono server and you want JSONDB to own the 
 
 ## Files To Inspect
 
-- `src/app.mjs`: registers JSONDB REST routes with `beforeRequest`, `beforeWrite`, and a pages-specific create hook.
-- `src/server.mjs`: starts the Hono app locally.
-- `db/pages.schema.jsonc`: schema-backed page collection with timestamps set by hooks.
-- `db/users.schema.jsonc`: demo users used by the bearer-token sessions.
+- [src/app.mjs](./src/app.mjs): registers JSONDB REST routes with `beforeRequest`, `beforeWrite`, and a pages-specific create hook.
+- [src/server.mjs](./src/server.mjs): starts the Hono app locally.
+- [db/pages.schema.jsonc](./db/pages.schema.jsonc): schema-backed page collection with timestamps set by hooks.
+- [db/users.schema.jsonc](./db/users.schema.jsonc): demo users used by the bearer-token sessions.
 
 ## Run It
 
@@ -22,6 +22,8 @@ npm run dev
 ```
 
 ## Requests To Try
+
+Leave `npm run dev` running and run these from another terminal.
 
 Missing tokens are rejected:
 
@@ -59,3 +61,8 @@ curl -X PATCH 'http://127.0.0.1:8787/api/pages/home' \
 - `Bearer user-token`: read only.
 
 This is intentionally tiny demo auth. In a real app, `beforeRequest` would read your session or token source, and `beforeWrite` would call your permission policy.
+
+## More Docs
+
+- [Integrations](../../docs/integrations.md)
+- [Server And Viewer](../../docs/server-and-viewer.md)

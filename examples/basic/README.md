@@ -6,13 +6,13 @@ Start here when you want the smallest schema-backed jsondb workflow. It demonstr
 
 ## Files To Inspect
 
-- `db/users.schema.jsonc`: schema-backed collection with seed data.
-- `db/settings.json`: singleton document inferred from data.
-- `src/generated/jsondb.types.ts`: committed generated types.
+- [db/users.schema.jsonc](./db/users.schema.jsonc): schema-backed collection with seed data.
+- [db/settings.json](./db/settings.json): singleton document inferred from data.
+- [src/generated/jsondb.types.ts](./src/generated/jsondb.types.ts): committed generated types.
 
 ## Run It
 
-From the repository root:
+From the repository root, use the repo-internal CLI path:
 
 ```bash
 node ./src/cli.js sync --cwd ./examples/basic
@@ -31,6 +31,8 @@ http://127.0.0.1:7331/__jsondb
 
 ## REST Request To Try
 
+Leave `serve` running and run this from another terminal:
+
 ```bash
 curl -X POST http://127.0.0.1:7331/users \
   -H 'content-type: application/json' \
@@ -46,3 +48,8 @@ node ./src/cli.js create users '{"id":"u_2","name":"Grace Hopper","email":"grace
 ## Cleanup
 
 Generated `.jsondb/` output is ignored by git and can be removed whenever you want a fresh mirror.
+
+## More Docs
+
+- [Getting Started](../../docs/getting-started.md)
+- [Generated Files](../../docs/generated-files.md)

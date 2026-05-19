@@ -6,13 +6,13 @@ Use this when you want to call jsondb from app or test code instead of typing `c
 
 ## Files To Inspect
 
-- `db/users.schema.jsonc`: schema-backed collection with defaults and unique email validation.
-- `db/settings.json`: singleton document inferred from data.
-- `src/client-demo.mjs`: tiny consumer script using `jsondb/client`.
+- [db/users.schema.jsonc](./db/users.schema.jsonc): schema-backed collection with defaults and unique email validation.
+- [db/settings.json](./db/settings.json): singleton document inferred from data.
+- [src/client-demo.mjs](./src/client-demo.mjs): tiny consumer script using `jsondb/client`.
 
 ## Run It
 
-From the repository root:
+From the repository root, use the repo-internal CLI path:
 
 ```bash
 node ./src/cli.js sync --cwd ./examples/rest-client
@@ -31,6 +31,8 @@ JSONDB_URL=http://127.0.0.1:7331 node ./examples/rest-client/src/client-demo.mjs
 
 ## REST Request To Try
 
+Leave `serve` running and run this from another terminal:
+
 ```bash
 curl 'http://127.0.0.1:7331/users?select=id,name,email'
 ```
@@ -38,3 +40,8 @@ curl 'http://127.0.0.1:7331/users?select=id,name,email'
 ## Cleanup
 
 Generated `.jsondb/` output is ignored by git and can be removed whenever you want a fresh mirror.
+
+## More Docs
+
+- [Package API](../../docs/package-api.md)
+- [Server And Viewer](../../docs/server-and-viewer.md)
