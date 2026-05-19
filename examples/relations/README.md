@@ -6,13 +6,13 @@ Use this when local fixtures need related records but you still want plain ids i
 
 ## Files To Inspect
 
-- `db/users.schema.jsonc`: target collection.
-- `db/posts.schema.jsonc`: `authorId` declares a relation to `users.id`.
-- `jsondb.config.mjs`: default mirror setup using `defineConfig`.
+- [db/users.schema.jsonc](./db/users.schema.jsonc): target collection.
+- [db/posts.schema.jsonc](./db/posts.schema.jsonc): `authorId` declares a relation to `users.id`.
+- [jsondb.config.mjs](./jsondb.config.mjs): default mirror setup using `defineConfig`.
 
 ## Run It
 
-From the repository root:
+From the repository root, use the repo-internal CLI path:
 
 ```bash
 node ./src/cli.js sync --cwd ./examples/relations
@@ -31,6 +31,8 @@ The viewer lists `posts` and `users`. The posts schema shows an `author` relatio
 
 ## REST Request To Try
 
+Leave `serve` running and run this from another terminal:
+
 ```bash
 curl 'http://127.0.0.1:7331/posts?expand=author&select=id,title,author.name'
 ```
@@ -40,3 +42,8 @@ Relation expansion is intentionally explicit and depth 1 in this version.
 ## Cleanup
 
 Generated `.jsondb/` output is ignored by git and can be removed whenever you want a fresh mirror.
+
+## More Docs
+
+- [Fixtures And Schemas](../../docs/fixtures-and-schemas.md)
+- [Server And Viewer](../../docs/server-and-viewer.md)

@@ -6,12 +6,12 @@ Use this when product, customer, or spreadsheet-like data starts as CSV. jsondb 
 
 ## Files To Inspect
 
-- `db/customers.csv`: source CSV fixture.
-- `jsondb.config.mjs`: default mirror setup using `defineConfig`.
+- [db/customers.csv](./db/customers.csv): source CSV fixture.
+- [jsondb.config.mjs](./jsondb.config.mjs): default mirror setup using `defineConfig`.
 
 ## Run It
 
-From the repository root:
+From the repository root, use the repo-internal CLI path:
 
 ```bash
 node ./src/cli.js sync --cwd ./examples/csv
@@ -30,6 +30,8 @@ http://127.0.0.1:7331/__jsondb
 
 ## REST Request To Try
 
+Leave `serve` running and run this from another terminal:
+
 ```bash
 curl 'http://127.0.0.1:7331/customers?select=id,name,email'
 ```
@@ -37,3 +39,8 @@ curl 'http://127.0.0.1:7331/customers?select=id,name,email'
 ## Cleanup
 
 Generated `.jsondb/` output is ignored by git and can be removed whenever you want a fresh mirror.
+
+## More Docs
+
+- [Fixtures And Schemas](../../docs/fixtures-and-schemas.md)
+- [Generated Files](../../docs/generated-files.md)

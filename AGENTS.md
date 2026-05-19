@@ -85,10 +85,13 @@ node ./src/cli.js serve --cwd ./examples/basic
 
 `.jsondb/` is generated runtime output and should normally stay uncommitted.
 
-Committed generated types are allowed when configured through `types.commitOutFile`. The example intentionally includes:
+Committed generated types are allowed when configured through `types.commitOutFile`. The examples intentionally include:
 
 ```txt
+examples/advanced/src/generated/jsondb.types.ts
 examples/basic/src/generated/jsondb.types.ts
+examples/schema-first/src/generated/jsondb.types.ts
+examples/schema-manifest/src/generated/jsondb.types.ts
 ```
 
 Committed schema manifests are allowed when configured through `schemaOutFile`. The schema manifest example intentionally includes:
@@ -98,12 +101,14 @@ examples/schema-manifest/src/generated/jsondb.schema.json
 examples/schema-manifest/src/generated/jsondb.types.ts
 ```
 
-If a smoke command writes `.jsondb/` inside `examples/basic`, remove those generated files before finalizing unless the task explicitly asks to commit generated runtime state.
+If a smoke command writes `.jsondb/` inside any example, remove those generated files before finalizing unless the task explicitly asks to commit generated runtime state.
 
 ## Implementation Rules
 
 - Keep the package ESM and dependency-light. Prefer Node standard library APIs unless a feature clearly needs a dependency.
 - Preserve support for Node.js 20 and newer.
+- Treat `.schema.mjs`, `jsondb.config.mjs`, source readers, format renderers, and schema manifest hooks as trusted project code because they execute locally.
+- Remember that `jsondb serve` exposes writable local development endpoints on loopback by default, and the viewer CSV import endpoint writes into the configured `dbDir`.
 - Keep schema source support focused on `.json`, `.jsonc`, `.csv`, `.schema.json`, `.schema.jsonc`, and `.schema.mjs`.
 - Do not add TypeScript schema execution in v1 without adding an explicit loader/build story.
 - When adding schema features, first ask whether the same value can be inferred from fixtures. If not, add the smallest JSONDB-native schema shape and pair it with `doctor` guidance when useful.
