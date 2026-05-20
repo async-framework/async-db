@@ -28,7 +28,7 @@ db/*.json, *.jsonc, *.csv, *.schema.json(c), *.schema.mjs
 | HTTP client | `src/client.js` | REST, GraphQL, direct batching, automatic batching, fork support. |
 | REST server | `src/server.js`, `src/rest/` | Dependency-free local routes and response shaping. |
 | GraphQL | `src/graphql/` | Dependency-free subset parser, executor, and HTTP handler. |
-| Viewer | `src/web/` | Built-in UI served at `/__jsondb`. |
+| Viewer | `src/web/` | Built-in UI served at `server.apiBase`, defaulting to `/__jsondb`. |
 | Vite integration | `src/vite.js`, `src/integrations/` | Optional dev server plugin and virtual client. |
 | Hono/SQLite | `src/hono.js`, `src/sqlite.js`, `src/generate/hono.js` | Optional runtime integration and generated starter output. |
 

@@ -36,7 +36,7 @@ See [jsondb.config.example.mjs](../jsondb.config.example.mjs) for a commented co
 | Local latency | `30-100ms` | `mock.delay` |
 | Random local failures | Off | `mock.errors` |
 | Legacy database shapes | Off | `forks` |
-| Host, port, body limit | `127.0.0.1:7331`, 1 MB bodies | `server` |
+| Host, port, dev-tool route base, body limit | `127.0.0.1:7331`, `/__jsondb`, 1 MB bodies | `server` |
 
 ## Full Example
 
@@ -77,6 +77,7 @@ export default defineConfig({
   },
 
   server: {
+    apiBase: '/__jsondb',
     host: '127.0.0.1',
     port: 7331,
     maxBodyBytes: 1048576,
@@ -191,19 +192,25 @@ Random errors stay off by default. Turn them on when testing retries and error U
 
 ## Server Options
 
-Use `server` for a different host, port, or JSON body limit:
+Use `server` for a different host, port, dev-tool route base, or JSON body limit:
 
 ```js
 import { defineConfig } from 'jsondb/config';
 
 export default defineConfig({
   server: {
+    apiBase: '/__jsondb',
     host: '127.0.0.1',
     port: 7331,
     maxBodyBytes: 1048576,
   },
 });
 ```
+
+`server.apiBase` scopes the standalone viewer and internal development routes:
+viewer, schema, batch, import, live events, runtime log, and fork routes. REST
+resources such as `/users` and the standalone GraphQL path stay unchanged unless
+you configure those surfaces separately.
 
 ## Database Forks
 

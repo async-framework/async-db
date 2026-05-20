@@ -11,6 +11,7 @@ test('default config adds a small local mock delay range', async () => {
   const config = await loadConfig({ cwd });
 
   assert.deepEqual(config.mock.delay, [30, 100]);
+  assert.equal(config.server.apiBase, '/__jsondb');
 });
 
 test('dbDir config changes the fixture source folder', async () => {

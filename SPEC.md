@@ -656,6 +656,7 @@ export default {
   },
 
   server: {
+    apiBase: '/__jsondb',
     host: '127.0.0.1',
     port: 7331,
     maxBodyBytes: 1048576,
@@ -789,6 +790,10 @@ The local server should also expose a built-in dependency-free viewer:
 GET /__jsondb
 ```
 
+`server.apiBase` should default to `/__jsondb` and should configure the
+standalone viewer, schema, batch, import, events, log, and fork route base
+without changing root REST resource routes or the standalone GraphQL path.
+
 The viewer should support:
 
 ```txt
@@ -831,7 +836,7 @@ POST /__jsondb/import
 
 The upload should copy the CSV into the configured fixture folder, run sync, reload the in-memory resources, update the URL query parameter to the imported resource, and reload the dashboard view.
 
-While serving, jsondb should watch the configured fixture folder for fixture and schema changes, ignoring `.jsondb/`. On change, reload resources and notify the single-file viewer through `/__jsondb/events` so the dashboard refreshes automatically. If one source file fails to parse or load, report a file-specific diagnostic in the viewer and keep the remaining valid resources available. If the runtime cannot create a file watcher because of environment resource limits such as `EMFILE` or `ENOSPC`, keep the HTTP server running, publish a warning diagnostic, and serve without live reload.
+While serving, jsondb should watch the configured fixture folder for fixture and schema changes, ignoring `.jsondb/`. On change, reload resources and notify the single-file viewer through the configured events route, defaulting to `/__jsondb/events`, so the dashboard refreshes automatically. If one source file fails to parse or load, report a file-specific diagnostic in the viewer and keep the remaining valid resources available. If the runtime cannot create a file watcher because of environment resource limits such as `EMFILE` or `ENOSPC`, keep the HTTP server running, publish a warning diagnostic, and serve without live reload.
 
 Vite development should be supported through a dependency-light plugin export:
 
@@ -843,7 +848,7 @@ export default {
 };
 ```
 
-The plugin should return a plain Vite-compatible plugin object with `apply: 'serve'`, mount jsondb into the existing Vite dev middleware stack, and avoid bundling Node-only fixture runtime code into production builds. By default, Vite dev routes should be scoped under `/__jsondb` and should not answer root app routes:
+The plugin should return a plain Vite-compatible plugin object with `apply: 'serve'`, mount jsondb into the existing Vite dev middleware stack, and avoid bundling Node-only fixture runtime code into production builds. By default, Vite dev routes should be scoped under `/__jsondb` and should not answer root app routes. A plugin-level `apiBase` should win over `server.apiBase`:
 
 ```txt
 GET  /__jsondb

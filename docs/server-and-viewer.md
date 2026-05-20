@@ -23,6 +23,10 @@ Open the built-in viewer after starting the server:
 http://127.0.0.1:7331/__jsondb
 ```
 
+The default viewer and dev-tool route base is `/__jsondb`. Change it with
+`server.apiBase` when an app needs a different reserved path; schema, batch,
+import, events, log, and fork routes move with that base.
+
 Opening `http://127.0.0.1:7331/` in a browser shows a small index with links to the data viewer, schema, GraphQL endpoint, and resource routes. API-style requests to `/` keep returning JSON discovery data by default.
 
 The viewer includes:
@@ -147,6 +151,9 @@ REST batching is supported through:
 POST /__jsondb/batch
 ```
 
+If `server.apiBase` is changed, the batch endpoint follows that base, for
+example `POST /_jsondb/batch`.
+
 ```json
 [
   {
@@ -211,5 +218,7 @@ POST /__jsondb/forks/legacy-demo/batch
 POST /__jsondb/forks/legacy-demo/graphql
 GET  /__jsondb/forks/legacy-demo/schema
 ```
+
+These routes also follow `server.apiBase`.
 
 See [Configuration](./configuration.md) for fork setup and [Package API](./package-api.md) for client usage.

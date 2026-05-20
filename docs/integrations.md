@@ -43,6 +43,7 @@ const legacyUsers = await legacyDb.rest.get('/users');
 ```
 
 Plugin options include `cwd`, `dbDir`, `stateDir`, `forks`, `apiBase`, `restBasePath`, `graphqlPath`, `rootRoutes`, `clientVirtualModule`, and `clientImport`.
+The plugin uses `apiBase` first, then `server.apiBase`, then `/__jsondb` for scoped dev routes.
 
 Set `rootRoutes: true` only when you intentionally want Vite dev to also answer unscoped routes like `/users`. Standalone `jsondb serve` keeps those root REST routes by default.
 

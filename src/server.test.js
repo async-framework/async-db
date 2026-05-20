@@ -235,6 +235,86 @@ test('request handler preserves standalone root REST and GraphQL routes', async 
   assert.deepEqual(graphql.json().data.users, [{ id: 'u_1' }]);
 });
 
+test('request handler derives standalone dev-tool routes from configured server apiBase', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([
+    {
+      id: 'u_main',
+      name: 'Main Ada',
+    },
+  ]));
+  await mkdir(path.join(cwd, 'db.forks/legacy-demo'), { recursive: true });
+  await writeFile(path.join(cwd, 'db.forks/legacy-demo/users.json'), `${JSON.stringify([
+    {
+      id: 'u_legacy',
+      fullName: 'Legacy Ada',
+    },
+  ])}\n`, 'utf8');
+  await writeConfig(cwd, `export default {
+    server: {
+      apiBase: '/_jsondb',
+    },
+    forks: ['legacy-demo'],
+  };`);
+
+  const db = await openJsonFixtureDb({ cwd, allowSourceErrors: true });
+  const handler = createJsonDbRequestHandler(db);
+  const viewer = makeResponse();
+  const schema = makeResponse();
+  const batch = makeResponse();
+  const imported = makeResponse();
+  const events = makeResponse();
+  const log = makeResponse();
+  const forkUsers = makeResponse();
+  const forkBatch = makeResponse();
+  const forkSchema = makeResponse();
+  const forkGraphql = makeResponse();
+  const rootUsers = makeResponse();
+  const rootGraphql = makeResponse();
+
+  assert.equal(await handler(makeRequest('GET', '/_jsondb'), viewer), true);
+  assert.equal(await handler(makeRequest('GET', '/_jsondb/schema'), schema), true);
+  assert.equal(await handler(makeRequest('POST', '/_jsondb/batch', [
+    { method: 'GET', path: '/users' },
+  ]), batch), true);
+  assert.equal(await handler(makeRawRequest('POST', '/_jsondb/import', 'id,name\nu_2,Grace\n', {
+    'x-jsondb-file-name': 'Imported Users.csv',
+  }), imported), true);
+  assert.equal(await handler(makeRequest('GET', '/_jsondb/events'), events), true);
+  assert.equal(await handler(makeRequest('GET', '/_jsondb/log'), log), true);
+  assert.equal(await handler(makeRequest('GET', '/_jsondb/forks/legacy-demo/rest/users'), forkUsers), true);
+  assert.equal(await handler(makeRequest('POST', '/_jsondb/forks/legacy-demo/batch', [
+    { method: 'GET', path: '/users' },
+  ]), forkBatch), true);
+  assert.equal(await handler(makeRequest('GET', '/_jsondb/forks/legacy-demo/schema'), forkSchema), true);
+  assert.equal(await handler(makeRequest('POST', '/_jsondb/forks/legacy-demo/graphql', {
+    query: '{ users { id fullName } }',
+  }), forkGraphql), true);
+  assert.equal(await handler(makeRequest('GET', '/users'), rootUsers), true);
+  assert.equal(await handler(makeRequest('POST', '/graphql', {
+    query: '{ users { id } }',
+  }), rootGraphql), true);
+
+  assert.equal(viewer.status, 200);
+  assert.match(viewer.body, /jsondb viewer/);
+  assert.equal(schema.status, 200);
+  assert.equal(schema.json().resources.users.routePath, '/users');
+  assert.equal(batch.status, 200);
+  assert.equal(batch.json()[0].body[0].id, 'u_main');
+  assert.equal(imported.status, 201);
+  assert.equal(imported.json().viewerPath, '/_jsondb?resource=importedUsers');
+  assert.equal(events.status, 200);
+  assert.match(events.body, /event: jsondb/);
+  assert.equal(log.status, 200);
+  assert.match(log.headers['content-type'], /text\/event-stream/);
+  assert.deepEqual(forkUsers.json(), [{ id: 'u_legacy', fullName: 'Legacy Ada' }]);
+  assert.equal(forkBatch.json()[0].body[0].id, 'u_legacy');
+  assert.equal(forkSchema.json().resources.users.fields.fullName.type, 'string');
+  assert.deepEqual(forkGraphql.json().data.users, [{ id: 'u_legacy', fullName: 'Legacy Ada' }]);
+  assert.deepEqual(rootUsers.json(), [{ id: 'u_main', name: 'Main Ada' }]);
+  assert.deepEqual(rootGraphql.json().data.users, [{ id: 'u_main' }]);
+});
+
 test('request handler routes configured fork REST, batch, schema, and GraphQL requests', async () => {
   const cwd = await makeProject();
   await writeFixture(cwd, 'users.json', JSON.stringify([
@@ -315,15 +395,27 @@ test('request handler streams live runtime log events', async () => {
   assert.match(response.body, /"op":"create"/);
 });
 
-function makeRequest(method, path, body) {
+function makeRequest(method, requestPath, body) {
   return {
     method,
-    url: path,
+    url: requestPath,
     headers: {},
     async *[Symbol.asyncIterator]() {
       if (body !== undefined) {
         yield Buffer.from(JSON.stringify(body));
       }
+    },
+    on() {},
+  };
+}
+
+function makeRawRequest(method, requestPath, body, headers = {}) {
+  return {
+    method,
+    url: requestPath,
+    headers,
+    async *[Symbol.asyncIterator]() {
+      yield Buffer.from(body);
     },
     on() {},
   };

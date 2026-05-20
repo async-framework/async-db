@@ -198,6 +198,41 @@ test('client can batch REST requests', async () => {
   assert.equal(calls[0].url, 'http://jsondb.local/__jsondb/batch');
 });
 
+test('client apiBase customizes default REST batch path without changing REST or GraphQL defaults', async () => {
+  const calls = withMockFetch([
+    {
+      status: 200,
+      headers: {},
+      body: [{ id: 'u_1' }],
+    },
+    [
+      {
+        status: 200,
+        headers: {},
+        body: [{ id: 'u_1' }],
+      },
+    ],
+    {
+      data: {
+        users: [{ id: 'u_1' }],
+      },
+    },
+  ]);
+
+  const client = createJsonDbClient({
+    baseUrl: 'http://jsondb.local',
+    apiBase: '/_jsondb',
+  });
+
+  await client.rest.get('/users');
+  await client.rest.batch([{ method: 'GET', path: '/users' }]);
+  await client.graphql('{ users { id } }');
+
+  assert.equal(calls[0].url, 'http://jsondb.local/users');
+  assert.equal(calls[1].url, 'http://jsondb.local/_jsondb/batch');
+  assert.equal(calls[2].url, 'http://jsondb.local/graphql');
+});
+
 test('client can target scoped REST base paths for Vite dev APIs', async () => {
   const calls = withMockFetch([
     {
@@ -264,6 +299,42 @@ test('client fork option derives scoped REST, batch, and GraphQL paths', async (
   assert.equal(calls[0].url, 'http://jsondb.local/__jsondb/forks/legacy-demo/rest/users');
   assert.equal(calls[1].url, 'http://jsondb.local/__jsondb/forks/legacy-demo/batch');
   assert.equal(calls[2].url, 'http://jsondb.local/__jsondb/forks/legacy-demo/graphql');
+});
+
+test('client apiBase option customizes default fork paths', async () => {
+  const calls = withMockFetch([
+    {
+      status: 200,
+      headers: {},
+      body: [{ id: 'u_legacy' }],
+    },
+    [
+      {
+        status: 200,
+        headers: {},
+        body: [{ id: 'u_legacy' }],
+      },
+    ],
+    {
+      data: {
+        users: [{ id: 'u_legacy' }],
+      },
+    },
+  ]);
+
+  const client = createJsonDbClient({
+    baseUrl: 'http://jsondb.local',
+    apiBase: '/_jsondb',
+    fork: 'legacy-demo',
+  });
+
+  await client.rest.get('/users');
+  await client.rest.batch([{ method: 'GET', path: '/users' }]);
+  await client.graphql('{ users { id } }');
+
+  assert.equal(calls[0].url, 'http://jsondb.local/_jsondb/forks/legacy-demo/rest/users');
+  assert.equal(calls[1].url, 'http://jsondb.local/_jsondb/forks/legacy-demo/batch');
+  assert.equal(calls[2].url, 'http://jsondb.local/_jsondb/forks/legacy-demo/graphql');
 });
 
 test('client fork option rejects unsafe fork names', () => {
