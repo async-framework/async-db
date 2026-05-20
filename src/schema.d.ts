@@ -13,6 +13,8 @@ export type FieldOptions<DefaultValue> = {
   nullable?: boolean;
   description?: string;
   default?: DefaultValue;
+  computed?: boolean;
+  readOnly?: boolean;
   relation?: RelationDefinition;
   unique?: boolean;
   min?: number;
@@ -44,6 +46,21 @@ export type ResourceDefinition = {
   seed?: unknown;
 };
 
+export type ComputedFieldResolver<RecordValue = Record<string, unknown>, Value = unknown> = {
+  resolve?: (context: {
+    record: RecordValue;
+    db: unknown;
+    resource: ResourceDefinition & { kind?: 'collection' | 'document' };
+    cache: Map<string, unknown>;
+  }) => Value | Promise<Value>;
+  resolveMany?: (context: {
+    records: RecordValue[];
+    db: unknown;
+    resource: ResourceDefinition & { kind?: 'collection' | 'document' };
+    cache: Map<string, unknown>;
+  }) => Map<string | number, Value> | Value[] | Record<string, Value> | Promise<Map<string | number, Value> | Value[] | Record<string, Value>>;
+};
+
 export function collection(definition: ResourceDefinition): ResourceDefinition & { kind: 'collection' };
 export function document(definition: ResourceDefinition): ResourceDefinition & { kind: 'document' };
 
@@ -60,4 +77,5 @@ export const field: {
   array(items?: FieldDefinition, options?: FieldOptions<unknown[]>): FieldDefinition;
   json(options?: FieldOptions<unknown>): FieldDefinition;
   nullable(definition: FieldDefinition, options?: Omit<FieldOptions<unknown>, 'nullable'>): FieldDefinition;
+  computed(definition: FieldDefinition, resolver?: ComputedFieldResolver): FieldDefinition;
 };

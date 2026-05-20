@@ -540,12 +540,50 @@ test('CLI types --out writes relative to --cwd', async () => {
   assert.match(generated, /export type User =/);
 });
 
+test('CLI operations build writes registry and client refs outputs', async () => {
+  const cwd = await makeProject();
+  await mkdir(path.join(cwd, 'db/operations'), { recursive: true });
+  await writeFile(path.join(cwd, 'db/operations/get-user.jsonc'), `{
+    "name": "GetUser",
+    "path": "/users/{id}.json",
+    "query": {
+      "select": "id,name"
+    }
+  }`, 'utf8');
+  await writeConfig(cwd, `export default {
+    operations: {
+      sourceDir: './db/operations',
+      outFile: './src/generated/db.operations.json',
+      refsOutFile: './src/generated/db.operation-refs.json',
+    },
+  };`);
+
+  const { stdout, stderr } = await execFileAsync(process.execPath, [
+    path.resolve('src/cli.js'),
+    'operations',
+    'build',
+    '--cwd',
+    cwd,
+  ]);
+  const registry = JSON.parse(await readFile(path.join(cwd, 'src/generated/db.operations.json'), 'utf8'));
+  const refs = JSON.parse(await readFile(path.join(cwd, 'src/generated/db.operation-refs.json'), 'utf8'));
+  const [hash] = Object.keys(registry.operations);
+
+  assert.match(stdout, /Generated src\/generated\/db\.operations\.json/);
+  assert.match(stdout, /Generated src\/generated\/db\.operation-refs\.json/);
+  assert.equal(stderr, '');
+  assert.equal(refs.operations.GetUser.hash, hash);
+  assert.equal(refs.operations.GetUser.path, undefined);
+  assert.equal(registry.operations[hash].path, '/users/{id}.json');
+});
+
 test('CLI subcommands print focused help without running the command', async () => {
   await assertCliHelp(['schema', '--help'], /async-db schema infer \[resource\] \[--out <file>\]/);
   await assertCliHelp(['types', '--help'], /Usage:\n  async-db types \[--watch\] \[--out <file>\]/);
   await assertCliHelp(['doctor', '--help'], /Usage:\n  async-db doctor \[--strict\] \[--json\]/);
   await assertCliHelp(['viewer', '--help'], /Usage:\n  async-db viewer manifest \[--out <file>\]/);
   await assertCliHelp(['serve', '--help'], /Usage:\n  async-db serve \[--host <host>\] \[--port <port>\]/);
+  await assertCliHelp(['operations', '--help'], /Usage:\n  async-db operations build \[--out <file>\] \[--refs-out <file>\]/);
   await assertCliHelp(['generate', 'hono', '--help'], /Usage:\n  async-db generate hono/);
 });
 
@@ -559,6 +597,7 @@ test('CLI subcommand help does not load project config', async () => {
   await assertCliHelp(['doctor', '--help'], /Usage:\n  async-db doctor \[--strict\] \[--json\]/, cwd);
   await assertCliHelp(['viewer', '--help'], /Usage:\n  async-db viewer manifest \[--out <file>\]/, cwd);
   await assertCliHelp(['serve', '--help'], /Usage:\n  async-db serve \[--host <host>\] \[--port <port>\]/, cwd);
+  await assertCliHelp(['operations', '--help'], /Usage:\n  async-db operations build \[--out <file>\] \[--refs-out <file>\]/, cwd);
   await assertCliHelp(['generate', 'hono', '--help'], /Usage:\n  async-db generate hono/, cwd);
 });
 

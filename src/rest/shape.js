@@ -1,4 +1,5 @@
 import { dbError, listChoices } from '../errors.js';
+import { resolveSelectedComputedFields } from '../features/runtime/fanout.js';
 import { resolveResource } from '../names.js';
 
 export async function shapeCollectionRead(db, resource, records, url, options = {}) {
@@ -12,7 +13,14 @@ export async function shapeCollectionRead(db, resource, records, url, options = 
     return expanded;
   }
 
-  return expanded.map((record) => projectRecord(record, query));
+  const computed = query.select
+    .filter(([head, child]) => !child && resource.fields?.[head]?.computed)
+    .map(([head]) => head);
+  const resolved = computed.length > 0
+    ? await resolveSelectedComputedFields(db, resource, expanded, computed)
+    : expanded;
+
+  return resolved.map((record) => projectRecord(record, query));
 }
 
 function parseShapeQuery(db, resource, url, options) {

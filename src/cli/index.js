@@ -9,7 +9,8 @@ import { runServe } from './commands/serve.js';
 import { runSync } from './commands/sync.js';
 import { runTypes } from './commands/types.js';
 import { runViewer } from './commands/viewer.js';
-import { printDiagnostic, printDoctorHelp, printGenerateHelp, printHelp, printSchemaHelp, printServeHelp, printTypesHelp, printViewerHelp } from './output.js';
+import { runOperations } from './commands/operations.js';
+import { printDiagnostic, printDoctorHelp, printGenerateHelp, printHelp, printOperationsHelp, printSchemaHelp, printServeHelp, printTypesHelp, printViewerHelp } from './output.js';
 
 export async function main(args = process.argv.slice(2)) {
   const command = args[0] ?? 'help';
@@ -53,6 +54,9 @@ export async function main(args = process.argv.slice(2)) {
     case 'viewer':
       await runViewer(config, args.slice(1));
       break;
+    case 'operations':
+      await runOperations(config, args.slice(1));
+      break;
     case 'generate':
       await runGenerate(config, args.slice(1));
       break;
@@ -82,6 +86,9 @@ function printSubcommandHelp(command, args) {
       return true;
     case 'viewer':
       printViewerHelp();
+      return true;
+    case 'operations':
+      printOperationsHelp();
       return true;
     case 'generate':
       printGenerateHelp(generateHelpUsage(args));

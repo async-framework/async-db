@@ -1,4 +1,5 @@
 import { camelCase, singularResourceName } from '../names.js';
+import { resolveSelectedComputedFields } from '../features/runtime/fanout.js';
 import { describeValue, graphqlError, dbError, listChoices } from '../errors.js';
 import { parseGraphql } from './parser.js';
 
@@ -134,8 +135,10 @@ async function executeRootSelection(db, operation, selection, variables, context
   const result = operation === 'mutation'
     ? await executeMutationField(db, selection, variables)
     : await executeQueryField(db, selection, variables);
-  data[key] = projectValue(result.value, selection.selectionSet, {
+  data[key] = await projectValue(result.value, selection.selectionSet, {
     ...context,
+    db,
+    resource: result.resource ?? null,
     variables,
     typeName: result.typeName,
   });
@@ -175,6 +178,7 @@ async function executeQueryField(db, selection, variables) {
     return {
       value: await db.document(resource.name).all(),
       typeName: resource.typeName,
+      resource,
     };
   }
 
@@ -182,6 +186,7 @@ async function executeQueryField(db, selection, variables) {
     return {
       value: await db.collection(resource.name).all(),
       typeName: resource.typeName,
+      resource,
     };
   }
 
@@ -190,6 +195,7 @@ async function executeQueryField(db, selection, variables) {
   return {
     value: await db.collection(resource.name).get(id),
     typeName: resource.typeName,
+    resource,
   };
 }
 
@@ -213,12 +219,14 @@ async function executeMutationField(db, selection, variables) {
     return {
       value: await executeCollectionMutation(db, mutation, selection, variables),
       typeName: mutation.action === 'delete' ? 'Boolean' : mutation.resource.typeName,
+      resource: mutation.action === 'delete' ? null : mutation.resource,
     };
   }
 
   return {
     value: await executeDocumentMutation(db, mutation, selection, variables),
     typeName: mutation.resource.typeName,
+    resource: mutation.resource,
   };
 }
 
@@ -300,28 +308,37 @@ function mutationActions(resource) {
     : ['update', 'set'];
 }
 
-function projectValue(value, selectionSet, context = {}) {
+async function projectValue(value, selectionSet, context = {}) {
   if (!selectionSet || value === null || value === undefined) {
     return value;
   }
 
   if (Array.isArray(value)) {
-    return value.map((item) => projectValue(item, selectionSet, context));
+    const records = context.resource && !context.computedResolved
+      ? await resolveComputedSelection(value, selectionSet, context)
+      : value;
+    return Promise.all(records.map((item) => projectValue(item, selectionSet, {
+      ...context,
+      computedResolved: true,
+    })));
   }
 
   if (!isObject(value)) {
     return value;
   }
 
+  const objectValue = context.resource && !context.computedResolved
+    ? (await resolveComputedSelection([value], selectionSet, context))[0]
+    : value;
   const projected = {};
   for (const selection of selectionSet) {
-    projectObjectSelection(value, selection, projected, context);
+    await projectObjectSelection(objectValue, selection, projected, context);
   }
 
   return projected;
 }
 
-function projectObjectSelection(value, selection, projected, context) {
+async function projectObjectSelection(value, selection, projected, context) {
   if (!shouldIncludeSelection(selection, context.variables ?? {})) {
     return;
   }
@@ -330,7 +347,7 @@ function projectObjectSelection(value, selection, projected, context) {
     const fragment = requireFragment(context.fragments ?? {}, selection.name);
     if (typeConditionApplies(fragment.typeCondition, context.typeName) && shouldIncludeSelection(fragment, context.variables ?? {})) {
       for (const fragmentSelection of fragment.selectionSet) {
-        projectObjectSelection(value, fragmentSelection, projected, context);
+        await projectObjectSelection(value, fragmentSelection, projected, context);
       }
     }
     return;
@@ -339,7 +356,7 @@ function projectObjectSelection(value, selection, projected, context) {
   if (selection.kind === 'inline_fragment') {
     if (typeConditionApplies(selection.typeCondition, context.typeName)) {
       for (const fragmentSelection of selection.selectionSet) {
-        projectObjectSelection(value, fragmentSelection, projected, context);
+        await projectObjectSelection(value, fragmentSelection, projected, context);
       }
     }
     return;
@@ -351,10 +368,48 @@ function projectObjectSelection(value, selection, projected, context) {
     return;
   }
 
-  projected[key] = projectValue(value[selection.name], selection.selectionSet, {
+  projected[key] = await projectValue(value[selection.name], selection.selectionSet, {
     ...context,
+    resource: null,
     typeName: null,
   });
+}
+
+async function resolveComputedSelection(records, selectionSet, context) {
+  const fieldNames = selectedComputedFieldNames(selectionSet, context);
+  return resolveSelectedComputedFields(context.db, context.resource, records, fieldNames, {
+    cache: context.cache ?? new Map(),
+  });
+}
+
+function selectedComputedFieldNames(selections, context) {
+  const names = [];
+  for (const selection of selections ?? []) {
+    if (!shouldIncludeSelection(selection, context.variables ?? {})) {
+      continue;
+    }
+
+    if (selection.kind === 'fragment_spread') {
+      const fragment = requireFragment(context.fragments ?? {}, selection.name);
+      if (typeConditionApplies(fragment.typeCondition, context.typeName) && shouldIncludeSelection(fragment, context.variables ?? {})) {
+        names.push(...selectedComputedFieldNames(fragment.selectionSet, context));
+      }
+      continue;
+    }
+
+    if (selection.kind === 'inline_fragment') {
+      if (typeConditionApplies(selection.typeCondition, context.typeName)) {
+        names.push(...selectedComputedFieldNames(selection.selectionSet, context));
+      }
+      continue;
+    }
+
+    if (selection.name !== '__typename' && context.resource?.fields?.[selection.name]?.computed) {
+      names.push(selection.name);
+    }
+  }
+
+  return names;
 }
 
 function shouldIncludeSelection(selection, variables) {

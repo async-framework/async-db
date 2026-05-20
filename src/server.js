@@ -1,13 +1,15 @@
 import http from 'node:http';
 import { watch } from 'node:fs';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { openDb } from './db.js';
 import { serializeError } from './errors.js';
 import { loadForkDb } from './features/config/forks.js';
 import { defaultHttpFeatureRegistry } from './features/http/registry.js';
 import { runMockBehavior } from './mock.js';
-import { handleRestRequest, sendJson } from './rest/handler.js';
+import { handleRestRequest, readJsonBody, sendJson } from './rest/handler.js';
+import { operationRequest } from './shared/operations.js';
+import { dbError } from './errors.js';
 import { syncDb } from './sync.js';
 
 export async function startDbServer(options = {}) {
@@ -102,6 +104,18 @@ async function handleRequest(db, request, response, events, routes) {
     return true;
   }
 
+  const operationHash = operationHashForRequest(url, routes);
+  if (operationHash) {
+    await handleRegisteredOperationRequest(db, request, response, operationHash, routes);
+    return true;
+  }
+
+  const exposureViolation = routeExposureViolation(db.config, url, routes);
+  if (exposureViolation) {
+    sendRouteExposureViolation(response, exposureViolation, routes);
+    return true;
+  }
+
   const httpFeatures = defaultHttpFeatureRegistry();
   if (await httpFeatures.handle({ db, request, response, url, routes }, { phase: 'preMock' })) {
     return true;
@@ -130,6 +144,90 @@ async function handleRequest(db, request, response, events, routes) {
 
   await handleRestRequest(db, request, response, restUrl, routes);
   return true;
+}
+
+async function handleRegisteredOperationRequest(db, request, response, hash, routes) {
+  if (db.config.operations?.enabled !== true) {
+    sendJson(response, 404, {
+      error: {
+        code: 'OPERATIONS_DISABLED',
+        message: 'Registered operations are not enabled.',
+        hint: 'Set operations.enabled to true and provide operations.registry or operations.outFile.',
+      },
+    });
+    return;
+  }
+
+  if (request.method !== 'POST') {
+    sendJson(response, 405, {
+      error: {
+        code: 'OPERATION_METHOD_NOT_ALLOWED',
+        message: 'Registered operations must be executed with POST.',
+        hint: `Use POST ${joinPaths(routes.apiBase || '', `/operations/${encodeURIComponent(hash)}`)} with a JSON variables body.`,
+        details: {
+          method: request.method,
+          hash,
+        },
+      },
+    });
+    return;
+  }
+
+  const body = await readJsonBody(request, {
+    maxBytes: Number(db.config.server?.maxBodyBytes ?? 1048576),
+  });
+  const operation = await operationForHash(db.config, hash);
+  if (!operation) {
+    throw dbError(
+      'OPERATION_NOT_FOUND',
+      `Unknown registered operation "${hash}".`,
+      {
+        status: 404,
+        hint: 'Register the operation hash in operations.registry or generate an operations manifest.',
+        details: { hash },
+      },
+    );
+  }
+
+  const restRequest = operationRequest(operation, body?.variables ?? {});
+  const restUrl = new URL(restRequest.path, 'http://db.local');
+  await handleRestRequest(db, internalRestRequest(restRequest), response, restUrl, routes);
+}
+
+async function operationForHash(config, hash) {
+  const registry = await operationRegistry(config);
+  return registry[hash] ?? registry[decodeURIComponent(hash)];
+}
+
+async function operationRegistry(config) {
+  if (config.operations?.registry && Object.keys(config.operations.registry).length > 0) {
+    return config.operations.registry;
+  }
+
+  if (!config.operations?.outFile) {
+    return {};
+  }
+
+  try {
+    const manifest = JSON.parse(await readFile(config.operations.outFile, 'utf8'));
+    return manifest.operations ?? {};
+  } catch {
+    return {};
+  }
+}
+
+function internalRestRequest(restRequest) {
+  return {
+    method: restRequest.method,
+    headers: {
+      'content-type': 'application/json',
+    },
+    async *[Symbol.asyncIterator]() {
+      if (restRequest.body !== undefined) {
+        yield Buffer.from(JSON.stringify(restRequest.body));
+      }
+    },
+  };
 }
 
 export async function reloadDb(db) {
@@ -339,6 +437,180 @@ function forkNameForRequest(url, routes) {
 
 function forkApiBase(routes, forkName) {
   return joinPaths(routes.apiBase || '', `/forks/${encodeURIComponent(forkName)}`);
+}
+
+function operationHashForRequest(url, routes) {
+  const prefix = `${joinPaths(routes.apiBase || '', '/operations')}/`;
+  if (!url.pathname.startsWith(prefix)) {
+    return null;
+  }
+
+  const [hash] = url.pathname.slice(prefix.length).split('/');
+  return hash ? decodeURIComponent(hash) : null;
+}
+
+function routeExposureViolation(config, url, routes) {
+  const kind = routeExposureKind(url, routes);
+  if (!kind) {
+    return null;
+  }
+
+  const exposure = config.server?.expose?.[kind] ?? 'open';
+  if (routeExposureAllows(exposure)) {
+    return null;
+  }
+
+  return {
+    kind,
+    exposure,
+    path: url.pathname,
+  };
+}
+
+function routeExposureKind(url, routes) {
+  if (url.pathname === routes.graphqlPath) {
+    return 'graphql';
+  }
+
+  if (url.pathname === routes.schemaPath) {
+    return 'schema';
+  }
+
+  if (isManifestRoutePath(url.pathname, routes)) {
+    return 'manifest';
+  }
+
+  if ([routes.viewerPath, routes.eventsPath, routes.logPath, routes.importPath].includes(url.pathname)) {
+    return 'viewer';
+  }
+
+  if (isRestExposurePath(url, routes)) {
+    return 'rest';
+  }
+
+  return null;
+}
+
+function isRestExposurePath(url, routes) {
+  if (url.pathname === routes.batchPath) {
+    return true;
+  }
+
+  if (routes.restBasePath && pathStartsWith(url.pathname, routes.restBasePath)) {
+    return true;
+  }
+
+  if (routes.dataPath && pathStartsWith(url.pathname, routes.dataPath)) {
+    return true;
+  }
+
+  return routes.rootRoutes === true;
+}
+
+function routeExposureAllows(exposure) {
+  if (exposure === undefined || exposure === null || exposure === 'open') {
+    return true;
+  }
+
+  if (exposure === 'dev') {
+    return process.env.NODE_ENV !== 'production';
+  }
+
+  return false;
+}
+
+function sendRouteExposureViolation(response, violation, routes) {
+  const label = routeExposureLabel(violation.kind);
+
+  if (violation.kind === 'rest' && violation.exposure === 'registered-only') {
+    sendJson(response, 403, {
+      error: {
+        code: 'REST_REGISTERED_ONLY',
+        message: 'Raw REST routes are configured for registered operations only.',
+        hint: `Use POST ${joinPaths(routes.apiBase || '', '/operations/{hash}')} with a registered operation hash.`,
+        details: {
+          path: violation.path,
+          exposure: violation.exposure,
+          route: violation.kind,
+        },
+      },
+    });
+    return;
+  }
+
+  if (violation.exposure === 'registered-only') {
+    sendJson(response, 403, {
+      error: {
+        code: `${label.code}_REGISTERED_ONLY`,
+        message: `${label.display} routes are configured for registered operations only.`,
+        hint: `Set server.expose.${violation.kind} to "open" or "dev" when this route should be reachable.`,
+        details: {
+          path: violation.path,
+          exposure: violation.exposure,
+          route: violation.kind,
+        },
+      },
+    });
+    return;
+  }
+
+  if (violation.exposure === 'dev') {
+    sendJson(response, 404, {
+      error: {
+        code: `${label.code}_DEV_ONLY`,
+        message: `${label.display} routes are only exposed outside NODE_ENV=production.`,
+        hint: `Set server.expose.${violation.kind} to "open" when this route should be reachable in production.`,
+        details: {
+          path: violation.path,
+          exposure: violation.exposure,
+          route: violation.kind,
+        },
+      },
+    });
+    return;
+  }
+
+  sendJson(response, 404, {
+    error: {
+      code: `${label.code}_DISABLED`,
+      message: `${label.display} routes are disabled by server exposure policy.`,
+      hint: `Set server.expose.${violation.kind} to "open" or "dev" when this route should be reachable.`,
+      details: {
+        path: violation.path,
+        exposure: violation.exposure,
+        route: violation.kind,
+      },
+    },
+  });
+}
+
+function routeExposureLabel(kind) {
+  const labels = {
+    graphql: {
+      code: 'GRAPHQL',
+      display: 'GraphQL',
+    },
+    manifest: {
+      code: 'MANIFEST',
+      display: 'Manifest',
+    },
+    rest: {
+      code: 'REST',
+      display: 'REST',
+    },
+    schema: {
+      code: 'SCHEMA',
+      display: 'Schema',
+    },
+    viewer: {
+      code: 'VIEWER',
+      display: 'Viewer',
+    },
+  };
+  return labels[kind] ?? {
+    code: 'ROUTE',
+    display: 'Route',
+  };
 }
 
 function restUrlForRequest(url, routes) {

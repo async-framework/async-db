@@ -1,4 +1,5 @@
 import { dbError } from './errors.js';
+import { isOperationHash, operationRequest } from './shared/operations.js';
 
 export function createDbClient(options = {}) {
   const baseUrl = options.baseUrl ?? '';
@@ -62,6 +63,25 @@ export function createDbClient(options = {}) {
     return postJson(resolveUrl(baseUrl, restBatchPath), requests.map(normalizeRestRequestObject));
   }
 
+  async function operation(template, variables = {}, requestOptions = {}) {
+    const request = typeof template === 'string' && isOperationHash(template)
+      ? { hash: template }
+      : operationRequest(template, variables);
+
+    if (request.hash) {
+      return postJson(resolveUrl(baseUrl, `${apiBase}/operations/${encodeURIComponent(request.hash)}`), {
+        variables,
+      });
+    }
+
+    if (shouldBatch(requestOptions, batching)) {
+      const result = await restQueue({ request });
+      return result.body;
+    }
+
+    return restDirect(request).then((result) => result.body);
+  }
+
   graphql.batch = graphqlBatch;
   graphql.request = graphql;
   rest.batch = restBatch;
@@ -74,6 +94,7 @@ export function createDbClient(options = {}) {
 
   return {
     graphql,
+    operation,
     rest,
   };
 }

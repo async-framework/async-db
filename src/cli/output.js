@@ -30,6 +30,7 @@ Usage:
   async-db schema bundle <resource> [--out <file>] [--force]
   async-db schema manifest [--out <file>]
   async-db schema validate
+  async-db operations build [--out <file>] [--refs-out <file>]
   async-db viewer manifest [--out <file>]
   async-db doctor [--strict] [--json]
   async-db check [--strict] [--json]
@@ -38,6 +39,20 @@ Usage:
   async-db generate hono [--out <dir>] [--api <targets>] [--app <shape>]
 
 Options:
+  --cwd <dir>       Project directory
+  --config <file>   Config file path
+`);
+}
+
+export function printOperationsHelp() {
+  console.log(`async-db operations
+
+Usage:
+  async-db operations build [--out <file>] [--refs-out <file>]
+
+Options:
+  --out <file>      Write the full server operation registry
+  --refs-out <file> Write client-safe operation refs
   --cwd <dir>       Project directory
   --config <file>   Config file path
 `);

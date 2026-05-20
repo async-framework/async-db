@@ -58,6 +58,13 @@ export const DEFAULT_CONFIG = {
     enabled: true,
     path: '/graphql',
   },
+  operations: {
+    enabled: false,
+    sourceDir: './db/operations',
+    outFile: null,
+    refsOutFile: null,
+    registry: {},
+  },
   mock: {
     delay: [30, 100],
     errors: null,

@@ -177,6 +177,8 @@ function defaultFieldManifest(fieldName, field, resource, config, diagnostics, f
   for (const property of [
     'description',
     'default',
+    'computed',
+    'readOnly',
     'values',
     'relation',
     'unique',
@@ -268,7 +270,7 @@ function inferFieldUi(fieldName, field, resource, fieldPath) {
     component: componentForField(fieldName, field),
   };
 
-  if (resource.kind === 'collection' && fieldPath === resource.idField) {
+  if ((resource.kind === 'collection' && fieldPath === resource.idField) || field.readOnly) {
     ui.readonly = true;
   }
 

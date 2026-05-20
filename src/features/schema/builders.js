@@ -76,6 +76,17 @@ export const field = {
       nullable: true,
     };
   },
+
+  computed(definition, resolver = {}) {
+    return {
+      ...definition,
+      computed: true,
+      readOnly: true,
+      required: false,
+      resolve: resolver.resolve,
+      resolveMany: resolver.resolveMany,
+    };
+  },
 };
 
 function isFieldMap(value) {

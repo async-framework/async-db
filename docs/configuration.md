@@ -32,8 +32,10 @@ See [db.config.example.mjs](../db.config.example.mjs) for a commented config wit
 | Importable generated types | `.db/types/index.ts` | `types.commitOutFile` |
 | Importable schema manifest | Off | `schemaOutFile` |
 | Importable viewer manifest | Off | `viewerManifestOutFile` |
+| Registered REST operation hashes | Off | `operations` |
 | REST response formats | `.json`, `.html`, `.md` | `rest.formats` |
 | App-facing data route base | `/db` | `server.dataPath` |
+| Route exposure policy | Open | `server.expose` |
 | Unknown fields | Warn | `schema.unknownFields` |
 | Schema defaults | Create and safe hydration | `defaults` |
 | Schema-only mock records | Off | `seed.generateFromSchema` |
@@ -93,9 +95,23 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 7331,
     maxBodyBytes: 1048576,
+    expose: {
+      rest: 'open',
+      graphql: 'open',
+      viewer: 'dev',
+      schema: 'dev',
+      manifest: 'dev',
+    },
     viewerLinks: [
       { label: 'App Data Viewer', href: 'http://127.0.0.1:5173/db' },
     ],
+  },
+
+  operations: {
+    enabled: false,
+    sourceDir: './db/operations',
+    outFile: './src/generated/db.operations.json',
+    refsOutFile: './src/generated/db.operation-refs.json',
   },
 
   rest: {
@@ -274,6 +290,62 @@ you configure those surfaces separately.
 `/db`, so `db/users.json` is available at `GET /db/users.json`. Set it to
 `false` to disable the alias and use scoped REST under `/__db/rest` plus
 standalone root REST routes.
+
+Use `server.expose` when a project wants production-like route hardening:
+
+```js
+import { defineConfig } from '@async/db/config';
+
+export default defineConfig({
+  operations: {
+    enabled: true,
+    outFile: './src/generated/db.operations.json',
+  },
+  server: {
+    expose: {
+      rest: 'registered-only',
+      graphql: false,
+      viewer: 'dev',
+      schema: 'dev',
+      manifest: 'dev',
+    },
+  },
+});
+```
+
+Exposure values are `open`, `registered-only`, `dev`, `disabled`, and `false`.
+`dev` routes are available unless `NODE_ENV=production`. `registered-only` is
+primarily for REST: raw REST resource and batch routes are blocked, while
+`POST /__db/operations/:hash` can still execute registered operation templates.
+
+## Registered Operations
+
+Registered operations are optional REST-native request templates. They are not a
+GraphQL wrapper. Put operation sources under `operations.sourceDir` and build
+server and client artifacts:
+
+```txt
+db/operations/get-user.jsonc
+```
+
+```json
+{
+  "name": "GetUser",
+  "method": "GET",
+  "path": "/users/{id}.json",
+  "query": {
+    "select": "id,name"
+  }
+}
+```
+
+```bash
+async-db operations build
+```
+
+`operations.outFile` receives the full server registry with templates.
+`operations.refsOutFile` receives client-safe refs with names and hashes only.
+Hashes are allowlist identifiers, not secrets.
 
 ## Database Forks
 

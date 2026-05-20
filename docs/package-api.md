@@ -18,6 +18,8 @@ npm run db -- schema infer users --out db/users.schema.jsonc
 npm run db -- schema manifest --out ./src/generated/db.schema.json
 npm run db -- schema validate
 npm run db -- viewer manifest --out ./src/generated/db.viewer.json
+npm run db -- operations build
+npm run db -- operations build --out ./src/generated/db.operations.json --refs-out ./src/generated/db.operation-refs.json
 npm run db -- doctor
 npm run db -- doctor --json
 npm run db -- check --strict
@@ -34,6 +36,7 @@ async-db sync
 async-db types
 async-db schema validate
 async-db viewer manifest --out ./src/generated/db.viewer.json
+async-db operations build
 async-db doctor
 async-db check --strict
 async-db serve
@@ -116,6 +119,26 @@ const batch = await client.rest.batch([
 
 The client can batch requests made within a short timeout. The default batching window is `10ms`. Identical REST `GET` requests are deduped by default. Writes are not deduped unless you explicitly choose `dedupe: 'all'`.
 
+Run registered or literal REST operations through the same client:
+
+```ts
+await client.operation('/users/{id}.json?select=id,name', { id: 'u_1' });
+
+await client.operation({
+  method: 'GET',
+  path: '/users/{id}.json',
+  query: {
+    select: 'id,name',
+  },
+}, { id: 'u_1' });
+
+await client.operation({ name: 'GetUser', hash: 'sha256:abc123' }, { id: 'u_1' });
+```
+
+Literal string and JSON templates execute as normal REST requests. Hash refs call
+`POST /__db/operations/:hash`; the server looks up the registered template,
+substitutes variables, and runs it through normal REST shaping.
+
 ## Fork Client
 
 ```ts
@@ -153,6 +176,10 @@ The helper is also attached to the default client as `db.fork('legacy-demo')`.
 | `@async/db/sqlite` | Optional SQLite adapter helpers. |
 
 The core package stays dependency-light. Optional integrations use dynamic imports or generated app dependencies.
+
+The root export also includes `hashOperation()` and `buildOperationManifest()`
+for tools that want to build operation registries without shelling out to the
+CLI.
 
 ## Repo Example Launcher
 

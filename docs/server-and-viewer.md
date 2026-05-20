@@ -163,6 +163,11 @@ curl -X PATCH http://127.0.0.1:7331/db/users/u_2 \
 curl -X DELETE http://127.0.0.1:7331/db/users/u_2
 ```
 
+Schema-backed computed fields are resolved only when selected. For example,
+`GET /users/u_1.json?select=id,fullName` calls the trusted resolver registered
+by `field.computed(...)`; default reads continue returning only stored fixture
+fields.
+
 ## REST Formats
 
 Resource `GET` routes return JSON by default. The explicit `.json` extension uses the same shaped data:
@@ -281,6 +286,70 @@ Errors are shaped for humans and automation:
 }
 ```
 
+## Registered REST Operations
+
+Registered operations are optional REST request templates with stable SHA-256
+hashes. They let production-style apps allowlist specific REST reads while local
+fixture CRUD can stay open by default.
+
+```txt
+GET /users/{id}.json?select=id,name
+```
+
+```json
+{
+  "name": "GetUser",
+  "method": "GET",
+  "path": "/users/{id}.json",
+  "query": {
+    "select": "id,name"
+  }
+}
+```
+
+Build the registry and optional client-safe refs:
+
+```bash
+async-db operations build --out ./src/generated/db.operations.json --refs-out ./src/generated/db.operation-refs.json
+```
+
+At runtime, hash execution is always a POST to the dev-tool base:
+
+```bash
+curl -X POST http://127.0.0.1:7331/__db/operations/sha256:abc123 \
+  -H 'content-type: application/json' \
+  -d '{"variables":{"id":"u_1"}}'
+```
+
+The hash is an allowlist key, not a secret. Keep the full registry server-side.
+Client refs should contain names and hashes but not full request templates.
+
+To block raw REST while allowing registered hashes:
+
+```js
+import { defineConfig } from '@async/db/config';
+
+export default defineConfig({
+  operations: {
+    enabled: true,
+    outFile: './src/generated/db.operations.json',
+  },
+  server: {
+    expose: {
+      rest: 'registered-only',
+      graphql: false,
+      viewer: 'dev',
+      schema: 'dev',
+      manifest: 'dev',
+    },
+  },
+});
+```
+
+`registered-only` blocks raw REST resource and batch routes. Registered
+operation execution still uses normal REST shaping, including `select`, formats,
+schema validation, and computed resolver projection.
+
 ## GraphQL Boundary
 
 GraphQL is available at `/graphql` for apps that prefer it. It supports aliases, variables, `operationName`, `__typename`, named and inline fragments, `@include`/`@skip`, HTTP batching, and minimal `__schema`/`__type` introspection for local tooling.
@@ -290,6 +359,13 @@ Set `graphql.enabled: false` when an app wants REST, schema, manifest, viewer, i
 GraphQL HTTP batches execute sequentially and are intentionally non-transactional. If an earlier mutation succeeds and a later batch item fails, the earlier mutation stays committed.
 
 REST remains the documented happy path because REST plus the viewer is the intended default workflow.
+
+GraphQL selections use the same read projection/fanout path as REST for computed
+fields, but registered operations are REST-native and do not wrap GraphQL.
+
+Use `server.expose.graphql`, `server.expose.viewer`, `server.expose.schema`, and
+`server.expose.manifest` to keep non-REST surfaces `open`, `dev`, or disabled in
+production-like servers.
 
 Unsupported in v1:
 

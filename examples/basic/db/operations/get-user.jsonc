@@ -1,0 +1,8 @@
+{
+  "name": "GetUser",
+  "method": "GET",
+  "path": "/users/{id}.json",
+  "query": {
+    "select": "id,name,email"
+  }
+}

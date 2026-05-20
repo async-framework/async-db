@@ -150,6 +150,35 @@ export type DbRuntimeEvents = {
   subscribe(subscriber: (event: DbRuntimeEvent) => void): () => void;
 };
 
+export type DbRouteExposure = 'open' | 'registered-only' | 'dev' | 'disabled' | false;
+
+export type DbOperationTemplate = string | {
+  name?: string;
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | string;
+  path: string;
+  query?: string | Record<string, unknown>;
+  body?: unknown;
+  variables?: Record<string, unknown>;
+};
+
+export type DbOperationRef = {
+  name?: string;
+  hash: string;
+};
+
+export type DbOperationsOptions = {
+  /** Enable registered operation execution. Defaults to false. */
+  enabled?: boolean;
+  /** Folder containing operation source templates. Defaults to "./db/operations". */
+  sourceDir?: string;
+  /** Full server registry output path. */
+  outFile?: string | null;
+  /** Client-safe refs output path. */
+  refsOutFile?: string | null;
+  /** Inline server registry keyed by operation hash. */
+  registry?: Record<string, Exclude<DbOperationTemplate, string> & { hash?: string }>;
+};
+
 export type DbSourceReaderContext = {
   /** Repo-relative source path, such as "db/users.json". */
   file: string;
@@ -327,6 +356,14 @@ export type DbOptions = {
       label?: string;
       href: string;
     }>;
+    /** Route exposure policy for hardened local/prod-like servers. */
+    expose?: {
+      rest?: DbRouteExposure;
+      graphql?: DbRouteExposure;
+      viewer?: DbRouteExposure;
+      schema?: DbRouteExposure;
+      manifest?: DbRouteExposure;
+    };
   };
   rest?: {
     /** Enable generated REST routes. */
@@ -340,6 +377,8 @@ export type DbOptions = {
     /** GraphQL HTTP path. Defaults to "/graphql". */
     path?: string;
   };
+  /** Optional registered REST operation settings. */
+  operations?: DbOperationsOptions;
   mock?: {
     /** Local response delay in ms, [minMs, maxMs], or an object range. Defaults to [30, 100]. Use 0 to disable. */
     delay?: number | [number, number] | {
@@ -477,6 +516,11 @@ export type DbClient = {
     put(path: string, body?: unknown, options?: DbClientRequestOptions): Promise<RestBatchResult>;
     delete(path: string, options?: DbClientRequestOptions): Promise<RestBatchResult>;
   };
+  operation(
+    operation: DbOperationTemplate | DbOperationRef,
+    variables?: Record<string, unknown>,
+    options?: DbClientRequestOptions,
+  ): Promise<unknown>;
 };
 
 export type DbDoctorSeverity = 'error' | 'warn' | 'info';
@@ -538,6 +582,21 @@ export function generateSchemaManifest(config: DbOptions, options?: { outFile?: 
 export function renderSchemaManifest(resources: unknown[], config?: DbOptions): unknown;
 export function generateViewerManifest(config: DbOptions, options?: { outFile?: string }): Promise<{ manifest: unknown; content: string; outFiles: string[] }>;
 export function renderViewerManifest(resources: unknown[], config?: DbOptions): unknown;
+export function hashOperation(operation: DbOperationTemplate): string;
+export function buildOperationManifest(
+  config: DbOptions,
+  options?: {
+    outFile?: string;
+    refsOutFile?: string;
+    generatedAt?: string;
+    operations?: DbOperationTemplate[];
+  },
+): Promise<{
+  manifest: unknown;
+  refs: unknown;
+  outFiles: string[];
+  refsOutFiles: string[];
+}>;
 export function mergeManifest(base: unknown, patch: unknown): unknown;
 export function resourceNameFromPath(file: string, options?: { strategy?: DbResourceNamingStrategy }): string;
 export function parseFixturePath(file: string): {

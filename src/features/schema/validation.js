@@ -55,6 +55,11 @@ export function validateRecordAgainstResource(record, resource, config, options 
   }
 
   for (const [fieldName, field] of Object.entries(fields)) {
+    if (field.readOnly && record[fieldName] !== undefined) {
+      diagnostics.push(readOnlyFieldDiagnostic(resource, fieldName, source));
+      continue;
+    }
+
     if (field.required && (record[fieldName] === undefined || (record[fieldName] === null && !field.nullable))) {
       diagnostics.push({
         code: 'SCHEMA_REQUIRED_FIELD_MISSING',
@@ -76,6 +81,21 @@ export function validateRecordAgainstResource(record, resource, config, options 
   }
 
   return diagnostics;
+}
+
+function readOnlyFieldDiagnostic(resource, fieldName, source) {
+  return {
+    code: 'FIELD_READ_ONLY',
+    severity: 'error',
+    resource: resource.name,
+    field: fieldName,
+    message: `${source} cannot include read-only field "${fieldName}"`,
+    hint: 'Remove computed or read-only fields from write bodies; db resolves them during reads.',
+    details: {
+      resource: resource.name,
+      field: fieldName,
+    },
+  };
 }
 
 export function validateValueAgainstField(value, field, context) {

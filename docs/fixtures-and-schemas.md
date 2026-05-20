@@ -128,6 +128,47 @@ export default collection({
 
 `.schema.mjs` files execute as trusted local project JavaScript.
 
+## Computed Fields
+
+Use computed fields when an explicit schema needs trusted project code to derive
+read-only values for REST and GraphQL projections:
+
+```js
+import { collection, field } from '@async/db/schema';
+
+export default collection({
+  idField: 'id',
+  fields: {
+    id: field.string({ required: true }),
+    firstName: field.string({ required: true }),
+    lastName: field.string({ required: true }),
+    fullName: field.computed(field.string(), {
+      resolve({ record }) {
+        return `${record.firstName} ${record.lastName}`;
+      },
+      resolveMany({ records }) {
+        return records.map((record) => `${record.firstName} ${record.lastName}`);
+      },
+    }),
+  },
+});
+```
+
+Computed fields are read-only and are rejected on package API, REST, GraphQL,
+and registered operation writes. Generated schema, viewer manifest, and
+TypeScript output include serializable metadata such as `computed` and
+`readOnly`, but resolver functions stay in memory only.
+
+REST resolves computed fields only when selected:
+
+```txt
+GET /users/u_1.json?select=id,fullName
+```
+
+GraphQL selections use the same projection/fanout layer. Collection reads prefer
+`resolveMany` so one resolver can handle the selected page of records; single
+reads and fields without `resolveMany` fall back to `resolve`.
+
 ## Inference
 
 Inspect inferred contracts:

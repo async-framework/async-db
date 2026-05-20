@@ -9,6 +9,7 @@ export function buildResource({ name, dataPath, dataFormat, dataHash, schemaPath
     const idField = rawSchema.idField ?? collectionConfig.idField ?? 'id';
     const schemaSeed = rawSchema.seed ?? emptySeedForKind(kind);
     const seed = rawData !== undefined ? rawData : schemaSeed;
+    const resolvers = resolversForFieldMap(rawSchema.fields ?? {});
     let fields = Object.fromEntries(
       Object.entries(rawSchema.fields ?? {}).map(([fieldName, field]) => [fieldName, normalizeField(field, fieldName)]),
     );
@@ -32,6 +33,7 @@ export function buildResource({ name, dataPath, dataFormat, dataHash, schemaPath
       schemaSource: schemaSource ?? null,
       typeSource: 'schema',
       generatedIds: idResult.generated,
+      resolvers,
     });
   }
 
@@ -56,7 +58,30 @@ export function buildResource({ name, dataPath, dataFormat, dataHash, schemaPath
     schemaSource: null,
     typeSource: 'data',
     generatedIds: idResult.generated,
+    resolvers: { fields: {} },
   });
+}
+
+function resolversForFieldMap(fields) {
+  const resolvers = {};
+  for (const [fieldName, field] of Object.entries(fields ?? {})) {
+    if (!field || typeof field !== 'object' || Array.isArray(field)) {
+      continue;
+    }
+
+    const resolver = {};
+    if (typeof field.resolve === 'function') {
+      resolver.resolve = field.resolve;
+    }
+    if (typeof field.resolveMany === 'function') {
+      resolver.resolveMany = field.resolveMany;
+    }
+    if (Object.keys(resolver).length > 0) {
+      resolvers[fieldName] = resolver;
+    }
+  }
+
+  return { fields: resolvers };
 }
 
 function coerceCsvSeedToSchema(seed, fields, kind) {

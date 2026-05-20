@@ -15,6 +15,19 @@ export function normalizeField(field, fieldName = '') {
     normalized.required = Boolean(field.required);
   }
 
+  if ('computed' in field) {
+    normalized.computed = Boolean(field.computed);
+  }
+
+  if ('readOnly' in field) {
+    normalized.readOnly = Boolean(field.readOnly);
+  }
+
+  if (normalized.computed) {
+    normalized.readOnly = true;
+    normalized.required = false;
+  }
+
   if ('description' in field) {
     normalized.description = String(field.description);
   }

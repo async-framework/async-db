@@ -52,6 +52,18 @@ export async function loadConfig(options = {}) {
     merged.viewerManifestOutFile = resolveFrom(cwd, merged.viewerManifestOutFile);
   }
 
+  if (merged.operations?.sourceDir) {
+    merged.operations.sourceDir = resolveFrom(cwd, merged.operations.sourceDir);
+  }
+
+  if (merged.operations?.outFile) {
+    merged.operations.outFile = resolveFrom(cwd, merged.operations.outFile);
+  }
+
+  if (merged.operations?.refsOutFile) {
+    merged.operations.refsOutFile = resolveFrom(cwd, merged.operations.refsOutFile);
+  }
+
   merged.forks = normalizeForks(merged, merged.forks);
 
   return merged;

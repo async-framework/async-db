@@ -614,6 +614,164 @@ test('request handler returns a structured 404 for unknown forks', async () => {
   assert.equal(response.json().error.code, 'FORK_NOT_FOUND');
 });
 
+test('request handler executes registered operations while blocking raw REST when configured', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([
+    {
+      id: 'u_1',
+      name: 'Ada',
+      email: 'ada@example.com',
+    },
+  ]));
+
+  const db = await openDb({
+    cwd,
+    operations: {
+      enabled: true,
+      registry: {
+        'sha256:abc123': {
+          name: 'GetUser',
+          method: 'GET',
+          path: '/users/{id}.json',
+          query: {
+            select: 'id,name',
+          },
+        },
+      },
+    },
+    server: {
+      expose: {
+        rest: 'registered-only',
+      },
+    },
+  });
+  const handler = createDbRequestHandler(db);
+  const rawUsers = makeResponse();
+  const batch = makeResponse();
+  const operation = makeResponse();
+
+  assert.equal(await handler(makeRequest('GET', '/users'), rawUsers), true);
+  assert.equal(await handler(makeRequest('POST', '/__db/batch', [
+    { method: 'GET', path: '/users' },
+  ]), batch), true);
+  assert.equal(await handler(makeRequest('POST', '/__db/operations/sha256%3Aabc123', {
+    variables: {
+      id: 'u_1',
+    },
+  }), operation), true);
+
+  assert.equal(rawUsers.status, 403);
+  assert.equal(rawUsers.json().error.code, 'REST_REGISTERED_ONLY');
+  assert.equal(batch.status, 403);
+  assert.equal(batch.json().error.code, 'REST_REGISTERED_ONLY');
+  assert.equal(operation.status, 200);
+  assert.deepEqual(operation.json(), {
+    id: 'u_1',
+    name: 'Ada',
+  });
+});
+
+test('request handler can execute registered operations from a generated registry file', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([
+    {
+      id: 'u_1',
+      name: 'Ada',
+      email: 'ada@example.com',
+    },
+  ]));
+  await mkdir(path.join(cwd, 'src/generated'), { recursive: true });
+  await writeFile(path.join(cwd, 'src/generated/db.operations.json'), JSON.stringify({
+    version: 1,
+    kind: 'db.operations',
+    operations: {
+      'sha256:abc123': {
+        name: 'GetUser',
+        method: 'GET',
+        path: '/users/{id}.json',
+        query: {
+          select: 'id,email',
+        },
+      },
+    },
+  }), 'utf8');
+
+  const db = await openDb({
+    cwd,
+    operations: {
+      enabled: true,
+      outFile: './src/generated/db.operations.json',
+    },
+  });
+  const handler = createDbRequestHandler(db);
+  const operation = makeResponse();
+
+  assert.equal(await handler(makeRequest('POST', '/__db/operations/sha256%3Aabc123', {
+    variables: {
+      id: 'u_1',
+    },
+  }), operation), true);
+
+  assert.equal(operation.status, 200);
+  assert.deepEqual(operation.json(), {
+    id: 'u_1',
+    email: 'ada@example.com',
+  });
+});
+
+test('request handler applies route exposure policies beyond REST', async (t) => {
+  const previousNodeEnv = process.env.NODE_ENV;
+  t.after(() => {
+    if (previousNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = previousNodeEnv;
+    }
+  });
+
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([{ id: 'u_1', name: 'Ada' }]));
+
+  process.env.NODE_ENV = 'production';
+  const db = await openDb({
+    cwd,
+    allowSourceErrors: true,
+    server: {
+      expose: {
+        graphql: false,
+        viewer: 'dev',
+        schema: 'disabled',
+        manifest: 'registered-only',
+      },
+    },
+  });
+  const handler = createDbRequestHandler(db);
+  const graphql = makeResponse();
+  const viewer = makeResponse();
+  const schema = makeResponse();
+  const manifest = makeResponse();
+  const users = makeResponse();
+
+  assert.equal(await handler(makeRequest('POST', '/graphql', {
+    query: '{ users { id } }',
+  }), graphql), true);
+  assert.equal(await handler(makeRequest('GET', '/__db'), viewer), true);
+  assert.equal(await handler(makeRequest('GET', '/__db/schema'), schema), true);
+  assert.equal(await handler(makeRequest('GET', '/__db/manifest.json'), manifest), true);
+  assert.equal(await handler(makeRequest('GET', '/users'), users), true);
+
+  assert.equal(graphql.status, 404);
+  assert.equal(graphql.json().error.code, 'GRAPHQL_DISABLED');
+  assert.equal(viewer.status, 404);
+  assert.equal(viewer.json().error.code, 'VIEWER_DEV_ONLY');
+  assert.equal(schema.status, 404);
+  assert.equal(schema.json().error.code, 'SCHEMA_DISABLED');
+  assert.equal(manifest.status, 403);
+  assert.equal(manifest.json().error.code, 'MANIFEST_REGISTERED_ONLY');
+  assert.equal(users.status, 200);
+  assert.deepEqual(users.json(), [{ id: 'u_1', name: 'Ada' }]);
+});
+
 test('request handler streams live runtime log events', async () => {
   const cwd = await makeProject();
   await writeFixture(cwd, 'users.json', JSON.stringify([

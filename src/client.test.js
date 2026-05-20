@@ -443,6 +443,58 @@ test('client HTTP errors explain the failing URL and response body', async () =>
   );
 });
 
+test('client operation executes literal REST templates and hash references', async () => {
+  const calls = withMockFetch([
+    {
+      id: 'u_1',
+      name: 'Ada',
+    },
+    {
+      id: 'u_1',
+      name: 'Ada',
+    },
+    {
+      id: 'u_1',
+      name: 'Ada',
+    },
+    {
+      id: 'u_1',
+      name: 'Ada',
+    },
+  ]);
+  const client = createDbClient({ baseUrl: 'http://db.local' });
+
+  await client.operation('/users/{id}.json?select=id,name', { id: 'u 1' });
+  await client.operation({
+    method: 'GET',
+    path: '/users/{id}.json',
+    query: {
+      select: 'id,name',
+    },
+  }, { id: 'u_1' });
+  await client.operation('sha256:abc123', { id: 'u_1' });
+  await client.operation({ name: 'GetUser', hash: 'sha256:def456' }, { id: 'u_2' });
+
+  assert.equal(calls[0].url, 'http://db.local/users/u%201.json?select=id,name');
+  assert.equal(calls[0].init.method, 'GET');
+  assert.equal(calls[1].url, 'http://db.local/users/u_1.json?select=id,name');
+  assert.equal(calls[1].init.method, 'GET');
+  assert.equal(calls[2].url, 'http://db.local/__db/operations/sha256%3Aabc123');
+  assert.equal(calls[2].init.method, 'POST');
+  assert.deepEqual(JSON.parse(calls[2].init.body), {
+    variables: {
+      id: 'u_1',
+    },
+  });
+  assert.equal(calls[3].url, 'http://db.local/__db/operations/sha256%3Adef456');
+  assert.equal(calls[3].init.method, 'POST');
+  assert.deepEqual(JSON.parse(calls[3].init.body), {
+    variables: {
+      id: 'u_2',
+    },
+  });
+});
+
 function withMockFetch(responses) {
   const originalFetch = globalThis.fetch;
   const calls = [];

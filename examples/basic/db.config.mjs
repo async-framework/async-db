@@ -13,6 +13,12 @@ export default defineConfig({
   schema: {
     unknownFields: 'warn',
   },
+  operations: {
+    enabled: false,
+    sourceDir: './db/operations',
+    outFile: './src/generated/db.operations.json',
+    refsOutFile: './src/generated/db.operation-refs.json',
+  },
   rest: {
     formats: {
       yaml: {
