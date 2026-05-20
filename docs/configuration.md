@@ -291,6 +291,49 @@ you configure those surfaces separately.
 `false` to disable the alias and use scoped REST under `/__db/rest` plus
 standalone root REST routes.
 
+### Request Tracing
+
+Request tracing is opt-in and safe for local debugging. It records handled DB
+HTTP requests, phase timings, route/resource/operation metadata, slow status,
+and hook short-circuit metadata when available. It records query keys only, not
+query values, request bodies, response bodies, cookie headers, or authorization
+headers.
+
+```js
+import { defineConfig } from '@async/db/config';
+
+export default defineConfig({
+  server: {
+    trace: {
+      enabled: true,
+      slowMs: 100,
+      console: true,
+      events: true,
+      header: 'x-async-db-request-id',
+    },
+  },
+});
+```
+
+Use `server.trace: true` to enable tracing with defaults:
+`slowMs: 0`, `console: true`, `events: true`, and
+`header: 'x-async-db-request-id'`. Set `server.trace: false` or omit it to keep
+tracing disabled.
+
+Trace events are emitted through the runtime log stream, so `GET /__db/log`
+shows request traces alongside normal resource-change events. Console output is
+compact:
+
+```txt
+[async-db] GET /db/users 200 18ms route=rest resource=users op=list requestId=...
+[async-db:slow] GET /__db/rest/users/u_1 401 122ms route=hono-rest resource=users op=get hook=beforeRequest shortCircuit=true requestId=...
+```
+
+Explicit integration options such as `createDbRequestHandler(db, { trace })`,
+`dbPlugin({ trace })`, `createDbHonoApp({ trace })`, and
+`registerDbRoutes(app, db, { trace })` win over `db.config.mjs`
+`server.trace`.
+
 Use `server.expose` when a project wants production-like route hardening:
 
 ```js

@@ -259,6 +259,109 @@ test('registerDbRoutes supports beforeWrite short-circuiting', async () => {
   assert.equal(await db.collection('pages').exists('home'), false);
 });
 
+test('registerDbRoutes traces list, get, and write routes', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'pages.json', JSON.stringify([{ id: 'home', title: 'Home' }]));
+  const db = await openDb({ cwd });
+  const traces = [];
+  const unsubscribe = db.events.subscribe((event) => {
+    if (event.type === 'request-trace') traces.push(event);
+  });
+  const app = fakeHonoApp();
+
+  registerDbRoutes(app, db, {
+    prefix: '/api',
+    trace: {
+      console: false,
+    },
+  });
+
+  const list = await app.route('GET', '/api/pages').handler(fakeHonoContext({
+    url: 'http://db.local/api/pages?select=id',
+  }));
+  const get = await app.route('GET', '/api/pages/:id').handler(fakeHonoContext({
+    params: {
+      id: 'home',
+    },
+    url: 'http://db.local/api/pages/home',
+  }));
+  const create = await app.route('POST', '/api/pages').handler(fakeHonoContext({
+    body: {
+      id: 'about',
+      title: 'About',
+    },
+    url: 'http://db.local/api/pages',
+  }));
+  unsubscribe();
+
+  assert.equal(list.status, 200);
+  assert.equal(get.status, 200);
+  assert.equal(create.status, 201);
+  assert.match(list.headers['x-async-db-request-id'], /.+/);
+  assert.match(get.headers['x-async-db-request-id'], /.+/);
+  assert.match(create.headers['x-async-db-request-id'], /.+/);
+  assert.deepEqual(traces.map((trace) => trace.operation), ['list', 'get', 'create']);
+  assert.deepEqual(traces.map((trace) => trace.route), ['hono-rest', 'hono-rest', 'hono-rest']);
+  assert.deepEqual(traces.map((trace) => trace.resource), ['pages', 'pages', 'pages']);
+  assert.equal(traces[0].pathname, '/api/pages');
+  assert.deepEqual(traces[0].queryKeys, ['select']);
+  assert.equal(traces[1].id, 'home');
+  assert.equal(traces[2].status, 201);
+  assert.equal(traces[2].phases.some((phase) => phase.name === 'collection-write'), true);
+});
+
+test('registerDbRoutes traces hook short-circuit responses', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'pages.json', JSON.stringify([]));
+  const db = await openDb({ cwd });
+  const traces = [];
+  const unsubscribe = db.events.subscribe((event) => {
+    if (event.type === 'request-trace') traces.push(event);
+  });
+  const app = fakeHonoApp();
+  let methodHookCalled = false;
+
+  registerDbRoutes(app, db, {
+    prefix: '/api',
+    trace: {
+      slowMs: 0,
+      console: false,
+    },
+    lifecycleHooks: {
+      beforeRequest(ctx) {
+        return ctx.c.json({ error: 'Unauthorized' }, 401);
+      },
+    },
+    hooks: {
+      beforeCreate() {
+        methodHookCalled = true;
+      },
+    },
+  });
+
+  const response = await app.route('POST', '/api/pages').handler(fakeHonoContext({
+    body: {
+      id: 'home',
+      title: 'Home',
+    },
+  }));
+  unsubscribe();
+
+  assert.equal(response.status, 401);
+  assert.match(response.headers['x-async-db-request-id'], /.+/);
+  assert.equal(methodHookCalled, false);
+  assert.equal(await db.collection('pages').exists('home'), false);
+  assert.equal(traces.length, 1);
+  assert.equal(traces[0].route, 'hono-rest');
+  assert.equal(traces[0].resource, 'pages');
+  assert.equal(traces[0].operation, 'create');
+  assert.equal(traces[0].status, 401);
+  assert.equal(traces[0].hook, 'beforeRequest');
+  assert.equal(traces[0].shortCircuit, true);
+  assert.equal(traces[0].slow, true);
+  assert.equal(traces[0].phases.some((phase) => phase.name === 'hono-hook' && phase.hook === 'beforeRequest'), true);
+});
+
 function fakeContext() {
   const values = new Map();
   return {
@@ -294,6 +397,18 @@ function fakeHonoApp() {
 }
 
 function fakeHonoContext(options = {}) {
+  const headers = {};
+  function response(body, status) {
+    const result = {
+      status,
+      body,
+    };
+    if (Object.keys(headers).length > 0) {
+      result.headers = { ...headers };
+    }
+    return result;
+  }
+
   return {
     req: {
       param(name) {
@@ -304,17 +419,14 @@ function fakeHonoContext(options = {}) {
       },
       url: options.url ?? 'http://db.local/api/pages',
     },
+    header(name, value) {
+      headers[String(name).toLowerCase()] = value;
+    },
     json(body, status = 200) {
-      return {
-        status,
-        body,
-      };
+      return response(body, status);
     },
     body(value, status = 200) {
-      return {
-        status,
-        body: value,
-      };
+      return response(value, status);
     },
   };
 }

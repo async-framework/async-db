@@ -202,6 +202,85 @@ test('db Vite plugin can disable the /db data route alias', async (t) => {
   assert.deepEqual(JSON.parse(scopedResponse.body), [{ id: 'u_1', name: 'Ada' }]);
 });
 
+test('db Vite plugin trace option wins over configured server trace', async (t) => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([{ id: 'u_1', name: 'Ada' }]));
+
+  const enabledPlugin = dbPlugin({
+    cwd,
+    server: {
+      trace: false,
+    },
+    trace: {
+      console: false,
+    },
+  });
+  const enabledMiddlewares = [];
+  let closeEnabledServer;
+  await enabledPlugin.configureServer({
+    middlewares: {
+      use(middleware) {
+        enabledMiddlewares.push(middleware);
+      },
+    },
+    httpServer: {
+      once(event, callback) {
+        if (event === 'close') {
+          closeEnabledServer = callback;
+        }
+      },
+    },
+    config: {
+      logger: {
+        warn() {},
+      },
+    },
+  });
+  t.after(() => {
+    closeEnabledServer?.();
+  });
+
+  const enabledResponse = makeViteResponse();
+  await enabledMiddlewares[0](makeViteRequest('GET', '/db/users.json'), enabledResponse, () => {});
+  assert.match(enabledResponse.headers['x-async-db-request-id'], /.+/);
+
+  const disabledPlugin = dbPlugin({
+    cwd,
+    server: {
+      trace: true,
+    },
+    trace: false,
+  });
+  const disabledMiddlewares = [];
+  let closeDisabledServer;
+  await disabledPlugin.configureServer({
+    middlewares: {
+      use(middleware) {
+        disabledMiddlewares.push(middleware);
+      },
+    },
+    httpServer: {
+      once(event, callback) {
+        if (event === 'close') {
+          closeDisabledServer = callback;
+        }
+      },
+    },
+    config: {
+      logger: {
+        warn() {},
+      },
+    },
+  });
+  t.after(() => {
+    closeDisabledServer?.();
+  });
+
+  const disabledResponse = makeViteResponse();
+  await disabledMiddlewares[0](makeViteRequest('GET', '/db/users.json'), disabledResponse, () => {});
+  assert.equal(disabledResponse.headers['x-async-db-request-id'], undefined);
+});
+
 test('db Vite plugin can disable the virtual client module', async () => {
   const plugin = dbPlugin({
     clientVirtualModule: false,

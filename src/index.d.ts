@@ -135,7 +135,7 @@ export type DbPerResourceOptions = {
   }>;
 };
 
-export type DbRuntimeEvent = {
+export type DbResourceChangeEvent = {
   version: number;
   timestamp: string;
   resource: string;
@@ -145,12 +145,60 @@ export type DbRuntimeEvent = {
   pointer?: string;
 };
 
+export type DbRequestTracePhase = {
+  name: string;
+  durationMs: number;
+  [key: string]: unknown;
+};
+
+export type DbRequestTraceEvent = {
+  version: number;
+  timestamp: string;
+  type: 'request-trace';
+  requestId: string;
+  method: string;
+  pathname: string;
+  queryKeys: string[];
+  route?: string;
+  resource?: string;
+  operation?: string;
+  id?: string | number;
+  status?: number | null;
+  handled: boolean;
+  durationMs: number;
+  slow: boolean;
+  hook?: string;
+  shortCircuit?: boolean;
+  phases?: DbRequestTracePhase[];
+  error?: {
+    code?: string;
+    message: string;
+  };
+};
+
+export type DbRuntimeEvent = DbResourceChangeEvent | DbRequestTraceEvent;
+
 export type DbRuntimeEvents = {
   readonly version: number;
   subscribe(subscriber: (event: DbRuntimeEvent) => void): () => void;
 };
 
 export type DbRouteExposure = 'open' | 'registered-only' | 'dev' | 'disabled' | false;
+
+export type DbTraceConfig = {
+  /** Enable tracing. Object form defaults to enabled unless set to false. */
+  enabled?: boolean;
+  /** Mark traces slow at or above this duration in ms. Defaults to 0. */
+  slowMs?: number;
+  /** Print concise request summaries to the console. Defaults to true when tracing is enabled. */
+  console?: boolean;
+  /** Emit request trace events through db.events for /__db/log. Defaults to true when tracing is enabled. */
+  events?: boolean;
+  /** Response header used for the request id. Defaults to "x-async-db-request-id". */
+  header?: string;
+};
+
+export type DbTraceOptions = boolean | DbTraceConfig;
 
 export type DbOperationTemplate = string | {
   name?: string;
@@ -351,6 +399,8 @@ export type DbOptions = {
     port?: number;
     /** Maximum JSON request body size in bytes. Defaults to 1048576. */
     maxBodyBytes?: number;
+    /** Opt-in request tracing and timing for handled db HTTP requests. */
+    trace?: DbTraceOptions;
     /** Optional links to custom data viewers shown in discovery and the viewer manifest. */
     viewerLinks?: Array<{
       label?: string;
@@ -556,6 +606,8 @@ export type DbRequestHandlerOptions = {
   restBasePath?: string;
   /** GraphQL endpoint path. Defaults to configured graphql.path or "/graphql". */
   graphqlPath?: string;
+  /** Explicit request trace option. Wins over db.config.mjs server.trace. */
+  trace?: DbTraceOptions;
 };
 
 export type DbRequestHandler = (

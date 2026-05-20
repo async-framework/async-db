@@ -1,4 +1,4 @@
-import type { DbClient, DbOptions } from './index.d.ts';
+import type { DbClient, DbOptions, DbTraceOptions } from './index.d.ts';
 
 export type DbVirtualClient = DbClient & {
   /** Create a client scoped to a configured database fork. */
@@ -16,6 +16,8 @@ export type DbVitePluginOptions = Pick<DbOptions, 'cwd' | 'configPath' | 'dbDir'
   restBasePath?: string;
   /** Scoped GraphQL endpoint. Defaults to "<apiBase>/graphql". */
   graphqlPath?: string;
+  /** Explicit request trace option. Wins over db.config.mjs server.trace. */
+  trace?: DbTraceOptions;
   /** Virtual module id for the browser-safe client. Defaults to "virtual:db/client"; false disables it. */
   clientVirtualModule?: string | false;
   /** Import specifier used inside the virtual client. Defaults to "@async/db/client". */

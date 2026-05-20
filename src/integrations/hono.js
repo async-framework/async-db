@@ -5,6 +5,7 @@ import { resolveResource } from '../names.js';
 import { shapeCollectionRead } from '../rest/shape.js';
 import { makeGeneratedSchema } from '../schema.js';
 import { openSqliteDb } from '../sqlite.js';
+import { createRequestTrace, tracePhase } from '../tracing.js';
 
 export async function createDbHonoApp(options = {}) {
   const { Hono } = await importHono();
@@ -16,7 +17,11 @@ export async function createDbHonoApp(options = {}) {
   app.onError((error, c) => c.json(serializeError(error, 'HONO_DB_ERROR'), error.status ?? 500));
 
   if (api.includes('rest')) {
-    registerDbRoutes(app, db, options.restRoutes ?? options.rest ?? {});
+    const restOptions = options.restRoutes ?? options.rest ?? {};
+    registerDbRoutes(app, db, {
+      ...restOptions,
+      trace: restOptions.trace ?? options.trace,
+    });
   }
 
   if (api.includes('graphql')) {
@@ -58,77 +63,151 @@ export function registerDbRoutes(app, db, options = {}) {
     if (resource.kind === 'collection') {
       const collectionPath = joinPaths(options.prefix, resource.routePath);
       app.get(collectionPath, async (c) => {
-        const shortCircuit = await runHonoHooks(options, db, resource, 'list', c);
-        if (shortCircuit !== undefined) {
-          return shortCircuit;
-        }
-        const url = new URL(c.req.url ?? collectionPath, 'http://db.local');
-        return c.json(await shapeCollectionRead(db, resource, await db.collection(resource.name).all(), url, { allowPagination: true }));
+        return withHonoTrace(options, db, resource, 'list', c, 'GET', async (trace) => {
+          const shortCircuit = await runHonoHooks(options, db, resource, 'list', c, {}, trace);
+          if (shortCircuit !== undefined) {
+            return shortCircuit;
+          }
+          const url = new URL(c.req.url ?? collectionPath, 'http://db.local');
+          const records = await tracePhase(trace, 'collection-read', () => db.collection(resource.name).all(), {
+            resource: resource.name,
+            operation: 'all',
+          });
+          const shaped = await tracePhase(trace, 'response-shaping', () => shapeCollectionRead(db, resource, records, url, { allowPagination: true }), {
+            resource: resource.name,
+          });
+          return tracePhase(trace, 'response-formatting', () => c.json(shaped), {
+            resource: resource.name,
+            target: 'resource',
+          });
+        });
       });
       app.get(`${collectionPath}/:id`, async (c) => {
         const id = c.req.param('id');
-        const shortCircuit = await runHonoHooks(options, db, resource, 'get', c, { id });
-        if (shortCircuit !== undefined) {
-          return shortCircuit;
-        }
-        const record = await db.collection(resource.name).get(id);
-        const url = new URL(c.req.url ?? `${collectionPath}/${id}`, 'http://db.local');
-        const body = record
-          ? await shapeCollectionRead(db, resource, [record], url, { allowPagination: false })
-          : null;
-        return record ? c.json(body[0]) : c.json({ error: 'Not found' }, 404);
+        return withHonoTrace(options, db, resource, 'get', c, 'GET', async (trace) => {
+          const shortCircuit = await runHonoHooks(options, db, resource, 'get', c, { id }, trace);
+          if (shortCircuit !== undefined) {
+            return shortCircuit;
+          }
+          const record = await tracePhase(trace, 'collection-read', () => db.collection(resource.name).get(id), {
+            resource: resource.name,
+            operation: 'get',
+          });
+          const url = new URL(c.req.url ?? `${collectionPath}/${id}`, 'http://db.local');
+          const body = record
+            ? await tracePhase(trace, 'response-shaping', () => shapeCollectionRead(db, resource, [record], url, { allowPagination: false }), {
+              resource: resource.name,
+            })
+            : null;
+          return tracePhase(trace, 'response-formatting', () => (record ? c.json(body[0]) : c.json({ error: 'Not found' }, 404)), {
+            resource: resource.name,
+            target: 'resource',
+          });
+        }, { id });
       });
       app.post(collectionPath, async (c) => {
-        const body = await c.req.json();
-        const shortCircuit = await runHonoHooks(options, db, resource, 'create', c, { body });
-        if (shortCircuit !== undefined) {
-          return shortCircuit;
-        }
-        return c.json(await db.collection(resource.name).create(body), 201);
+        return withHonoTrace(options, db, resource, 'create', c, 'POST', async (trace) => {
+          const body = await tracePhase(trace, 'request-body', () => c.req.json());
+          const shortCircuit = await runHonoHooks(options, db, resource, 'create', c, { body }, trace);
+          if (shortCircuit !== undefined) {
+            return shortCircuit;
+          }
+          const record = await tracePhase(trace, 'collection-write', () => db.collection(resource.name).create(body), {
+            resource: resource.name,
+            operation: 'create',
+          });
+          return tracePhase(trace, 'response-formatting', () => c.json(record, 201), {
+            resource: resource.name,
+            target: 'resource',
+          });
+        });
       });
       app.patch(`${collectionPath}/:id`, async (c) => {
-        const body = await c.req.json();
         const id = c.req.param('id');
-        const shortCircuit = await runHonoHooks(options, db, resource, 'patch', c, { id, body });
-        if (shortCircuit !== undefined) {
-          return shortCircuit;
-        }
-        const record = await db.collection(resource.name).patch(id, body);
-        return record ? c.json(record) : c.json({ error: 'Not found' }, 404);
+        return withHonoTrace(options, db, resource, 'patch', c, 'PATCH', async (trace) => {
+          const body = await tracePhase(trace, 'request-body', () => c.req.json());
+          const shortCircuit = await runHonoHooks(options, db, resource, 'patch', c, { id, body }, trace);
+          if (shortCircuit !== undefined) {
+            return shortCircuit;
+          }
+          const record = await tracePhase(trace, 'collection-write', () => db.collection(resource.name).patch(id, body), {
+            resource: resource.name,
+            operation: 'patch',
+          });
+          return tracePhase(trace, 'response-formatting', () => (record ? c.json(record) : c.json({ error: 'Not found' }, 404)), {
+            resource: resource.name,
+            target: 'resource',
+          });
+        }, { id });
       });
       app.delete(`${collectionPath}/:id`, async (c) => {
         const id = c.req.param('id');
-        const shortCircuit = await runHonoHooks(options, db, resource, 'delete', c, { id });
-        if (shortCircuit !== undefined) {
-          return shortCircuit;
-        }
-        const deleted = await db.collection(resource.name).delete(id);
-        return deleted ? c.body(null, 204) : c.json({ error: 'Not found' }, 404);
+        return withHonoTrace(options, db, resource, 'delete', c, 'DELETE', async (trace) => {
+          const shortCircuit = await runHonoHooks(options, db, resource, 'delete', c, { id }, trace);
+          if (shortCircuit !== undefined) {
+            return shortCircuit;
+          }
+          const deleted = await tracePhase(trace, 'collection-write', () => db.collection(resource.name).delete(id), {
+            resource: resource.name,
+            operation: 'delete',
+          });
+          return tracePhase(trace, 'response-formatting', () => (deleted ? c.body(null, 204) : c.json({ error: 'Not found' }, 404)), {
+            resource: resource.name,
+            target: 'resource',
+          });
+        }, { id });
       });
     } else {
       const documentPath = joinPaths(options.prefix, resource.routePath);
       app.get(documentPath, async (c) => {
-        const shortCircuit = await runHonoHooks(options, db, resource, 'get', c);
-        if (shortCircuit !== undefined) {
-          return shortCircuit;
-        }
-        return c.json(await db.document(resource.name).all());
+        return withHonoTrace(options, db, resource, 'get', c, 'GET', async (trace) => {
+          const shortCircuit = await runHonoHooks(options, db, resource, 'get', c, {}, trace);
+          if (shortCircuit !== undefined) {
+            return shortCircuit;
+          }
+          const document = await tracePhase(trace, 'document-read', () => db.document(resource.name).all(), {
+            resource: resource.name,
+            operation: 'all',
+          });
+          return tracePhase(trace, 'response-formatting', () => c.json(document), {
+            resource: resource.name,
+            target: 'resource',
+          });
+        });
       });
       app.put(documentPath, async (c) => {
-        const body = await c.req.json();
-        const shortCircuit = await runHonoHooks(options, db, resource, 'put', c, { body });
-        if (shortCircuit !== undefined) {
-          return shortCircuit;
-        }
-        return c.json(await db.document(resource.name).put(body));
+        return withHonoTrace(options, db, resource, 'put', c, 'PUT', async (trace) => {
+          const body = await tracePhase(trace, 'request-body', () => c.req.json());
+          const shortCircuit = await runHonoHooks(options, db, resource, 'put', c, { body }, trace);
+          if (shortCircuit !== undefined) {
+            return shortCircuit;
+          }
+          const document = await tracePhase(trace, 'document-write', () => db.document(resource.name).put(body), {
+            resource: resource.name,
+            operation: 'put',
+          });
+          return tracePhase(trace, 'response-formatting', () => c.json(document), {
+            resource: resource.name,
+            target: 'resource',
+          });
+        });
       });
       app.patch(documentPath, async (c) => {
-        const body = await c.req.json();
-        const shortCircuit = await runHonoHooks(options, db, resource, 'patch', c, { body });
-        if (shortCircuit !== undefined) {
-          return shortCircuit;
-        }
-        return c.json(await db.document(resource.name).update(body));
+        return withHonoTrace(options, db, resource, 'patch', c, 'PATCH', async (trace) => {
+          const body = await tracePhase(trace, 'request-body', () => c.req.json());
+          const shortCircuit = await runHonoHooks(options, db, resource, 'patch', c, { body }, trace);
+          if (shortCircuit !== undefined) {
+            return shortCircuit;
+          }
+          const document = await tracePhase(trace, 'document-write', () => db.document(resource.name).update(body), {
+            resource: resource.name,
+            operation: 'patch',
+          });
+          return tracePhase(trace, 'response-formatting', () => c.json(document), {
+            resource: resource.name,
+            target: 'resource',
+          });
+        });
       });
     }
   }
@@ -157,7 +236,34 @@ function restResources(db, options) {
   });
 }
 
-async function runHonoHooks(options, db, resource, method, c, extras = {}) {
+async function withHonoTrace(options, db, resource, operation, c, httpMethod, handler, details = {}) {
+  const trace = createRequestTrace(db, {
+    method: httpMethod,
+    url: c.req?.url ?? resource.routePath ?? '/',
+  }, {
+    trace: options.trace,
+  });
+  trace?.markHandled();
+  trace?.attachHonoHeader(c);
+  trace?.setRoute({
+    route: 'hono-rest',
+    resource: resource.name,
+    operation,
+    ...details,
+  });
+
+  try {
+    const response = await handler(trace);
+    trace?.finish(db, response);
+    return response;
+  } catch (error) {
+    trace?.setError(error);
+    trace?.finish(db);
+    throw error;
+  }
+}
+
+async function runHonoHooks(options, db, resource, method, c, extras = {}, trace = null) {
   if (!methodAllowed(options, resource, method)) {
     return c.json({ error: 'Method not allowed' }, 405);
   }
@@ -175,13 +281,27 @@ async function runHonoHooks(options, db, resource, method, c, extras = {}) {
   const beforeWrite = isWriteMethod(method) ? options.lifecycleHooks?.beforeWrite : null;
   const globalHook = options.hooks?.[hookName];
   const resourceHook = resourceRestOptions(options, resource)?.hooks?.[hookName];
+  const hooks = [
+    ['beforeRequest', beforeRequest],
+    ['beforeWrite', beforeWrite],
+    [hookName, globalHook],
+    [`resource:${hookName}`, resourceHook],
+  ];
 
-  for (const hook of [beforeRequest, beforeWrite, globalHook, resourceHook]) {
+  for (const [name, hook] of hooks) {
     if (typeof hook !== 'function') {
       continue;
     }
-    const result = await hook(context);
+    const result = await tracePhase(trace, 'hono-hook', () => hook(context), {
+      hook: name,
+      resource: resource.name,
+      operation: method,
+    });
     if (result !== undefined) {
+      trace?.setRoute({
+        hook: name,
+        shortCircuit: true,
+      });
       return result;
     }
   }
