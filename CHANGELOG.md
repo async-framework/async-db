@@ -9,13 +9,6 @@ are omitted. Commit links point at the canonical GitHub repository:
 
 ## Feature History
 
-### Unreleased
-
-- Breaking: Replaced runtime mode config with store-based resource binding. Use `sources.writePolicy`, `stores.default`, named `stores`, and `resources.<name>.store`; legacy `mode`, `runtime.default`, `runtime.adapters`, and `resources.<name>.runtime` config is rejected with migration diagnostics.
-- Added the first-party `sqliteStore()` export for opt-in resource stores, defaulting to `./.jsondb/runtime.sqlite`.
-- Added `resources.<name>.indexes` metadata and `doctor` diagnostics for missing stores and large JSON-backed collections without index intent.
-- Added `JsonFixtureDb.close()` so custom stores and SQLite-backed stores can release open handles in long-running processes.
-
 ### Project Foundation
 
 - 2026-05-07 - Created the dependency-light Node.js ESM package with JSON/JSONC fixture loading, schema helpers, runtime mirror sync, generated TypeScript types, a CLI, and the basic example project. Commit [4ee9630](https://github.com/PatrickJS/jsondb/commit/4ee9630d84739f738eb8d6add2deb311ad725303).
@@ -32,6 +25,8 @@ are omitted. Commit links point at the canonical GitHub repository:
 - 2026-05-14 - Added the `source` runtime for reading and writing source-backed JSON fixtures, with source metadata hydration and dot-folder ignoring. Commit [80ecfff](https://github.com/PatrickJS/jsondb/commit/80ecfffcd8c969902f9552e0b421ff8adc9c7e96).
 - 2026-05-14 - Avoided redundant disk writes by skipping unchanged output, preserving generated metadata, and centralizing source metadata updates. Commits [9ec39b1](https://github.com/PatrickJS/jsondb/commit/9ec39b11e0a93de72e6b62d3187a379aaccc4ede) and [c14e799](https://github.com/PatrickJS/jsondb/commit/c14e79933091f54a4ce98d9a7eb9e6c10ffd8085).
 - 2026-05-14 - Added `JsonDbCollection.exists()` to the package API and SQLite adapter. Commit [9586d5f](https://github.com/PatrickJS/jsondb/commit/9586d5f2e1fc6211fe9cb2b2ba9b8f5e7bcfaabe).
+- 2026-05-19 - Replaced runtime mode config with store-based resource binding, named stores, custom store wrappers, per-store write queues, `sqliteStore()`, `JsonFixtureDb.close()`, legacy config migration diagnostics, store doctor checks, and source writeback through the `sourceFile` store. Commit [4f77e1e](https://github.com/PatrickJS/jsondb/commit/4f77e1e93e4336938fc3d005923d9967f9dfac03).
+- 2026-05-19 - Added `server.apiBase` for scoping built-in dev-tool routes while preserving root REST resources and `/graphql`, including client, Vite, mock, batch path, and fork route support. Commit [caa9f99](https://github.com/PatrickJS/jsondb/commit/caa9f9970e48515fcd22f2ca80a98a557c8e1291).
 
 ### Client, Viewer, Examples, and Mocking
 
@@ -39,6 +34,8 @@ are omitted. Commit links point at the canonical GitHub repository:
 - 2026-05-07 - Added live reload, generated collection ids, source diagnostics, and viewer updates for broken source files. Commit [7e4cce7](https://github.com/PatrickJS/jsondb/commit/7e4cce7d9abc57cb68464add8aac0c8da5b14e2a).
 - 2026-05-14 - Expanded the example catalog with metadata, richer READMEs, relations, REST client, and schema-manifest examples, plus a metadata-driven examples index. Commit [0b4d31e](https://github.com/PatrickJS/jsondb/commit/0b4d31e9329121a4e6c419451774e908360a021f).
 - 2026-05-14 - Added the Hono auth example showing bearer-token auth, permission checks, lifecycle hooks, and write normalization. Commit [bbad836](https://github.com/PatrickJS/jsondb/commit/bbad8360b4524e43f6ddddbef823cb6693a41248).
+- 2026-05-19 - Added the schema-ui example with committed schema metadata, SSR admin rendering, per-example serve hooks, and the reusable example launcher. Commit [b633a28](https://github.com/PatrickJS/jsondb/commit/b633a28152542ed926f6ca571edeb739753be444).
+- 2026-05-19 - Added viewer manifests, `jsondb viewer manifest`, `viewerManifestOutFile`, `server.viewerLinks`, manifest rendering, and committed viewer manifest sync output. Commit [9ffa49b](https://github.com/PatrickJS/jsondb/commit/9ffa49bfbf9bf4c78854c3b6a93d9f4250e4f34d).
 
 ### CSV Fixtures and Import
 
@@ -65,6 +62,7 @@ are omitted. Commit links point at the canonical GitHub repository:
 - 2026-05-11 - Added REST response shaping with `select`, `offset`, and `limit`; added explicit depth-1 to-one relation metadata and `expand` support. Commit [d9f7c70](https://github.com/PatrickJS/jsondb/commit/d9f7c7026d943a78ddf64688173e3c00089c6287).
 - 2026-05-14 - Added REST response formats, fixture-based resource naming strategies, custom resource naming hooks, and duplicate-resource diagnostics. Commit [0c95b52](https://github.com/PatrickJS/jsondb/commit/0c95b5237d3d4530f6f5cdf534df1358943cc1dc).
 - 2026-05-14 - Added canonical resource alias resolution and collision diagnostics across CLI commands, runtime APIs, REST, SQLite, generated starters, schema loading, and the viewer. Commit [b7089b1](https://github.com/PatrickJS/jsondb/commit/b7089b13d3cbca060d5b51fb04ccd8a89a87ad70).
+- 2026-05-19 - Added a REST format registry with JSON/HTML/Markdown renderers, Accept negotiation, manifest-aware formatting, and richer viewer JSON rendering. Commit [9ffa49b](https://github.com/PatrickJS/jsondb/commit/9ffa49bfbf9bf4c78854c3b6a93d9f4250e4f34d).
 
 ### GraphQL
 
@@ -110,3 +108,4 @@ are omitted. Commit links point at the canonical GitHub repository:
 - 2026-05-14 - Added architecture documentation, README and agent-guide cross-references, package globs for example metadata/source files, and command-specific CLI help handling. Commit [0b4d31e](https://github.com/PatrickJS/jsondb/commit/0b4d31e9329121a4e6c419451774e908360a021f).
 - 2026-05-14 - Printed subcommand help before loading project config, with focused help for `types`, `schema`, `doctor`, `serve`, and `generate`. Commit [0ba1c13](https://github.com/PatrickJS/jsondb/commit/0ba1c13e9e3a4b4d35e5618fc94a7db3acfdfb9c).
 - 2026-05-14 - Added redundant-write avoidance and generated metadata preservation together. Commit [d15b30c](https://github.com/PatrickJS/jsondb/commit/d15b30c938ee216e9765ca6ef8fecafa664d6e32).
+- 2026-05-19 - Restructured project documentation into a task-focused `docs/` handbook and expanded README coverage for schema metadata, GraphQL, file maps, examples, generated files, configuration, server/viewer behavior, package APIs, integrations, CI, and release guidance. Commits [8cce7d8](https://github.com/PatrickJS/jsondb/commit/8cce7d80f856acb58aa2f64ec933c9dde42fe61d), [14d2a53](https://github.com/PatrickJS/jsondb/commit/14d2a53b384ce4904c2d7869996497b4b63f9a9d), and [e5f104d](https://github.com/PatrickJS/jsondb/commit/e5f104df1cd8263bae0912542be17fd21a28b29b).
