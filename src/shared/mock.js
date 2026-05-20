@@ -1,6 +1,6 @@
 export async function runMockBehavior(config, url = null) {
   const mock = config.mock ?? config.chaos;
-  if (!mock || shouldSkipMock(url)) {
+  if (!mock || shouldSkipMock(config, url)) {
     return null;
   }
 
@@ -85,8 +85,13 @@ function clampRate(value) {
   return Math.min(1, Math.max(0, Number(value)));
 }
 
-function shouldSkipMock(url) {
-  return url?.pathname === '/__jsondb';
+function shouldSkipMock(config, url) {
+  return url?.pathname === normalizeBasePath(config.server?.apiBase ?? '/__jsondb');
+}
+
+function normalizeBasePath(value) {
+  const path = `/${String(value ?? '').replace(/^\/+/, '').replace(/\/+$/, '')}`;
+  return path === '/' ? '' : path;
 }
 
 function sleep(ms) {

@@ -290,7 +290,7 @@ function writeViewerEvent(response, payload) {
 }
 
 function resolveRequestRoutes(config, options) {
-  const apiBase = normalizeBasePath(options.apiBase ?? '/__jsondb');
+  const apiBase = normalizeBasePath(options.apiBase ?? config.server?.apiBase ?? '/__jsondb');
   const restBasePath = options.restBasePath === undefined
     ? null
     : normalizeBasePath(options.restBasePath);

@@ -2,10 +2,11 @@ import { jsonDbError } from './errors.js';
 
 export function createJsonDbClient(options = {}) {
   const baseUrl = options.baseUrl ?? '';
+  const apiBase = normalizeBasePath(options.apiBase ?? '/__jsondb');
   const forkPaths = forkPathsForOptions(options);
   const restBasePath = options.restBasePath ?? forkPaths.restBasePath ?? '';
   const graphqlPath = options.graphqlPath ?? forkPaths.graphqlPath ?? '/graphql';
-  const restBatchPath = options.restBatchPath ?? forkPaths.restBatchPath ?? '/__jsondb/batch';
+  const restBatchPath = options.restBatchPath ?? forkPaths.restBatchPath ?? `${apiBase}/batch`;
   const batching = normalizeBatching(options.batching);
 
   const graphqlQueue = createQueue((requests) => graphqlBatch(requests), batching, {
@@ -93,7 +94,8 @@ function forkPathsForOptions(options) {
   }
 
   const fork = normalizeForkName(options.fork);
-  const base = `/__jsondb/forks/${encodeURIComponent(fork)}`;
+  const apiBase = normalizeBasePath(options.apiBase ?? '/__jsondb');
+  const base = `${apiBase}/forks/${encodeURIComponent(fork)}`;
   return {
     restBasePath: `${base}/rest`,
     restBatchPath: `${base}/batch`,
@@ -357,6 +359,11 @@ function joinPaths(basePath, requestPath) {
   const normalizedBase = `/${String(basePath).replace(/^\/+/, '').replace(/\/+$/, '')}`;
   const normalizedPath = `/${String(requestPath ?? '/').replace(/^\/+/, '')}`;
   return `${normalizedBase}${normalizedPath === '/' ? '' : normalizedPath}`;
+}
+
+function normalizeBasePath(value) {
+  const path = `/${String(value ?? '').replace(/^\/+/, '').replace(/\/+$/, '')}`;
+  return path === '/' ? '' : path;
 }
 
 function stableStringify(value) {

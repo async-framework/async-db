@@ -44,3 +44,29 @@ test('mock errors can force chaos responses', async () => {
     },
   });
 });
+
+test('mock behavior skips the configured viewer apiBase', async () => {
+  const config = {
+    server: {
+      apiBase: '/_jsondb',
+    },
+    mock: {
+      delay: [0, 0],
+      errors: {
+        rate: 1,
+        status: 599,
+        message: 'forced chaos',
+      },
+    },
+  };
+
+  assert.equal(await runMockBehavior(config, new URL('http://jsondb.local/_jsondb')), null);
+
+  assert.deepEqual(await runMockBehavior(config, new URL('http://jsondb.local/__jsondb')), {
+    status: 599,
+    body: {
+      error: 'forced chaos',
+      mock: true,
+    },
+  });
+});

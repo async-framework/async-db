@@ -132,13 +132,14 @@ export function findResourceByRoute(db, routeName) {
 
 export async function executeRestBatch(db, body, options = {}) {
   const requests = Array.isArray(body) ? body : body.requests;
+  const batchPath = batchPathForOptions(options, db);
   if (!Array.isArray(requests)) {
     throw jsonDbError(
       'REST_BATCH_INVALID_BODY',
       'REST batch body must be an array or an object with a requests array.',
       {
         status: 400,
-        hint: 'Send POST /__jsondb/batch with [{ "method": "GET", "path": "/users" }].',
+        hint: `Send POST ${batchPath} with [{ "method": "GET", "path": "/users" }].`,
         details: {
           receivedType: body === null ? 'null' : Array.isArray(body) ? 'array' : typeof body,
         },
@@ -219,7 +220,7 @@ function maxBodyBytes(db) {
 }
 
 function normalizeRestRouteOptions(db, options = {}) {
-  const apiBase = normalizeBasePath(options.apiBase ?? '/__jsondb');
+  const apiBase = normalizeBasePath(options.apiBase ?? db.config.server?.apiBase ?? '/__jsondb');
   return {
     apiBase,
     viewerPath: options.viewerPath ?? apiBase,
@@ -258,8 +259,9 @@ function sourceDirLabel(config) {
 }
 
 function rootDiscovery(db, options = {}) {
-  const schemaPath = options.schemaPath ?? '/__jsondb/schema';
-  const viewerPath = options.viewerPath ?? '/__jsondb';
+  const apiBase = normalizeBasePath(options.apiBase ?? db.config.server?.apiBase ?? '/__jsondb');
+  const schemaPath = options.schemaPath ?? `${apiBase}/schema`;
+  const viewerPath = options.viewerPath ?? apiBase;
   const graphqlPath = options.graphqlPath ?? db.config.graphql?.path ?? '/graphql';
 
   return {
@@ -437,7 +439,7 @@ async function importCsvFixture(db, request, options = {}) {
     dataPath: path.relative(db.config.cwd, outFile),
     statePath: path.relative(db.config.cwd, path.join(db.config.stateDir, 'state', `${resourceName}.json`)),
     routePath: resource?.routePath ?? `/${resourceName}`,
-    viewerPath: `${options.viewerPath ?? '/__jsondb'}?resource=${encodeURIComponent(resourceName)}`,
+    viewerPath: `${options.viewerPath ?? normalizeBasePath(db.config.server?.apiBase ?? '/__jsondb')}?resource=${encodeURIComponent(resourceName)}`,
     logs: project.logs,
   };
 }
@@ -522,14 +524,14 @@ async function executeRestBatchItem(db, item, options = {}) {
       `REST batch path must start with "/": ${requestPath}`,
       {
         status: 400,
-        hint: 'Use absolute local paths such as "/users", "/settings", or "/__jsondb/schema".',
+        hint: `Use absolute local paths such as "/users", "/settings", or "${options.schemaPath ?? `${normalizeBasePath(options.apiBase ?? db.config.server?.apiBase ?? '/__jsondb')}/schema`}".`,
         details: { path: requestPath },
       },
     );
   }
 
-  const batchPath = options.batchPath ?? `${normalizeBasePath(options.apiBase ?? '/__jsondb')}/batch`;
-  if (requestPath === batchPath || requestPath === '/__jsondb/batch') {
+  const batchPath = batchPathForOptions(options, db);
+  if (requestPath === batchPath) {
     throw jsonDbError(
       'REST_BATCH_NESTED_UNSUPPORTED',
       'Nested REST batch requests are not supported.',
@@ -554,6 +556,10 @@ async function executeRestBatchItem(db, item, options = {}) {
     headers: response.headers,
     body: response.jsonBody(),
   };
+}
+
+function batchPathForOptions(options = {}, db = null) {
+  return options.batchPath ?? `${normalizeBasePath(options.apiBase ?? db?.config?.server?.apiBase ?? '/__jsondb')}/batch`;
 }
 
 async function tryRest(fn) {

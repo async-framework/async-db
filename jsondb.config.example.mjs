@@ -69,6 +69,9 @@ export default defineConfig({
 
   // Local server settings.
   server: {
+    // Dev-tool route base for the viewer, schema, batch, import, events, log,
+    // and fork routes. Defaults to '/__jsondb'.
+    apiBase: '/__jsondb',
     host: '127.0.0.1',
     port: 7331,
     maxBodyBytes: 1048576,

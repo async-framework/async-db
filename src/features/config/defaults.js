@@ -43,6 +43,7 @@ export const DEFAULT_CONFIG = {
     naming: 'basename',
   },
   server: {
+    apiBase: '/__jsondb',
     host: '127.0.0.1',
     port: 7331,
     maxBodyBytes: 1048576,

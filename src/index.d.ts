@@ -280,6 +280,8 @@ export type JsonDbOptions = {
   /** Public storage options. Defaults to the JSON store. */
   stores?: JsonDbStoresOptions;
   server?: {
+    /** Scoped base for local jsondb dev tools. Defaults to "/__jsondb". */
+    apiBase?: string;
     /** Local HTTP host. Defaults to "127.0.0.1". */
     host?: string;
     /** Local HTTP port. Defaults to 7331. */
@@ -392,6 +394,8 @@ export type RestBatchResult = {
 
 export type JsonDbClientOptions = {
   baseUrl?: string;
+  /** Scoped base for default batch and fork paths. Defaults to "/__jsondb". */
+  apiBase?: string;
   /** Target a configured database fork, such as "legacy-demo". */
   fork?: string;
   restBasePath?: string;

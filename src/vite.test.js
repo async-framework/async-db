@@ -34,6 +34,37 @@ test('jsondb Vite virtual client creates fork clients under the configured apiBa
   assert.match(loaded, /graphqlPath: `\$\{forkBase\}\/graphql`/);
 });
 
+test('jsondb Vite plugin falls back to configured server apiBase', async () => {
+  const plugin = jsondbPlugin({
+    server: {
+      apiBase: '/_jsondb',
+    },
+  });
+
+  const loaded = await plugin.load('\0virtual:jsondb/client');
+
+  assert.match(loaded, /restBasePath: "\/_jsondb\/rest"/);
+  assert.match(loaded, /graphqlPath: "\/_jsondb\/graphql"/);
+  assert.match(loaded, /restBatchPath: "\/_jsondb\/batch"/);
+  assert.match(loaded, /const forkBase = `\/_jsondb\/forks\/\$\{encodeURIComponent\(forkName\)\}`;/);
+});
+
+test('jsondb Vite plugin apiBase option wins over configured server apiBase', async () => {
+  const plugin = jsondbPlugin({
+    apiBase: '/plugin-jsondb',
+    server: {
+      apiBase: '/_jsondb',
+    },
+  });
+
+  const loaded = await plugin.load('\0virtual:jsondb/client');
+
+  assert.match(loaded, /restBasePath: "\/plugin-jsondb\/rest"/);
+  assert.match(loaded, /graphqlPath: "\/plugin-jsondb\/graphql"/);
+  assert.match(loaded, /restBatchPath: "\/plugin-jsondb\/batch"/);
+  assert.doesNotMatch(loaded, /\/_jsondb/);
+});
+
 test('jsondb Vite plugin can render a custom client import for the virtual module', async () => {
   const plugin = jsondbPlugin({
     clientImport: '@local/jsondb/client',

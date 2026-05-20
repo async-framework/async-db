@@ -60,7 +60,7 @@ export function jsondbPlugin(options = {}) {
 }
 
 function resolveViteRoutes(options) {
-  const apiBase = normalizeBasePath(options.apiBase ?? '/__jsondb');
+  const apiBase = normalizeBasePath(options.apiBase ?? options.server?.apiBase ?? '/__jsondb');
   return {
     apiBase,
     rootRoutes: options.rootRoutes === true,
