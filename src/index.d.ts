@@ -206,8 +206,9 @@ export type JsonDbSourcesOptions = {
   writePolicy?: 'preserve' | 'allow';
 };
 
-export type JsonDbRestFormatContext = {
+export type JsonDbRestResourceFormatContext = {
   db: unknown;
+  target?: 'resource';
   resource: Record<string, unknown>;
   resourceName: string;
   data: unknown;
@@ -215,6 +216,20 @@ export type JsonDbRestFormatContext = {
   request: IncomingMessage | Record<string, unknown>;
   url: URL;
 };
+
+export type JsonDbRestManifestFormatContext = {
+  db: unknown;
+  target?: 'manifest';
+  data: unknown;
+  manifest: unknown;
+  format: string;
+  request: IncomingMessage | Record<string, unknown>;
+  url: URL;
+  routes?: Record<string, string>;
+};
+
+export type JsonDbRestFormatContext = JsonDbRestResourceFormatContext;
+export type JsonDbRestAnyFormatContext = JsonDbRestResourceFormatContext | JsonDbRestManifestFormatContext;
 
 export type JsonDbRestFormatResult = string | Buffer | {
   status?: number;
@@ -224,6 +239,21 @@ export type JsonDbRestFormatResult = string | Buffer | {
 };
 
 export type JsonDbRestFormatRenderer = (context: JsonDbRestFormatContext) => JsonDbRestFormatResult | Promise<JsonDbRestFormatResult>;
+export type JsonDbRestAnyFormatRenderer = (context: JsonDbRestAnyFormatContext) => JsonDbRestFormatResult | Promise<JsonDbRestFormatResult>;
+export type JsonDbRestManifestFormatRenderer = (context: JsonDbRestManifestFormatContext) => JsonDbRestFormatResult | Promise<JsonDbRestFormatResult>;
+
+export type JsonDbRestFormatDefinition = {
+  /** Media types used by extensionless Accept negotiation. */
+  mediaTypes?: string | string[];
+  /** Default response content type when the renderer returns a string or Buffer. */
+  contentType?: string;
+  /** Generic renderer used for resource and manifest responses unless a target-specific renderer is provided. */
+  render?: JsonDbRestAnyFormatRenderer;
+  /** Renderer for REST resource routes such as /users.yaml. */
+  renderResource?: JsonDbRestFormatRenderer;
+  /** Renderer for viewer manifest routes such as /__jsondb/manifest.yaml. */
+  renderManifest?: JsonDbRestManifestFormatRenderer;
+};
 
 export type JsonDbOptions = {
   /** Project root used to resolve relative config paths. Defaults to process.cwd(). */
@@ -238,6 +268,8 @@ export type JsonDbOptions = {
   stateDir?: string;
   /** Optional committed generated JSON schema manifest for admin/CMS UI generation. */
   schemaOutFile?: string | null;
+  /** Optional committed generated JSON viewer manifest for custom data UIs. */
+  viewerManifestOutFile?: string | null;
   /** Optional visitor hooks for customizing generated schema manifest output. */
   schemaManifest?: JsonDbSchemaManifestOptions;
   /** Optional source readers for custom schema or data file formats. */
@@ -288,12 +320,17 @@ export type JsonDbOptions = {
     port?: number;
     /** Maximum JSON request body size in bytes. Defaults to 1048576. */
     maxBodyBytes?: number;
+    /** Optional links to custom data viewers shown in discovery and the viewer manifest. */
+    viewerLinks?: Array<{
+      label?: string;
+      href: string;
+    }>;
   };
   rest?: {
     /** Enable generated REST routes. */
     enabled?: boolean;
     /** GET response formats by extension. "default" controls extensionless resource routes. */
-    formats?: Record<string, JsonDbRestFormatRenderer | string | undefined>;
+    formats?: Record<string, JsonDbRestFormatRenderer | JsonDbRestFormatDefinition | string | undefined>;
   };
   graphql?: {
     /** Enable the focused dependency-free GraphQL endpoint. */
@@ -485,6 +522,8 @@ export function syncJsonFixtureDb(config: JsonDbOptions, options?: { allowErrors
 export function generateTypes(config: JsonDbOptions, options?: { outFile?: string }): Promise<{ content: string; outFiles: string[] }>;
 export function generateSchemaManifest(config: JsonDbOptions, options?: { outFile?: string }): Promise<{ manifest: unknown; content: string; outFiles: string[] }>;
 export function renderSchemaManifest(resources: unknown[], config?: JsonDbOptions): unknown;
+export function generateViewerManifest(config: JsonDbOptions, options?: { outFile?: string }): Promise<{ manifest: unknown; content: string; outFiles: string[] }>;
+export function renderViewerManifest(resources: unknown[], config?: JsonDbOptions): unknown;
 export function mergeManifest(base: unknown, patch: unknown): unknown;
 export function resourceNameFromPath(file: string, options?: { strategy?: JsonDbResourceNamingStrategy }): string;
 export function parseFixturePath(file: string): {

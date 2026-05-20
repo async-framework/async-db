@@ -17,6 +17,7 @@ npm run db -- schema infer users
 npm run db -- schema infer users --out db/users.schema.jsonc
 npm run db -- schema manifest --out ./src/generated/jsondb.schema.json
 npm run db -- schema validate
+npm run db -- viewer manifest --out ./src/generated/jsondb.viewer.json
 npm run db -- doctor
 npm run db -- doctor --json
 npm run db -- check --strict
@@ -32,6 +33,7 @@ Inside npm scripts, `jsondb` resolves to the local dependency binary. Equivalent
 jsondb sync
 jsondb types
 jsondb schema validate
+jsondb viewer manifest --out ./src/generated/jsondb.viewer.json
 jsondb doctor
 jsondb check --strict
 jsondb serve

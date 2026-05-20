@@ -31,6 +31,8 @@ See [jsondb.config.example.mjs](../jsondb.config.example.mjs) for a commented co
 | Index intent metadata | Off | `resources.<name>.indexes` |
 | Importable generated types | `.jsondb/types/index.ts` | `types.commitOutFile` |
 | Importable schema manifest | Off | `schemaOutFile` |
+| Importable viewer manifest | Off | `viewerManifestOutFile` |
+| REST response formats | `.json`, `.html`, `.md` | `rest.formats` |
 | Unknown fields | Warn | `schema.unknownFields` |
 | Schema-only mock records | Off | `seed.generateFromSchema` |
 | Local latency | `30-100ms` | `mock.delay` |
@@ -66,6 +68,7 @@ export default defineConfig({
   },
 
   schemaOutFile: './src/generated/jsondb.schema.json',
+  viewerManifestOutFile: './src/generated/jsondb.viewer.json',
 
   schema: {
     unknownFields: 'warn',
@@ -81,6 +84,28 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 7331,
     maxBodyBytes: 1048576,
+    viewerLinks: [
+      { label: 'App Data Viewer', href: 'http://127.0.0.1:5173/jsondb' },
+    ],
+  },
+
+  rest: {
+    formats: {
+      default: 'json',
+      md({ resourceName, data }) {
+        return {
+          body: `# ${resourceName}\n\n\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\`\n`,
+          contentType: 'text/markdown; charset=utf-8',
+        };
+      },
+      // yaml: {
+      //   mediaTypes: ['application/yaml', 'text/yaml'],
+      //   contentType: 'application/yaml; charset=utf-8',
+      //   render({ data }) {
+      //     return stringifyYaml(data);
+      //   },
+      // },
+    },
   },
 
   mock: {

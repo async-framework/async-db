@@ -1,6 +1,7 @@
 export function renderJsonDbViewer(options = {}) {
   const graphqlPath = options.graphqlPath ?? '/graphql';
   const schemaPath = options.schemaPath ?? '/__jsondb/schema';
+  const manifestPath = options.manifestPath ?? '/__jsondb/manifest.json';
   const eventsPath = options.eventsPath ?? '/__jsondb/events';
   const importPath = options.importPath ?? '/__jsondb/import';
   const restBatchPath = options.restBatchPath ?? '/__jsondb/batch';
@@ -190,6 +191,7 @@ export function renderJsonDbViewer(options = {}) {
   <script>
     const GRAPHQL_PATH = ${JSON.stringify(graphqlPath)};
     const SCHEMA_PATH = ${JSON.stringify(schemaPath)};
+    const MANIFEST_PATH = ${JSON.stringify(manifestPath)};
     const EVENTS_PATH = ${JSON.stringify(eventsPath)};
     const IMPORT_PATH = ${JSON.stringify(importPath)};
     const REST_BATCH_PATH = ${JSON.stringify(restBatchPath)};
@@ -214,6 +216,7 @@ export function renderJsonDbViewer(options = {}) {
     const EXAMPLE_HEAD_CLASS = ${JSON.stringify(exampleHeadClass)};
     const ROW_CLASS = ${JSON.stringify(rowClass)};
     const state = {
+      manifest: null,
       schema: null,
       resources: [],
       selected: null,
@@ -297,11 +300,16 @@ export function renderJsonDbViewer(options = {}) {
     connectLiveReload();
 
     async function boot(preferredResourceName) {
-      state.schema = await fetchJson(SCHEMA_PATH);
-      state.resources = Object.entries(state.schema.resources || {}).map(([name, resource]) => ({
-        name,
-        ...resource,
-      }));
+      const [manifest, schema] = await Promise.all([
+        fetchJson(MANIFEST_PATH),
+        fetchJson(SCHEMA_PATH),
+      ]);
+      state.manifest = manifest;
+      state.schema = schema;
+      state.resources = [
+        ...Object.entries(manifest.collections || {}).map(([name, resource]) => ({ name, ...resource })),
+        ...Object.entries(manifest.documents || {}).map(([name, resource]) => ({ name, ...resource })),
+      ];
       renderStatus();
       renderDiagnostics();
       renderResourceList();
@@ -327,7 +335,7 @@ export function renderJsonDbViewer(options = {}) {
       els.resourceTitle.textContent = state.selected.name;
       els.resourceDetail.textContent = state.selected.kind + ' · ' + state.selected.typeName + routeText(state.selected);
       renderFields();
-      els.schemaOutput.textContent = pretty(state.selected);
+      els.schemaOutput.textContent = pretty(state.schema?.resources?.[state.selected.name] || state.selected);
       await loadSelectedData();
       renderRestExamples();
       renderGraphqlExamples();
@@ -348,21 +356,21 @@ export function renderJsonDbViewer(options = {}) {
     }
 
     function renderStatus() {
-      const diagnostics = state.schema.diagnostics || [];
+      const diagnostics = state.manifest.diagnostics || [];
       const errors = diagnostics.filter((item) => item.severity === 'error').length;
       const warnings = diagnostics.filter((item) => item.severity === 'warn').length;
       els.status.innerHTML = '';
       els.status.append(
         pill(state.resources.length + ' resources'),
         pill('REST ready'),
-        pill('GraphQL ready'),
+        pill(state.manifest.capabilities?.graphql === false ? 'GraphQL off' : 'GraphQL ready'),
         pill(errors + ' errors', errors > 0 ? 'error' : ''),
         pill(warnings + ' warnings', warnings > 0 ? 'warning' : ''),
       );
     }
 
     function renderDiagnostics() {
-      const diagnostics = state.schema.diagnostics || [];
+      const diagnostics = state.manifest.diagnostics || [];
       if (diagnostics.length === 0) {
         els.diagnosticsView.className = 'mb-4 hidden';
         els.diagnosticsView.innerHTML = '';
@@ -678,6 +686,12 @@ export function renderJsonDbViewer(options = {}) {
     }
 
     function resourcePath(resource) {
+      if (resource.api?.list) {
+        return resource.api.list;
+      }
+      if (resource.api?.read) {
+        return resource.api.read;
+      }
       return joinPaths(REST_BASE_PATH, resource.routePath || '/' + resource.name);
     }
 

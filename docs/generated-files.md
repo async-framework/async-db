@@ -95,11 +95,32 @@ The manifest includes normalized resource and field metadata such as `type`, `re
 
 The manifests at [examples/schema-manifest/src/generated/jsondb.schema.json](../examples/schema-manifest/src/generated/jsondb.schema.json) and [examples/schema-ui/src/generated/jsondb.schema.json](../examples/schema-ui/src/generated/jsondb.schema.json) are intentionally committed.
 
+## Viewer Manifest Output
+
+Use `viewerManifestOutFile` when a custom data viewer needs the same JSON metadata used by the built-in viewer:
+
+```js
+import { defineConfig } from 'jsondb/config';
+
+export default defineConfig({
+  viewerManifestOutFile: './src/generated/jsondb.viewer.json',
+});
+```
+
+`jsondb sync` writes the viewer manifest when `viewerManifestOutFile` is set. You can also generate it directly:
+
+```bash
+npm run db -- viewer manifest --out ./src/generated/jsondb.viewer.json
+```
+
+The viewer manifest includes field metadata, UI hints, relation hints, diagnostics, capabilities, configured viewer links, and API links such as `/__jsondb/manifest`, `/__jsondb/manifest.json`, `/__jsondb/manifest.html`, `/__jsondb/manifest.md`, `/__jsondb/batch`, `/graphql`, and each REST resource route. It does not include seed records, source paths, source hashes, runtime state paths, or GraphQL SDL. Fetch actual records from REST or GraphQL.
+
 ## Cleanup Rules
 
 - Do not commit `.jsondb/` unless a task explicitly asks for generated runtime state.
 - Do commit configured `types.commitOutFile` output when an app needs stable imports in a fresh checkout.
 - Do commit configured `schemaOutFile` output when an app needs stable schema metadata at runtime.
+- Do commit configured `viewerManifestOutFile` output when a custom viewer needs stable metadata and route links at runtime.
 - Smoke commands against examples may create `examples/*/.jsondb/`; remove that generated runtime output before finalizing.
 
 ## Related Examples

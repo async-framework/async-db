@@ -120,10 +120,30 @@ test('REST root returns JSON discovery links by default', async () => {
   assert.deepEqual(response.json(), {
     resources: ['users'],
     viewer: '/__jsondb',
+    viewers: [{
+      label: 'Data Viewer',
+      href: '/__jsondb',
+      source: 'built-in',
+    }],
+    formats: builtInFormatMetadata('/__jsondb'),
+    manifest: '/__jsondb/manifest',
+    manifestJson: '/__jsondb/manifest.json',
+    manifestHtml: '/__jsondb/manifest.html',
+    manifestMarkdown: '/__jsondb/manifest.md',
     schema: '/__jsondb/schema',
     graphql: '/graphql',
     links: {
       viewer: '/__jsondb',
+      viewers: [{
+        label: 'Data Viewer',
+        href: '/__jsondb',
+        source: 'built-in',
+      }],
+      formats: builtInFormatMetadata('/__jsondb'),
+      manifest: '/__jsondb/manifest',
+      manifestJson: '/__jsondb/manifest.json',
+      manifestHtml: '/__jsondb/manifest.html',
+      manifestMarkdown: '/__jsondb/manifest.md',
       schema: '/__jsondb/schema',
       graphql: '/graphql',
       resources: {
@@ -161,10 +181,30 @@ test('REST root discovery links use configured server apiBase', async () => {
   assert.deepEqual(response.json(), {
     resources: ['users'],
     viewer: '/_jsondb',
+    viewers: [{
+      label: 'Data Viewer',
+      href: '/_jsondb',
+      source: 'built-in',
+    }],
+    formats: builtInFormatMetadata('/_jsondb'),
+    manifest: '/_jsondb/manifest',
+    manifestJson: '/_jsondb/manifest.json',
+    manifestHtml: '/_jsondb/manifest.html',
+    manifestMarkdown: '/_jsondb/manifest.md',
     schema: '/_jsondb/schema',
     graphql: '/graphql',
     links: {
       viewer: '/_jsondb',
+      viewers: [{
+        label: 'Data Viewer',
+        href: '/_jsondb',
+        source: 'built-in',
+      }],
+      formats: builtInFormatMetadata('/_jsondb'),
+      manifest: '/_jsondb/manifest',
+      manifestJson: '/_jsondb/manifest.json',
+      manifestHtml: '/_jsondb/manifest.html',
+      manifestMarkdown: '/_jsondb/manifest.md',
       schema: '/_jsondb/schema',
       graphql: '/graphql',
       resources: {
@@ -200,12 +240,488 @@ test('REST root returns HTML discovery links for browser requests', async () => 
   assert.match(response.body, /jsondb/);
   assert.match(response.body, /Data Viewer/);
   assert.match(response.body, /href="\/__jsondb"/);
+  assert.match(response.body, /Viewer Manifest/);
+  assert.match(response.body, /href="\/__jsondb\/manifest"/);
   assert.match(response.body, /Schema/);
   assert.match(response.body, /href="\/__jsondb\/schema"/);
   assert.match(response.body, /GraphQL/);
   assert.match(response.body, /href="\/graphql"/);
   assert.match(response.body, /chartMappings/);
   assert.match(response.body, /href="\/chart-mappings"/);
+});
+
+test('REST discovery and viewer manifest include configured custom viewer links', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([
+    {
+      id: 'u_1',
+      name: 'Ada Lovelace',
+    },
+  ]));
+
+  const db = await openJsonFixtureDb({
+    cwd,
+    server: {
+      viewerLinks: [
+        { label: 'Custom Viewer', href: 'http://127.0.0.1:5173/jsondb' },
+      ],
+    },
+  });
+  const root = makeResponse();
+  const manifest = makeResponse();
+
+  await handleRestRequest(db, makeRequest('GET'), root, new URL('http://jsondb.local/'));
+  await handleRestRequest(db, makeRequest('GET'), manifest, new URL('http://jsondb.local/__jsondb/manifest.json'));
+
+  assert.deepEqual(root.json().links.viewers, [
+    {
+      label: 'Data Viewer',
+      href: '/__jsondb',
+      source: 'built-in',
+    },
+    {
+      label: 'Custom Viewer',
+      href: 'http://127.0.0.1:5173/jsondb',
+      source: 'custom',
+    },
+  ]);
+  assert.deepEqual(manifest.json().api.viewers, root.json().links.viewers);
+});
+
+test('REST root discovery includes registered response format metadata', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([]));
+
+  const db = await openJsonFixtureDb({
+    cwd,
+    rest: {
+      formats: {
+        yaml: {
+          mediaTypes: ['application/yaml', 'text/yaml'],
+          contentType: 'application/yaml; charset=utf-8',
+          render({ data }) {
+            return JSON.stringify(data);
+          },
+        },
+      },
+    },
+  });
+  const response = makeResponse();
+
+  await handleRestRequest(db, makeRequest('GET'), response, new URL('http://jsondb.local/'));
+
+  assert.deepEqual(response.json().formats.yaml, {
+    extension: '.yaml',
+    mediaTypes: ['application/yaml', 'text/yaml'],
+    contentType: 'application/yaml; charset=utf-8',
+    manifestPath: '/__jsondb/manifest.yaml',
+  });
+});
+
+test('REST explicit .json routes keep raw JSON even for browser requests', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([
+    {
+      id: 'u_1',
+      name: 'Ada Lovelace',
+    },
+  ]));
+
+  const db = await openJsonFixtureDb({ cwd });
+  const manifest = makeResponse();
+  const users = makeResponse();
+
+  await handleRestRequest(
+    db,
+    makeRequest('GET', undefined, {
+      accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    }),
+    manifest,
+    new URL('http://jsondb.local/__jsondb/manifest.json'),
+  );
+  await handleRestRequest(
+    db,
+    makeRequest('GET', undefined, {
+      accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    }),
+    users,
+    new URL('http://jsondb.local/users.json'),
+  );
+
+  assert.equal(manifest.status, 200);
+  assert.match(manifest.headers['content-type'], /application\/json/);
+  assert.equal(manifest.json().kind, 'jsondb.viewerManifest');
+  assert.equal(users.status, 200);
+  assert.match(users.headers['content-type'], /application\/json/);
+  assert.deepEqual(users.json(), [{ id: 'u_1', name: 'Ada Lovelace' }]);
+});
+
+test('REST explicit .html routes render the formatted JSON viewer', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([
+    {
+      id: 'u_1',
+      name: 'Ada Lovelace',
+    },
+  ]));
+
+  const db = await openJsonFixtureDb({ cwd });
+  const manifest = makeResponse();
+  const users = makeResponse();
+
+  await handleRestRequest(
+    db,
+    makeRequest('GET'),
+    manifest,
+    new URL('http://jsondb.local/__jsondb/manifest.html'),
+  );
+  await handleRestRequest(
+    db,
+    makeRequest('GET'),
+    users,
+    new URL('http://jsondb.local/users.html'),
+  );
+
+  assert.equal(manifest.status, 200);
+  assert.match(manifest.headers['content-type'], /text\/html/);
+  assert.match(manifest.body, /cdn\.tailwindcss\.com/);
+  assert.match(manifest.body, /<html lang="en" data-theme-mode="dark"/);
+  assert.doesNotMatch(manifest.body, /<style>/);
+  assert.match(manifest.body, /data-theme-mode="dark"/);
+  assert.match(manifest.body, /data-theme-choice="system"/);
+  assert.match(manifest.body, /data-format-choice="pretty" aria-pressed="true"/);
+  assert.match(manifest.body, /data-format-choice="raw"/);
+  assert.match(manifest.body, /id="copy-json"/);
+  assert.match(manifest.body, /&quot;kind&quot;: &quot;jsondb\.viewerManifest&quot;/);
+  assert.match(manifest.body, /&quot;api&quot;: \{/);
+  assert.equal(users.status, 200);
+  assert.match(users.headers['content-type'], /text\/html/);
+  assert.match(users.body, /&quot;id&quot;: &quot;u_1&quot;/);
+  assert.match(users.body, /&quot;name&quot;: &quot;Ada Lovelace&quot;/);
+});
+
+test('REST explicit .md routes render AI-friendly markdown', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'settings.json', JSON.stringify({
+    theme: 'dark',
+    locale: 'en-US',
+  }));
+
+  const db = await openJsonFixtureDb({ cwd });
+  const manifest = makeResponse();
+  const settings = makeResponse();
+
+  await handleRestRequest(
+    db,
+    makeRequest('GET'),
+    manifest,
+    new URL('http://jsondb.local/__jsondb/manifest.md'),
+  );
+  await handleRestRequest(
+    db,
+    makeRequest('GET'),
+    settings,
+    new URL('http://jsondb.local/settings.md'),
+  );
+
+  assert.equal(manifest.status, 200);
+  assert.match(manifest.headers['content-type'], /text\/markdown/);
+  assert.match(manifest.body, /^# jsondb viewer manifest/m);
+  assert.match(manifest.body, /```json/);
+  assert.match(manifest.body, /"kind": "jsondb\.viewerManifest"/);
+  assert.equal(settings.status, 200);
+  assert.match(settings.headers['content-type'], /text\/markdown/);
+  assert.match(settings.body, /^# settings/m);
+  assert.match(settings.body, /- Kind: `document`/);
+  assert.match(settings.body, /"theme": "dark"/);
+});
+
+test('REST extensionless manifest and resource routes negotiate HTML or JSON', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([
+    {
+      id: 'u_1',
+      name: 'Ada Lovelace',
+    },
+  ]));
+
+  const db = await openJsonFixtureDb({ cwd });
+  const manifestHtml = makeResponse();
+  const usersHtml = makeResponse();
+  const manifestJson = makeResponse();
+  const usersJson = makeResponse();
+
+  await handleRestRequest(
+    db,
+    makeRequest('GET', undefined, {
+      accept: 'text/html,application/xhtml+xml,application/json;q=0.5,*/*;q=0.1',
+    }),
+    manifestHtml,
+    new URL('http://jsondb.local/__jsondb/manifest'),
+  );
+  await handleRestRequest(
+    db,
+    makeRequest('GET', undefined, {
+      accept: 'text/html,application/xhtml+xml,application/json;q=0.5,*/*;q=0.1',
+    }),
+    usersHtml,
+    new URL('http://jsondb.local/users'),
+  );
+  await handleRestRequest(
+    db,
+    makeRequest('GET', undefined, {
+      accept: 'application/json',
+    }),
+    manifestJson,
+    new URL('http://jsondb.local/__jsondb/manifest'),
+  );
+  await handleRestRequest(
+    db,
+    makeRequest('GET', undefined, {
+      accept: 'application/json',
+    }),
+    usersJson,
+    new URL('http://jsondb.local/users'),
+  );
+
+  assert.match(manifestHtml.headers['content-type'], /text\/html/);
+  assert.match(manifestHtml.body, /jsondb viewer manifest/);
+  assert.match(usersHtml.headers['content-type'], /text\/html/);
+  assert.match(usersHtml.body, /&quot;name&quot;: &quot;Ada Lovelace&quot;/);
+  assert.match(manifestJson.headers['content-type'], /application\/json/);
+  assert.equal(manifestJson.json().kind, 'jsondb.viewerManifest');
+  assert.match(usersJson.headers['content-type'], /application\/json/);
+  assert.deepEqual(usersJson.json(), [{ id: 'u_1', name: 'Ada Lovelace' }]);
+});
+
+test('REST extensionless manifest and resource routes negotiate markdown', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([
+    {
+      id: 'u_1',
+      name: 'Ada Lovelace',
+    },
+  ]));
+
+  const db = await openJsonFixtureDb({ cwd });
+  const manifest = makeResponse();
+  const users = makeResponse();
+
+  await handleRestRequest(
+    db,
+    makeRequest('GET', undefined, {
+      accept: 'text/markdown,application/json;q=0.5,*/*;q=0.1',
+    }),
+    manifest,
+    new URL('http://jsondb.local/__jsondb/manifest'),
+  );
+  await handleRestRequest(
+    db,
+    makeRequest('GET', undefined, {
+      accept: 'text/markdown,application/json;q=0.5,*/*;q=0.1',
+    }),
+    users,
+    new URL('http://jsondb.local/users'),
+  );
+
+  assert.match(manifest.headers['content-type'], /text\/markdown/);
+  assert.match(manifest.body, /^# jsondb viewer manifest/m);
+  assert.match(users.headers['content-type'], /text\/markdown/);
+  assert.match(users.body, /^# users/m);
+  assert.match(users.body, /- Kind: `collection`/);
+});
+
+test('REST format registry renders object formats for resource and manifest routes', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([
+    {
+      id: 'u_1',
+      name: 'Ada Lovelace',
+    },
+  ]));
+
+  const db = await openJsonFixtureDb({
+    cwd,
+    rest: {
+      formats: {
+        yaml: {
+          mediaTypes: ['application/yaml', 'text/yaml'],
+          contentType: 'application/yaml; charset=utf-8',
+          render({ data, format }) {
+            return `format: ${format}\njson: ${JSON.stringify(data)}\n`;
+          },
+          renderManifest({ data, format }) {
+            return `format: ${format}\nkind: ${data.kind}\n`;
+          },
+        },
+      },
+    },
+  });
+  const users = makeResponse();
+  const manifest = makeResponse();
+
+  await handleRestRequest(db, makeRequest('GET'), users, new URL('http://jsondb.local/users.yaml'));
+  await handleRestRequest(db, makeRequest('GET'), manifest, new URL('http://jsondb.local/__jsondb/manifest.yaml'));
+
+  assert.equal(users.status, 200);
+  assert.match(users.headers['content-type'], /application\/yaml/);
+  assert.match(users.body, /format: yaml/);
+  assert.match(users.body, /Ada Lovelace/);
+  assert.equal(manifest.status, 200);
+  assert.match(manifest.headers['content-type'], /application\/yaml/);
+  assert.match(manifest.body, /format: yaml/);
+  assert.match(manifest.body, /kind: jsondb\.viewerManifest/);
+});
+
+test('REST format registry negotiates custom media types and falls back to default', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([
+    {
+      id: 'u_1',
+      name: 'Ada Lovelace',
+    },
+  ]));
+
+  const db = await openJsonFixtureDb({
+    cwd,
+    rest: {
+      formats: {
+        yaml: {
+          mediaTypes: ['application/yaml', 'text/yaml'],
+          contentType: 'application/yaml; charset=utf-8',
+          render({ data }) {
+            return `yaml: ${JSON.stringify(data)}\n`;
+          },
+        },
+      },
+    },
+  });
+  const yamlUsers = makeResponse();
+  const yamlManifest = makeResponse();
+  const fallbackUsers = makeResponse();
+  const fallbackManifest = makeResponse();
+
+  await handleRestRequest(
+    db,
+    makeRequest('GET', undefined, {
+      accept: 'application/json;q=0.4,application/yaml;q=0.9,text/html;q=0.2',
+    }),
+    yamlUsers,
+    new URL('http://jsondb.local/users'),
+  );
+  await handleRestRequest(
+    db,
+    makeRequest('GET', undefined, {
+      accept: 'application/json;q=0.4,application/yaml;q=0.9,text/html;q=0.2',
+    }),
+    yamlManifest,
+    new URL('http://jsondb.local/__jsondb/manifest'),
+  );
+  await handleRestRequest(
+    db,
+    makeRequest('GET', undefined, {
+      accept: 'application/xml',
+    }),
+    fallbackUsers,
+    new URL('http://jsondb.local/users'),
+  );
+  await handleRestRequest(
+    db,
+    makeRequest('GET', undefined, {
+      accept: 'application/xml',
+    }),
+    fallbackManifest,
+    new URL('http://jsondb.local/__jsondb/manifest'),
+  );
+
+  assert.match(yamlUsers.headers['content-type'], /application\/yaml/);
+  assert.match(yamlUsers.body, /Ada Lovelace/);
+  assert.match(yamlManifest.headers['content-type'], /application\/yaml/);
+  assert.match(yamlManifest.body, /jsondb\.viewerManifest/);
+  assert.match(fallbackUsers.headers['content-type'], /application\/json/);
+  assert.deepEqual(fallbackUsers.json(), [{ id: 'u_1', name: 'Ada Lovelace' }]);
+  assert.match(fallbackManifest.headers['content-type'], /application\/json/);
+  assert.equal(fallbackManifest.json().kind, 'jsondb.viewerManifest');
+});
+
+test('REST format registry lets object entries override built-in JSON and markdown', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'settings.json', JSON.stringify({
+    theme: 'dark',
+  }));
+
+  const db = await openJsonFixtureDb({
+    cwd,
+    rest: {
+      formats: {
+        json: {
+          mediaTypes: ['application/vnd.custom+json', 'application/json'],
+          contentType: 'application/vnd.custom+json; charset=utf-8',
+          render({ data }) {
+            return JSON.stringify({ wrapped: data });
+          },
+        },
+        md: {
+          mediaTypes: ['text/markdown'],
+          renderResource({ resourceName, data }) {
+            return {
+              body: `# custom ${resourceName}\n${JSON.stringify(data)}\n`,
+              contentType: 'text/markdown; charset=utf-8',
+            };
+          },
+          renderManifest({ data }) {
+            return {
+              body: `# custom manifest\n${data.kind}\n`,
+              contentType: 'text/markdown; charset=utf-8',
+            };
+          },
+        },
+      },
+    },
+  });
+  const settingsJson = makeResponse();
+  const manifestJson = makeResponse();
+  const settingsMarkdown = makeResponse();
+  const manifestMarkdown = makeResponse();
+
+  await handleRestRequest(db, makeRequest('GET'), settingsJson, new URL('http://jsondb.local/settings.json'));
+  await handleRestRequest(db, makeRequest('GET'), manifestJson, new URL('http://jsondb.local/__jsondb/manifest.json'));
+  await handleRestRequest(db, makeRequest('GET'), settingsMarkdown, new URL('http://jsondb.local/settings.md'));
+  await handleRestRequest(db, makeRequest('GET'), manifestMarkdown, new URL('http://jsondb.local/__jsondb/manifest.md'));
+
+  assert.match(settingsJson.headers['content-type'], /application\/vnd\.custom\+json/);
+  assert.deepEqual(JSON.parse(settingsJson.body), { wrapped: { theme: 'dark' } });
+  assert.match(manifestJson.headers['content-type'], /application\/vnd\.custom\+json/);
+  assert.equal(JSON.parse(manifestJson.body).wrapped.kind, 'jsondb.viewerManifest');
+  assert.equal(settingsMarkdown.body, '# custom settings\n{"theme":"dark"}\n');
+  assert.equal(manifestMarkdown.body, '# custom manifest\njsondb.viewerManifest\n');
+});
+
+test('REST unknown format errors list registered custom formats', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([]));
+
+  const db = await openJsonFixtureDb({
+    cwd,
+    rest: {
+      formats: {
+        yaml: {
+          mediaTypes: ['application/yaml'],
+          render({ data }) {
+            return JSON.stringify(data);
+          },
+        },
+      },
+    },
+  });
+  const response = makeResponse();
+
+  await handleRestRequest(db, makeRequest('GET'), response, new URL('http://jsondb.local/users.xml'));
+
+  assert.equal(response.status, 404);
+  assert.equal(response.json().error.code, 'REST_UNKNOWN_FORMAT');
+  assert.deepEqual(response.json().error.details.availableFormats, ['html', 'json', 'md', 'yaml']);
+  assert.match(response.json().error.hint, /\.yaml/);
 });
 
 test('REST schema endpoint exposes route paths for the viewer', async () => {
@@ -1102,6 +1618,29 @@ function makeResponse() {
     },
     json() {
       return this.body ? JSON.parse(this.body) : null;
+    },
+  };
+}
+
+function builtInFormatMetadata(apiBase) {
+  return {
+    html: {
+      extension: '.html',
+      mediaTypes: ['text/html'],
+      contentType: 'text/html; charset=utf-8',
+      manifestPath: `${apiBase}/manifest.html`,
+    },
+    json: {
+      extension: '.json',
+      mediaTypes: ['application/json'],
+      contentType: 'application/json; charset=utf-8',
+      manifestPath: `${apiBase}/manifest.json`,
+    },
+    md: {
+      extension: '.md',
+      mediaTypes: ['text/markdown'],
+      contentType: 'text/markdown; charset=utf-8',
+      manifestPath: `${apiBase}/manifest.md`,
     },
   };
 }

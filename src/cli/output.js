@@ -30,6 +30,7 @@ Usage:
   jsondb schema bundle <resource> [--out <file>] [--force]
   jsondb schema manifest [--out <file>]
   jsondb schema validate
+  jsondb viewer manifest [--out <file>]
   jsondb doctor [--strict] [--json]
   jsondb check [--strict] [--json]
   jsondb create <collection> <json>
@@ -88,6 +89,19 @@ Usage:
 Options:
   --strict       Exit with an error when warnings are present
   --json         Print machine-readable findings
+  --cwd <dir>     Project directory
+  --config <file> Config file path
+`);
+}
+
+export function printViewerHelp() {
+  console.log(`jsondb viewer
+
+Usage:
+  jsondb viewer manifest [--out <file>]
+
+Options:
+  --out <file>   Write generated viewer manifest output to this path
   --cwd <dir>     Project directory
   --config <file> Config file path
 `);

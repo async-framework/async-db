@@ -5,7 +5,9 @@ import { jsonDbError, listChoices, serializeError } from '../errors.js';
 import { resolveResource, resourceNameCandidates } from '../names.js';
 import { makeGeneratedSchema } from '../schema.js';
 import { syncJsonFixtureDb } from '../sync.js';
+import { renderViewerManifest } from '../viewer-manifest.js';
 import { renderJsonDbViewer } from '../web/viewer.js';
+import { availableRestFormats, negotiateRestFormat, resolveRestFormat, restFormatMetadata } from './formats.js';
 import { shapeCollectionRead } from './shape.js';
 
 export async function handleRestRequest(db, request, response, url = new URL(request.url, 'http://jsondb.local'), options = {}) {
@@ -23,6 +25,7 @@ async function handleRestRequestUnsafe(db, request, response, url, options) {
     sendText(response, 200, renderJsonDbViewer({
       graphqlPath: routeOptions.graphqlPath,
       schemaPath: routeOptions.schemaPath,
+      manifestPath: routeOptions.manifestJsonPath,
       eventsPath: routeOptions.eventsPath,
       importPath: routeOptions.importPath,
       restBatchPath: routeOptions.batchPath,
@@ -50,12 +53,42 @@ async function handleRestRequestUnsafe(db, request, response, url, options) {
     return;
   }
 
+  const manifestFormat = request.method === 'GET'
+    ? manifestResponseFormat(url, request, routeOptions, db.config)
+    : null;
+  if (manifestFormat) {
+    const manifest = renderViewerManifest([...db.resources.values()], db.config, {
+      diagnostics: db.diagnostics ?? [],
+      routes: routeOptions,
+    });
+
+    const resolved = resolveRestFormat(db.config, manifestFormat, 'manifest');
+    if (!resolved) {
+      sendUnknownFormat(response, manifestFormat, db.config, 'manifest');
+      return;
+    }
+
+    const result = await resolved.renderer({
+      db,
+      data: manifest,
+      manifest,
+      format: resolved.key,
+      request,
+      url,
+      routes: routeOptions,
+      target: 'manifest',
+    });
+    const normalized = normalizeFormatResult(result, resolved.contentType);
+    sendText(response, normalized.status, normalized.body, normalized.contentType);
+    return;
+  }
+
   const resourceUrl = restResourceUrl(url, routeOptions);
   const [rawRouteName, rawId] = resourceUrl.pathname.split('/').filter(Boolean);
   const { routeName, id, format } = parseFormattedResourcePath(rawRouteName, rawId);
   if (!routeName) {
     const discovery = rootDiscovery(db, routeOptions);
-    if (request.method === 'GET' && requestPrefersHtml(request)) {
+    if (request.method === 'GET' && requestPrefersHtml(db.config, request)) {
       sendText(response, 200, renderRootDiscovery(discovery), 'text/html; charset=utf-8');
       return;
     }
@@ -224,6 +257,10 @@ function normalizeRestRouteOptions(db, options = {}) {
   return {
     apiBase,
     viewerPath: options.viewerPath ?? apiBase,
+    manifestPath: options.manifestPath ?? `${apiBase}/manifest`,
+    manifestJsonPath: options.manifestJsonPath ?? `${apiBase}/manifest.json`,
+    manifestHtmlPath: options.manifestHtmlPath ?? `${apiBase}/manifest.html`,
+    manifestMarkdownPath: options.manifestMarkdownPath ?? `${apiBase}/manifest.md`,
     schemaPath: options.schemaPath ?? `${apiBase}/schema`,
     batchPath: options.batchPath ?? `${apiBase}/batch`,
     importPath: options.importPath ?? `${apiBase}/import`,
@@ -261,20 +298,74 @@ function sourceDirLabel(config) {
 function rootDiscovery(db, options = {}) {
   const apiBase = normalizeBasePath(options.apiBase ?? db.config.server?.apiBase ?? '/__jsondb');
   const schemaPath = options.schemaPath ?? `${apiBase}/schema`;
+  const manifestPath = options.manifestPath ?? `${apiBase}/manifest`;
+  const manifestJsonPath = options.manifestJsonPath ?? `${apiBase}/manifest.json`;
+  const manifestHtmlPath = options.manifestHtmlPath ?? `${apiBase}/manifest.html`;
+  const manifestMarkdownPath = options.manifestMarkdownPath ?? `${apiBase}/manifest.md`;
   const viewerPath = options.viewerPath ?? apiBase;
   const graphqlPath = options.graphqlPath ?? db.config.graphql?.path ?? '/graphql';
+  const viewers = viewerLinks(db.config, viewerPath);
+  const formats = restFormatMetadata(db.config, {
+    manifestPath,
+    manifestJsonPath,
+    manifestHtmlPath,
+    manifestMarkdownPath,
+  });
 
   return {
     resources: db.resourceNames(),
     viewer: viewerPath,
+    viewers,
+    formats,
+    manifest: manifestPath,
+    manifestJson: manifestJsonPath,
+    manifestHtml: manifestHtmlPath,
+    manifestMarkdown: manifestMarkdownPath,
     schema: schemaPath,
     graphql: graphqlPath,
     links: {
       viewer: viewerPath,
+      viewers,
+      formats,
+      manifest: manifestPath,
+      manifestJson: manifestJsonPath,
+      manifestHtml: manifestHtmlPath,
+      manifestMarkdown: manifestMarkdownPath,
       schema: schemaPath,
       graphql: graphqlPath,
       resources: Object.fromEntries([...db.resources.values()].map((resource) => [resource.name, joinPaths(options.restBasePath ?? '', resource.routePath)])),
     },
+  };
+}
+
+function viewerLinks(config, viewerPath) {
+  const configuredLinks = Array.isArray(config.server?.viewerLinks)
+    ? config.server.viewerLinks
+    : [];
+  return [
+    {
+      label: 'Data Viewer',
+      href: viewerPath,
+      source: 'built-in',
+    },
+    ...configuredLinks.map(normalizeViewerLink).filter(Boolean),
+  ];
+}
+
+function normalizeViewerLink(link) {
+  if (!link || typeof link !== 'object') {
+    return null;
+  }
+
+  const href = typeof link.href === 'string' ? link.href : link.url;
+  if (typeof href !== 'string' || href.trim() === '') {
+    return null;
+  }
+
+  return {
+    label: typeof link.label === 'string' && link.label.trim() ? link.label : 'Custom Viewer',
+    href,
+    source: 'custom',
   };
 }
 
@@ -288,77 +379,14 @@ function joinPaths(basePath, routePath) {
   return `${base}${route === '/' ? '' : route}`;
 }
 
-function requestPrefersHtml(request) {
-  const accept = headerValue(request, 'accept');
-  if (!accept) {
-    return false;
-  }
-
-  const preferences = parseAcceptHeader(accept);
-  const html = acceptedMediaScore(preferences, 'text/html');
-  const json = acceptedMediaScore(preferences, 'application/json');
-  return compareAcceptScores(html, json) > 0;
-}
-
-function parseAcceptHeader(value) {
-  return String(value).split(',').map((entry, index) => {
-    const [mediaRange, ...parameters] = entry.trim().split(';');
-    let quality = 1;
-    for (const parameter of parameters) {
-      const [name, rawValue] = parameter.trim().split('=');
-      if (name?.toLowerCase() === 'q') {
-        const parsed = Number(rawValue);
-        quality = Number.isFinite(parsed) ? Math.min(1, Math.max(0, parsed)) : 0;
-      }
-    }
-
-    return {
-      index,
-      mediaRange: mediaRange.toLowerCase(),
-      quality,
-    };
-  }).filter((preference) => preference.mediaRange.includes('/'));
-}
-
-function acceptedMediaScore(preferences, mediaType) {
-  const [wantedType, wantedSubtype] = mediaType.split('/');
-  let best = {
-    quality: 0,
-    specificity: -1,
-    index: Number.MAX_SAFE_INTEGER,
-  };
-
-  for (const preference of preferences) {
-    const [type, subtype] = preference.mediaRange.split('/');
-    if ((type !== '*' && type !== wantedType) || (subtype !== '*' && subtype !== wantedSubtype)) {
-      continue;
-    }
-
-    const specificity = Number(type !== '*') + Number(subtype !== '*');
-    const candidate = {
-      quality: preference.quality,
-      specificity,
-      index: preference.index,
-    };
-    if (compareAcceptScores(candidate, best) > 0) {
-      best = candidate;
-    }
-  }
-
-  return best;
-}
-
-function compareAcceptScores(left, right) {
-  if (left.quality !== right.quality) {
-    return left.quality - right.quality;
-  }
-  if (left.specificity !== right.specificity) {
-    return left.specificity - right.specificity;
-  }
-  return right.index - left.index;
+function requestPrefersHtml(config, request) {
+  return negotiateRestFormat(config, request, 'resource') === 'html';
 }
 
 function renderRootDiscovery(discovery) {
+  const viewerLinksHtml = discovery.links.viewers.map((viewer) => (
+    `<li><a href="${escapeHtml(viewer.href)}">${escapeHtml(viewer.label)}</a> <code>${escapeHtml(viewer.href)}</code></li>`
+  )).join('');
   const resourceLinks = Object.entries(discovery.links.resources).map(([name, routePath]) => (
     `<li><a href="${escapeHtml(routePath)}">${escapeHtml(name)}</a> <code>${escapeHtml(routePath)}</code></li>`
   )).join('');
@@ -390,7 +418,8 @@ function renderRootDiscovery(discovery) {
     <section aria-labelledby="tools-heading">
       <h2 id="tools-heading">Tools</h2>
       <ul>
-        <li><a href="${escapeHtml(discovery.viewer)}">Data Viewer</a> <code>${escapeHtml(discovery.viewer)}</code></li>
+        ${viewerLinksHtml}
+        <li><a href="${escapeHtml(discovery.manifest)}">Viewer Manifest</a> <code>${escapeHtml(discovery.manifest)}</code></li>
         <li><a href="${escapeHtml(discovery.schema)}">Schema</a> <code>${escapeHtml(discovery.schema)}</code></li>
         <li><a href="${escapeHtml(discovery.graphql)}">GraphQL</a> <code>${escapeHtml(discovery.graphql)}</code></li>
       </ul>
@@ -695,79 +724,76 @@ async function handleDocument(db, resource, request, response, format) {
 }
 
 async function sendFormattedResource(db, response, resource, data, format, request, url) {
-  const renderer = resolveFormatRenderer(db.config, format);
-  if (!renderer) {
-    const availableFormats = availableRestFormats(db.config);
-    sendJson(response, 404, {
-      error: {
-        code: 'REST_UNKNOWN_FORMAT',
-        message: `Unknown REST format "${format}".`,
-        hint: `Use one of: ${listChoices(availableFormats.map((item) => `.${item}`))}.`,
-        details: {
-          format,
-          availableFormats,
-        },
-      },
-    });
+  const effectiveFormat = format ?? negotiateRestFormat(db.config, request, 'resource');
+  const resolved = resolveRestFormat(db.config, effectiveFormat, 'resource');
+  if (!resolved) {
+    sendUnknownFormat(response, effectiveFormat, db.config, 'resource');
     return;
   }
 
-  const result = await renderer({
+  const result = await resolved.renderer({
     db,
     resource,
     resourceName: resource.name,
     data,
-    format: format ?? 'default',
+    format: resolved.key,
     request,
     url,
+    target: 'resource',
   });
-  const normalized = normalizeFormatResult(result);
+  const normalized = normalizeFormatResult(result, resolved.contentType);
+
   sendText(response, normalized.status, normalized.body, normalized.contentType);
 }
 
-function resolveFormatRenderer(config, format) {
-  const formats = config.rest?.formats ?? {};
-  const key = format ?? 'default';
-  const configured = formats[key];
-
-  if (typeof configured === 'string') {
-    return resolveFormatRenderer(config, configured);
+function manifestResponseFormat(url, request, routes, config) {
+  if (url.pathname === routes.manifestJsonPath) {
+    return 'json';
   }
 
-  if (typeof configured === 'function') {
-    return configured;
+  if (url.pathname === routes.manifestHtmlPath) {
+    return 'html';
   }
 
-  if (key === 'default') {
-    return resolveFormatRenderer({ ...config, rest: { ...config.rest, formats: { ...formats, default: 'json' } } }, null);
+  if (url.pathname === routes.manifestMarkdownPath) {
+    return 'md';
   }
 
-  if (key === 'json') {
-    return ({ data }) => ({
-      body: `${JSON.stringify(data, null, 2)}\n`,
-      contentType: 'application/json; charset=utf-8',
-    });
+  if (url.pathname === routes.manifestPath) {
+    return negotiateRestFormat(config, request, 'manifest');
   }
 
-  return null;
+  const parsed = splitFormatExtension(url.pathname);
+  return parsed.name === routes.manifestPath ? parsed.format : null;
 }
 
-function availableRestFormats(config) {
-  return [...new Set(['json', ...Object.keys(config.rest?.formats ?? {}).filter((key) => key !== 'default')])].sort();
+function sendUnknownFormat(response, format, config, target) {
+  const availableFormats = availableRestFormats(config, target);
+  sendJson(response, 404, {
+    error: {
+      code: 'REST_UNKNOWN_FORMAT',
+      message: `Unknown REST format "${format}".`,
+      hint: `Use one of: ${listChoices(availableFormats.map((item) => `.${item}`))}.`,
+      details: {
+        format,
+        availableFormats,
+      },
+    },
+  });
 }
 
-function normalizeFormatResult(result) {
+function normalizeFormatResult(result, defaultContentType = 'text/plain; charset=utf-8') {
   if (typeof result === 'string' || Buffer.isBuffer(result)) {
     return {
       status: 200,
       body: result,
-      contentType: 'text/plain; charset=utf-8',
+      contentType: defaultContentType,
     };
   }
 
   return {
     status: result?.status ?? 200,
     body: result?.body ?? '',
-    contentType: result?.contentType ?? result?.headers?.['content-type'] ?? 'text/plain; charset=utf-8',
+    contentType: result?.contentType ?? result?.headers?.['content-type'] ?? defaultContentType,
   };
 }

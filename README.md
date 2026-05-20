@@ -193,13 +193,22 @@ See [docs/concepts.md](./docs/concepts.md) and [docs/fixtures-and-schemas.md](./
 
 ## Admin/CMS Schema Metadata
 
-Schemas can also drive local admin, CMS, and form-building screens. Configure `schemaOutFile` when an app needs committed field metadata such as field types, labels, defaults, enum values, relation hints, descriptions, and app-specific UI hints.
+Schemas can also drive local admin, CMS, custom data viewers, and form-building screens. Use `GET /__jsondb/manifest.json` at runtime when a UI runs beside `jsondb serve`, or configure `viewerManifestOutFile` when app code needs a committed JSON artifact with the same viewer metadata. Browser requests can open `GET /__jsondb/manifest.html`; AI clients can use `GET /__jsondb/manifest.md`; `GET /__jsondb/manifest` lets the `Accept` header choose among registered response formats.
+
+Use `schemaOutFile` when an app only needs the smaller model metadata file without server route links, diagnostics, or viewer capabilities.
 
 ```js
 import { defineConfig, mergeManifest } from 'jsondb/config';
 
 export default defineConfig({
   schemaOutFile: './src/generated/jsondb.schema.json',
+  viewerManifestOutFile: './src/generated/jsondb.viewer.json',
+
+  server: {
+    viewerLinks: [
+      { label: 'App Data Viewer', href: 'http://127.0.0.1:5173/jsondb' },
+    ],
+  },
 
   schemaManifest: {
     customizeResource({ file, defaultManifest }) {
@@ -238,7 +247,7 @@ export default defineConfig({
 });
 ```
 
-The generated manifest is metadata output; schema defaults and validation still come from the schema contract.
+The generated manifest is metadata output; schema defaults and validation still come from the schema contract. Actual records stay on REST or GraphQL routes, so a custom viewer fetches `manifest.json` for fields and route links, then calls the listed resource routes for rows. `server.viewerLinks` exposes custom viewer URLs in root discovery and the shared manifest.
 
 See [docs/generated-files.md](./docs/generated-files.md) and [examples/schema-manifest](./examples/schema-manifest).
 
@@ -296,7 +305,7 @@ curl 'http://127.0.0.1:7331/users?select=id,name&offset=0&limit=20'
 
 The viewer at `/__jsondb` lets you inspect resources, import CSV files into the configured fixture folder, view generated schema metadata, read GraphQL SDL/operation references, and try REST requests without writing client code first.
 
-The built-in viewer is intentionally small; apps can use the REST API, GraphQL endpoint, generated schema metadata, or integrations to build their own viewer UI.
+The built-in viewer and custom viewer UIs use the same JSON manifest at `/__jsondb/manifest.json`. `/__jsondb/manifest.html` opens a formatted JSON viewer, `/__jsondb/manifest.md` returns an AI-friendly Markdown wrapper, and `/__jsondb/manifest` chooses from registered media types in `Accept`. Apps can use `api.formats` from the manifest to discover supported extensions and build their own viewer UI against REST or GraphQL records.
 
 See [docs/server-and-viewer.md](./docs/server-and-viewer.md).
 
@@ -309,6 +318,7 @@ See [docs/server-and-viewer.md](./docs/server-and-viewer.md).
 | `.jsondb/types/index.ts` | Normally no | Default generated TypeScript output. |
 | `types.commitOutFile` output | Yes, when configured | Use for stable imports before sync runs. |
 | `schemaOutFile` output | Yes, when configured | Use for model-driven admin/CMS metadata. |
+| `viewerManifestOutFile` output | Yes, when configured | Use for custom data viewers that need metadata plus route links. |
 | `examples/*/src/generated/jsondb.types.ts` | Yes, in selected examples | Intentionally committed example type output. |
 | `examples/*/src/generated/jsondb.schema.json` | Yes, in selected examples | Intentionally committed example manifest. |
 

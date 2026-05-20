@@ -85,6 +85,10 @@ async function handleRequest(db, request, response, events, routes) {
         rootRoutes: false,
         restBasePath: `${forkApiBase(routes, forkName)}/rest`,
         graphqlPath: `${forkApiBase(routes, forkName)}/graphql`,
+        manifestPath: `${forkApiBase(routes, forkName)}/manifest`,
+        manifestJsonPath: `${forkApiBase(routes, forkName)}/manifest.json`,
+        manifestHtmlPath: `${forkApiBase(routes, forkName)}/manifest.html`,
+        manifestMarkdownPath: `${forkApiBase(routes, forkName)}/manifest.md`,
       });
       return handleRequest(forkDb, request, response, events, forkRoutes);
     } catch (error) {
@@ -302,6 +306,10 @@ function resolveRequestRoutes(config, options) {
     restBasePath,
     graphqlPath,
     viewerPath: apiBase,
+    manifestPath: `${apiBase}/manifest`,
+    manifestJsonPath: `${apiBase}/manifest.json`,
+    manifestHtmlPath: `${apiBase}/manifest.html`,
+    manifestMarkdownPath: `${apiBase}/manifest.md`,
     schemaPath: `${apiBase}/schema`,
     batchPath: `${apiBase}/batch`,
     importPath: `${apiBase}/import`,
@@ -333,11 +341,24 @@ function restUrlForRequest(url, routes) {
     return url;
   }
 
-  if ([routes.viewerPath, routes.schemaPath, routes.batchPath, routes.importPath].includes(url.pathname)) {
+  if ([routes.viewerPath, routes.schemaPath, routes.batchPath, routes.importPath].includes(url.pathname) || isManifestRoutePath(url.pathname, routes)) {
     return url;
   }
 
   return null;
+}
+
+function isManifestRoutePath(pathname, routes) {
+  if ([routes.manifestPath, routes.manifestJsonPath, routes.manifestHtmlPath, routes.manifestMarkdownPath].includes(pathname)) {
+    return true;
+  }
+
+  if (!pathname.startsWith(`${routes.manifestPath}.`)) {
+    return false;
+  }
+
+  const extension = pathname.slice(routes.manifestPath.length + 1);
+  return /^[A-Za-z][A-Za-z0-9_-]*$/.test(extension);
 }
 
 function joinPaths(basePath, routePath) {

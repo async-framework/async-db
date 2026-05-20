@@ -48,6 +48,10 @@ export async function loadConfig(options = {}) {
     merged.schemaOutFile = resolveFrom(cwd, merged.schemaOutFile);
   }
 
+  if (merged.viewerManifestOutFile) {
+    merged.viewerManifestOutFile = resolveFrom(cwd, merged.viewerManifestOutFile);
+  }
+
   merged.forks = normalizeForks(merged, merged.forks);
 
   return merged;
