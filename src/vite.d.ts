@@ -1,8 +1,15 @@
-import type { DbClient, DbOptions, DbTraceOptions } from './index.d.ts';
+import type { DbCacheEventPolicy, DbCacheReadPolicy, DbCacheWritePolicy, DbClient, DbOptions, DbTraceOptions } from './index.d.ts';
 
 export type DbVirtualClient = DbClient & {
   /** Create a client scoped to a configured database fork. */
   fork(name: string): DbClient;
+};
+
+export type DbViteClientCacheOptions = boolean | {
+  enabled?: boolean;
+  readPolicy?: DbCacheReadPolicy;
+  writePolicy?: DbCacheWritePolicy;
+  eventPolicy?: DbCacheEventPolicy;
 };
 
 export type DbVitePluginOptions = Pick<DbOptions, 'cwd' | 'configPath' | 'dbDir' | 'sourceDir' | 'stateDir' | 'schemaOutFile' | 'viewerManifestOutFile' | 'schemaManifest' | 'types' | 'schema' | 'defaults' | 'seed' | 'collections' | 'server' | 'rest' | 'graphql' | 'operations' | 'mock' | 'forks'> & {
@@ -22,6 +29,8 @@ export type DbVitePluginOptions = Pick<DbOptions, 'cwd' | 'configPath' | 'dbDir'
   clientVirtualModule?: string | false;
   /** Import specifier used inside the virtual client. Defaults to "@async/db/client". */
   clientImport?: string;
+  /** Opt the virtual browser client into memory cache behavior during Vite dev. */
+  clientCache?: DbViteClientCacheOptions;
 };
 
 export type ViteLikePlugin = {

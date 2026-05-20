@@ -43,9 +43,27 @@ const legacyDb = fork('legacy-demo');
 const legacyUsers = await legacyDb.rest.get('/users');
 ```
 
-Plugin options include `cwd`, `dbDir`, `stateDir`, `forks`, `apiBase`, `dataPath`, `restBasePath`, `graphqlPath`, `rootRoutes`, `clientVirtualModule`, and `clientImport`.
+Plugin options include `cwd`, `dbDir`, `stateDir`, `forks`, `apiBase`, `dataPath`, `restBasePath`, `graphqlPath`, `rootRoutes`, `clientVirtualModule`, `clientImport`, and `clientCache`.
 The plugin uses `apiBase` first, then `server.apiBase`, then `/__db` for scoped dev routes.
 Use `server.dataPath: false` to disable the `/db` app-facing data route alias.
+
+Set `clientCache: true` to opt the virtual browser client into the default
+memory cache during Vite dev. Object form supports serializable cache policy
+options:
+
+```ts
+dbPlugin({
+  clientCache: {
+    enabled: true,
+    readPolicy: 'cache-and-network',
+    writePolicy: 'merge-and-invalidate',
+    eventPolicy: 'refetch',
+  },
+});
+```
+
+Use `createDbClient()` directly when you need an explicit browser storage
+adapter such as `createIndexedDbCacheStorage(...)`.
 
 Add `trace` to the plugin options to override `db.config.mjs` for Vite dev
 requests:

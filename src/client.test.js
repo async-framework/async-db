@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createDbClient } from './client.js';
+import { createDbClient, createIndexedDbCacheStorage } from './client.js';
 
 test('client can batch explicit GraphQL requests', async () => {
   const calls = withMockFetch([
@@ -362,6 +362,436 @@ test('client supports relative scoped REST paths without baseUrl', async () => {
   assert.equal(calls[0].url, '/__db/rest/users');
 });
 
+test('client cache fetches the viewer manifest and serves cache-first REST collections', async () => {
+  const calls = withMockFetch([
+    viewerManifestFixture(),
+    [{ id: 'u_1', name: 'Ada' }],
+  ]);
+
+  const client = createDbClient({
+    baseUrl: 'http://db.local',
+    cache: true,
+  });
+
+  const first = await client.rest.get('/users');
+  const second = await client.rest.get('/users');
+
+  assert.deepEqual(first.body, [{ id: 'u_1', name: 'Ada' }]);
+  assert.deepEqual(second.body, [{ id: 'u_1', name: 'Ada' }]);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].url, 'http://db.local/__db/manifest.json');
+  assert.equal(calls[1].url, 'http://db.local/users');
+});
+
+test('client cache dedupes identical in-flight REST reads outside the batch window', async () => {
+  const calls = withMockFetch([
+    viewerManifestFixture(),
+    [{ id: 'u_1', name: 'Ada' }],
+  ]);
+
+  const client = createDbClient({
+    baseUrl: 'http://db.local',
+    cache: true,
+  });
+
+  const [first, second] = await Promise.all([
+    client.rest.get('/users'),
+    client.rest.get('/users'),
+  ]);
+
+  assert.deepEqual(first.body, [{ id: 'u_1', name: 'Ada' }]);
+  assert.deepEqual(second.body, [{ id: 'u_1', name: 'Ada' }]);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1].url, 'http://db.local/users');
+});
+
+test('client cache merges REST write responses into cached records', async () => {
+  const calls = withMockFetch([
+    viewerManifestFixture(),
+    { id: 'u_1', name: 'Ada' },
+    { id: 'u_1', name: 'Grace' },
+  ]);
+
+  const client = createDbClient({
+    baseUrl: 'http://db.local',
+    cache: true,
+  });
+
+  await client.rest.get('/users/u_1');
+  await client.rest.patch('/users/u_1', { name: 'Grace' });
+  const cached = await client.rest.get('/users/u_1');
+
+  assert.deepEqual(cached.body, { id: 'u_1', name: 'Grace' });
+  assert.equal(calls.length, 3);
+  assert.equal(calls[2].url, 'http://db.local/users/u_1');
+  assert.equal(calls[2].init.method, 'PATCH');
+});
+
+test('client cache invalidates REST collection lists after writes', async () => {
+  const calls = withMockFetch([
+    viewerManifestFixture(),
+    [{ id: 'u_1', name: 'Ada' }],
+    { id: 'u_1', name: 'Grace' },
+    [{ id: 'u_1', name: 'Grace' }],
+  ]);
+
+  const client = createDbClient({
+    baseUrl: 'http://db.local',
+    cache: true,
+  });
+
+  await client.rest.get('/users');
+  await client.rest.patch('/users/u_1', { name: 'Grace' });
+  const refetched = await client.rest.get('/users');
+
+  assert.deepEqual(refetched.body, [{ id: 'u_1', name: 'Grace' }]);
+  assert.equal(calls.length, 4);
+  assert.equal(calls[3].url, 'http://db.local/users');
+});
+
+test('client cache normalizes GraphQL objects by __typename and id', async () => {
+  const calls = withMockFetch([
+    viewerManifestFixture(),
+    {
+      data: {
+        user: {
+          __typename: 'User',
+          id: 'u_1',
+          name: 'Ada',
+        },
+      },
+    },
+  ]);
+
+  const client = createDbClient({
+    baseUrl: 'http://db.local',
+    cache: true,
+  });
+
+  const query = '{ user(id: "u_1") { __typename id name } }';
+  const first = await client.graphql(query);
+  const second = await client.graphql(query);
+
+  assert.deepEqual(first, {
+    data: {
+      user: {
+        __typename: 'User',
+        id: 'u_1',
+        name: 'Ada',
+      },
+    },
+  });
+  assert.deepEqual(second, first);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[1].url, 'http://db.local/graphql');
+});
+
+test('client cache watch receives normalized record updates', async () => {
+  withMockFetch([
+    viewerManifestFixture(),
+    { id: 'u_1', name: 'Ada' },
+    { id: 'u_1', name: 'Grace' },
+  ]);
+
+  const client = createDbClient({
+    baseUrl: 'http://db.local',
+    cache: true,
+  });
+  const snapshots = [];
+  const stop = client.cache.watch({ method: 'GET', path: '/users/u_1' }, (snapshot) => {
+    snapshots.push(snapshot);
+  });
+
+  await client.rest.get('/users/u_1');
+  await client.rest.patch('/users/u_1', { name: 'Grace' });
+  stop();
+
+  assert.deepEqual(snapshots.map((snapshot) => snapshot.data.body), [
+    { id: 'u_1', name: 'Ada' },
+    { id: 'u_1', name: 'Grace' },
+  ]);
+  assert.deepEqual(snapshots.map((snapshot) => snapshot.stale), [false, false]);
+});
+
+test('client cache invalidates records from runtime log events', async () => {
+  const eventSources = withMockEventSource();
+  const calls = withMockFetch([
+    viewerManifestFixture(),
+    { id: 'u_1', name: 'Ada' },
+    { id: 'u_1', name: 'Grace' },
+  ]);
+
+  const client = createDbClient({
+    baseUrl: 'http://db.local',
+    cache: true,
+  });
+
+  await client.rest.get('/users/u_1');
+  eventSources.find((source) => source.url === 'http://db.local/__db/log').emit('db-log', {
+    resource: 'users',
+    kind: 'collection',
+    op: 'update',
+    id: 'u_1',
+  });
+  const refetched = await client.rest.get('/users/u_1');
+
+  assert.deepEqual(refetched.body, { id: 'u_1', name: 'Grace' });
+  assert.equal(calls.length, 3);
+  assert.equal(calls[2].url, 'http://db.local/users/u_1');
+});
+
+test('client cache refetches the viewer manifest after source sync events', async () => {
+  const eventSources = withMockEventSource();
+  const calls = withMockFetch([
+    viewerManifestFixture(),
+    [{ id: 'u_1', name: 'Ada' }],
+    viewerManifestFixture(),
+    [{ id: 'u_1', name: 'Grace' }],
+  ]);
+
+  const client = createDbClient({
+    baseUrl: 'http://db.local',
+    cache: true,
+  });
+
+  await client.rest.get('/users');
+  eventSources.find((source) => source.url === 'http://db.local/__db/events').emit('db', {
+    type: 'synced',
+    version: 2,
+  });
+  const refetched = await client.rest.get('/users');
+
+  assert.deepEqual(refetched.body, [{ id: 'u_1', name: 'Grace' }]);
+  assert.deepEqual(calls.map((call) => call.url), [
+    'http://db.local/__db/manifest.json',
+    'http://db.local/users',
+    'http://db.local/__db/manifest.json',
+    'http://db.local/users',
+  ]);
+});
+
+test('client cache can refetch watched records after runtime log events', async () => {
+  const eventSources = withMockEventSource();
+  const calls = withMockFetch([
+    viewerManifestFixture(),
+    { id: 'u_1', name: 'Ada' },
+    { id: 'u_1', name: 'Grace' },
+  ]);
+
+  const client = createDbClient({
+    baseUrl: 'http://db.local',
+    cache: {
+      enabled: true,
+      eventPolicy: 'refetch',
+    },
+  });
+  const snapshots = [];
+  client.cache.watch({ method: 'GET', path: '/users/u_1' }, (snapshot) => {
+    snapshots.push(snapshot);
+  });
+
+  await client.rest.get('/users/u_1');
+  eventSources.find((source) => source.url === 'http://db.local/__db/log').emit('db-log', {
+    resource: 'users',
+    kind: 'collection',
+    op: 'update',
+    id: 'u_1',
+  });
+  await waitForMicrotasks();
+
+  assert.equal(calls.length, 3);
+  assert.deepEqual(snapshots.at(-1).data.body, { id: 'u_1', name: 'Grace' });
+  assert.equal(snapshots.at(-1).stale, false);
+});
+
+test('client cache network-first reads prefer the network over a fresh cache hit', async () => {
+  const calls = withMockFetch([
+    viewerManifestFixture(),
+    [{ id: 'u_1', name: 'Ada' }],
+    [{ id: 'u_1', name: 'Grace' }],
+  ]);
+
+  const client = createDbClient({
+    baseUrl: 'http://db.local',
+    cache: {
+      enabled: true,
+      readPolicy: 'network-first',
+    },
+  });
+
+  await client.rest.get('/users');
+  const fresh = await client.rest.get('/users');
+
+  assert.deepEqual(fresh.body, [{ id: 'u_1', name: 'Grace' }]);
+  assert.equal(calls.length, 3);
+  assert.equal(calls[2].url, 'http://db.local/users');
+});
+
+test('client cache invalidate write policy refetches stale records on next read', async () => {
+  const calls = withMockFetch([
+    viewerManifestFixture(),
+    { id: 'u_1', name: 'Ada' },
+    { id: 'u_1', name: 'Grace from write' },
+    { id: 'u_1', name: 'Grace from refetch' },
+  ]);
+
+  const client = createDbClient({
+    baseUrl: 'http://db.local',
+    cache: {
+      enabled: true,
+      writePolicy: 'invalidate',
+    },
+  });
+
+  await client.rest.get('/users/u_1');
+  await client.rest.patch('/users/u_1', { name: 'Grace' });
+  const refetched = await client.rest.get('/users/u_1');
+
+  assert.deepEqual(refetched.body, { id: 'u_1', name: 'Grace from refetch' });
+  assert.equal(calls.length, 4);
+  assert.equal(calls[3].url, 'http://db.local/users/u_1');
+});
+
+test('client cache refetch write policy refreshes active watches after writes', async () => {
+  const calls = withMockFetch([
+    viewerManifestFixture(),
+    { id: 'u_1', name: 'Ada' },
+    { id: 'u_1', name: 'Grace from write' },
+    { id: 'u_1', name: 'Grace from refetch' },
+  ]);
+
+  const client = createDbClient({
+    baseUrl: 'http://db.local',
+    cache: {
+      enabled: true,
+      writePolicy: 'refetch',
+    },
+  });
+  const snapshots = [];
+  client.cache.watch({ method: 'GET', path: '/users/u_1' }, (snapshot) => {
+    snapshots.push(snapshot);
+  });
+
+  await client.rest.get('/users/u_1');
+  await client.rest.patch('/users/u_1', { name: 'Grace' });
+  await waitForMicrotasks();
+
+  assert.equal(calls.length, 4);
+  assert.deepEqual(snapshots.at(-1).data.body, { id: 'u_1', name: 'Grace from refetch' });
+  assert.equal(snapshots.at(-1).stale, false);
+});
+
+test('client cache can hydrate from an explicit async storage adapter', async () => {
+  let savedSnapshot = null;
+  const saveContexts = [];
+  const storage = {
+    async load() {
+      return savedSnapshot;
+    },
+    async save(snapshot, context) {
+      saveContexts.push(context);
+      savedSnapshot = snapshot;
+    },
+    async clear() {
+      savedSnapshot = null;
+    },
+  };
+  const firstCalls = withMockFetch([
+    viewerManifestFixture(),
+    [{ id: 'u_1', name: 'Ada' }],
+  ]);
+
+  const firstClient = createDbClient({
+    baseUrl: 'http://db.local',
+    cache: {
+      enabled: true,
+      storage,
+    },
+  });
+
+  await firstClient.rest.get('/users');
+  await waitForMicrotasks();
+
+  assert.equal(firstCalls.length, 2);
+  assert.equal(savedSnapshot?.queries.length, 1);
+  assert.deepEqual(savedSnapshot.resources.users.u_1, { id: 'u_1', name: 'Ada' });
+  assert.match(saveContexts.at(-1).baseNamespace, /^async-db:/);
+  assert.match(saveContexts.at(-1).manifestFingerprint, /^[a-z0-9]+$/);
+  assert.notEqual(saveContexts.at(-1).namespace, saveContexts.at(-1).baseNamespace);
+
+  const secondCalls = withMockFetch([]);
+  const secondClient = createDbClient({
+    baseUrl: 'http://db.local',
+    cache: {
+      enabled: true,
+      storage,
+    },
+  });
+
+  const cached = await secondClient.rest.get('/users');
+
+  assert.deepEqual(cached.body, [{ id: 'u_1', name: 'Ada' }]);
+  assert.equal(secondCalls.length, 0);
+});
+
+test('createIndexedDbCacheStorage persists and clears snapshots under an explicit key', async () => {
+  const indexedDB = createFakeIndexedDb();
+  const storage = createIndexedDbCacheStorage({
+    name: 'async-db-test',
+    storeName: 'snapshots',
+    key: 'client-a',
+    indexedDB,
+  });
+  const otherStorage = createIndexedDbCacheStorage({
+    name: 'async-db-test',
+    storeName: 'snapshots',
+    key: 'client-b',
+    indexedDB,
+  });
+
+  await storage.save({ marker: 'a' });
+
+  assert.deepEqual(await storage.load(), { marker: 'a' });
+  assert.equal(await otherStorage.load(), null);
+
+  await storage.clear();
+
+  assert.equal(await storage.load(), null);
+});
+
+test('createIndexedDbCacheStorage indexes the latest manifest-scoped namespace', async () => {
+  const indexedDB = createFakeIndexedDb();
+  const storage = createIndexedDbCacheStorage({
+    name: 'async-db-test',
+    storeName: 'snapshots',
+    indexedDB,
+  });
+  const context = {
+    baseNamespace: 'async-db:http://db.local:/__db',
+    namespace: 'async-db:http://db.local:/__db:manifest-a',
+    manifestFingerprint: 'manifest-a',
+  };
+
+  await storage.save({ marker: 'latest' }, context);
+
+  assert.deepEqual(await storage.load({
+    baseNamespace: context.baseNamespace,
+    namespace: context.baseNamespace,
+    manifestFingerprint: null,
+  }), { marker: 'latest' });
+});
+
+test('createIndexedDbCacheStorage explains unavailable IndexedDB environments', () => {
+  assert.throws(
+    () => createIndexedDbCacheStorage({ indexedDB: false }),
+    (error) => {
+      assert.equal(error.code, 'CLIENT_INDEXEDDB_UNAVAILABLE');
+      assert.match(error.message, /IndexedDB cache storage is not available/);
+      return true;
+    },
+  );
+});
+
 test('client automatic batching dedupes REST GET requests but not writes by default', async () => {
   const calls = withMockFetch([
     [
@@ -581,4 +1011,157 @@ function withMockFetch(responses) {
   });
 
   return calls;
+}
+
+function withMockEventSource() {
+  const originalEventSource = globalThis.EventSource;
+  const sources = [];
+
+  globalThis.EventSource = class MockEventSource {
+    constructor(url) {
+      this.url = url;
+      this.listeners = new Map();
+      sources.push(this);
+    }
+
+    addEventListener(type, listener) {
+      const listeners = this.listeners.get(type) ?? [];
+      listeners.push(listener);
+      this.listeners.set(type, listeners);
+    }
+
+    emit(type, payload) {
+      for (const listener of this.listeners.get(type) ?? []) {
+        listener({
+          data: JSON.stringify(payload),
+        });
+      }
+    }
+
+    close() {}
+  };
+
+  test.after(() => {
+    globalThis.EventSource = originalEventSource;
+  });
+
+  return sources;
+}
+
+async function waitForMicrotasks() {
+  await Promise.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+function viewerManifestFixture() {
+  return {
+    version: 1,
+    kind: 'db.viewerManifest',
+    api: {
+      manifestJson: '/__db/manifest.json',
+      events: '/__db/events',
+      log: '/__db/log',
+      resources: {
+        users: {
+          kind: 'collection',
+          list: '/users',
+          record: '/users/{id}',
+        },
+        settings: {
+          kind: 'document',
+          read: '/settings',
+          write: '/settings',
+        },
+      },
+    },
+    collections: {
+      users: {
+        kind: 'collection',
+        typeName: 'User',
+        routePath: '/users',
+        idField: 'id',
+        fields: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+        },
+      },
+    },
+    documents: {
+      settings: {
+        kind: 'document',
+        typeName: 'Settings',
+        routePath: '/settings',
+        fields: {
+          theme: { type: 'string' },
+        },
+      },
+    },
+  };
+}
+
+function createFakeIndexedDb() {
+  const databases = new Map();
+  return {
+    open(name) {
+      const request = {};
+      queueMicrotask(() => {
+        let database = databases.get(name);
+        const isNewDatabase = !database;
+        if (!database) {
+          database = createFakeIndexedDatabase();
+          databases.set(name, database);
+        }
+        request.result = database;
+        if (isNewDatabase) {
+          request.onupgradeneeded?.();
+        }
+        request.onsuccess?.();
+      });
+      return request;
+    },
+  };
+}
+
+function createFakeIndexedDatabase() {
+  const stores = new Map();
+  return {
+    objectStoreNames: {
+      contains(storeName) {
+        return stores.has(storeName);
+      },
+    },
+    createObjectStore(storeName) {
+      stores.set(storeName, new Map());
+    },
+    transaction(storeName) {
+      return {
+        error: null,
+        objectStore() {
+          const values = stores.get(storeName);
+          return {
+            get(key) {
+              return fakeIndexedRequest(values.get(key) ?? null);
+            },
+            put(value, key) {
+              values.set(key, value);
+              return fakeIndexedRequest(key);
+            },
+            delete(key) {
+              values.delete(key);
+              return fakeIndexedRequest(undefined);
+            },
+          };
+        },
+      };
+    },
+  };
+}
+
+function fakeIndexedRequest(result) {
+  const request = {};
+  queueMicrotask(() => {
+    request.result = result;
+    request.onsuccess?.();
+  });
+  return request;
 }

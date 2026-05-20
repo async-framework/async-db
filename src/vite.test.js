@@ -14,6 +14,7 @@ test('db Vite plugin is serve-only and exposes a virtual client module', async (
 
   const loaded = await plugin.load('\0virtual:db/client');
   assert.match(loaded, /db\/client/);
+  assert.match(loaded, /manifestPath: "\/__db\/manifest\.json"/);
   assert.match(loaded, /restBasePath: "\/__db\/rest"/);
   assert.match(loaded, /graphqlPath: "\/__db\/graphql"/);
   assert.match(loaded, /restBatchPath: "\/__db\/batch"/);
@@ -29,6 +30,7 @@ test('db Vite virtual client creates fork clients under the configured apiBase',
   const loaded = await plugin.load('\0virtual:db/client');
 
   assert.match(loaded, /const forkBase = `\/local-data\/forks\/\$\{encodeURIComponent\(forkName\)\}`;/);
+  assert.match(loaded, /manifestPath: `\$\{forkBase\}\/manifest\.json`/);
   assert.match(loaded, /restBasePath: `\$\{forkBase\}\/rest`/);
   assert.match(loaded, /restBatchPath: `\$\{forkBase\}\/batch`/);
   assert.match(loaded, /graphqlPath: `\$\{forkBase\}\/graphql`/);
@@ -46,6 +48,7 @@ test('db Vite plugin falls back to configured server apiBase', async () => {
   assert.match(loaded, /restBasePath: "\/_db\/rest"/);
   assert.match(loaded, /graphqlPath: "\/_db\/graphql"/);
   assert.match(loaded, /restBatchPath: "\/_db\/batch"/);
+  assert.match(loaded, /manifestPath: "\/_db\/manifest\.json"/);
   assert.match(loaded, /const forkBase = `\/_db\/forks\/\$\{encodeURIComponent\(forkName\)\}`;/);
 });
 
@@ -72,6 +75,26 @@ test('db Vite plugin can render a custom client import for the virtual module', 
 
   const loaded = await plugin.load('\0virtual:db/client');
   assert.match(loaded, /@local\/db\/client/);
+});
+
+test('db Vite virtual client can opt into memory cache options', async () => {
+  const plugin = dbPlugin({
+    apiBase: '/local-data',
+    clientCache: {
+      enabled: true,
+      readPolicy: 'cache-and-network',
+      writePolicy: 'refetch',
+      eventPolicy: false,
+      storage: 'ignored',
+    },
+  });
+
+  const loaded = await plugin.load('\0virtual:db/client');
+
+  assert.match(loaded, /manifestPath: "\/local-data\/manifest\.json"/);
+  assert.match(loaded, /cache: \{"enabled":true,"readPolicy":"cache-and-network","writePolicy":"refetch","eventPolicy":false\}/);
+  assert.match(loaded, /manifestPath: `\$\{forkBase\}\/manifest\.json`/);
+  assert.doesNotMatch(loaded, /storage/);
 });
 
 test('db Vite plugin registers middleware with Vite dev server', async () => {

@@ -119,6 +119,51 @@ const batch = await client.rest.batch([
 
 The client can batch requests made within a short timeout. The default batching window is `10ms`. Identical REST `GET` requests are deduped by default. Writes are not deduped unless you explicitly choose `dedupe: 'all'`.
 
+Enable the browser cache explicitly when app code should reuse normalized REST
+and GraphQL reads:
+
+```ts
+import { createDbClient, createIndexedDbCacheStorage } from '@async/db/client';
+
+const client = createDbClient({
+  baseUrl: 'http://127.0.0.1:7331',
+  cache: {
+    enabled: true,
+    storage: 'memory',
+    readPolicy: 'cache-first',
+    writePolicy: 'merge-and-invalidate',
+    eventPolicy: 'invalidate',
+  },
+});
+
+await client.rest.get('/users?select=id,name', { cache: 'cache-first' });
+await client.graphql('{ users { id name __typename } }', {}, { cache: 'cache-and-network' });
+
+const stop = client.cache.watch(
+  { kind: 'rest', method: 'GET', path: '/users?select=id,name' },
+  (snapshot) => {
+    render(snapshot.data);
+  },
+);
+
+const persistedClient = createDbClient({
+  baseUrl: 'http://127.0.0.1:7331',
+  cache: {
+    enabled: true,
+    storage: createIndexedDbCacheStorage({ name: 'async-db' }),
+  },
+});
+```
+
+The cache is off by default. When enabled, the client fetches the viewer
+manifest once, normalizes collection records by resource id, normalizes
+documents by resource name, and keeps query results by canonical request key.
+Cacheable reads use exact in-flight dedupe outside the batching window. Runtime
+write events from `/__db/log` invalidate or refetch affected resources according
+to `eventPolicy`; fixture/source reload events from `/__db/events` refresh the
+manifest and invalidate cached queries. IndexedDB is explicit opt-in because it
+persists record data in the browser.
+
 Run registered queries or literal operation templates through the same client.
 `query()` is the app-facing alias for `operation()`:
 

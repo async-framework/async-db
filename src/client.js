@@ -1,5 +1,8 @@
 import { dbError } from './errors.js';
+import { createClientCache, createIndexedDbCacheStorage } from './client-cache.js';
 import { isOperationHash, operationRequest } from './shared/operations.js';
+
+export { createIndexedDbCacheStorage };
 
 export function createDbClient(options = {}) {
   const baseUrl = options.baseUrl ?? '';
@@ -8,7 +11,25 @@ export function createDbClient(options = {}) {
   const restBasePath = options.restBasePath ?? forkPaths.restBasePath ?? '';
   const graphqlPath = options.graphqlPath ?? forkPaths.graphqlPath ?? '/graphql';
   const restBatchPath = options.restBatchPath ?? forkPaths.restBatchPath ?? `${apiBase}/batch`;
+  const manifestPath = options.manifestPath ?? forkPaths.manifestPath ?? `${apiBase}/manifest.json`;
   const batching = normalizeBatching(options.batching);
+  const cache = createClientCache({
+    cache: options.cache,
+    cacheNamespace: {
+      baseUrl,
+      apiBase,
+      fork: options.fork ?? null,
+      manifestPath,
+    },
+    restBasePath,
+    fetchManifest: () => getJson(resolveUrl(baseUrl, manifestPath)),
+    createEventSource(path) {
+      if (typeof EventSource !== 'function') {
+        return null;
+      }
+      return new EventSource(resolveUrl(baseUrl, path));
+    },
+  });
 
   const graphqlQueue = createQueue((requests) => graphqlBatch(requests), batching, {
     shouldDedupeRequest: isGraphqlDedupeSafe,
@@ -19,10 +40,22 @@ export function createDbClient(options = {}) {
 
   async function graphql(query, variables, requestOptions = {}) {
     const request = typeof query === 'string' ? { query, variables } : query;
-    if (shouldBatch(requestOptions, batching)) {
-      return graphqlQueue({ request });
+    if (cache.enabled && isGraphqlDedupeSafe(request)) {
+      return cache.executeGraphqlRead(request, () => graphqlDirect(request), requestOptions);
     }
 
+    if (shouldBatch(requestOptions, batching)) {
+      const result = await graphqlQueue({ request });
+      cache.recordGraphqlWrite(result);
+      return result;
+    }
+
+    const result = await graphqlDirect(request);
+    cache.recordGraphqlWrite(result);
+    return result;
+  }
+
+  async function graphqlDirect(request) {
     return postJson(resolveUrl(baseUrl, graphqlPath), request);
   }
 
@@ -32,11 +65,23 @@ export function createDbClient(options = {}) {
 
   async function rest(method, path, body, requestOptions = {}) {
     const request = normalizeRestRequest(method, path, body);
-    if (shouldBatch(requestOptions, batching)) {
-      return restQueue({ request });
+    return executeRestRequest(request, requestOptions);
+  }
+
+  async function executeRestRequest(request, requestOptions = {}) {
+    if (cache.enabled && isRestDedupeSafe(request)) {
+      return cache.executeRestRead(request, () => restDirect(request), requestOptions);
     }
 
-    return restDirect(request);
+    if (shouldBatch(requestOptions, batching)) {
+      const result = await restQueue({ request });
+      cache.recordRestWrite(request, result);
+      return result;
+    }
+
+    const result = await restDirect(request);
+    cache.recordRestWrite(request, result);
+    return result;
   }
 
   async function restDirect(request) {
@@ -94,12 +139,7 @@ export function createDbClient(options = {}) {
       }, undefined, requestOptions);
     }
 
-    if (shouldBatch(requestOptions, batching)) {
-      const result = await restQueue({ request });
-      return result.body;
-    }
-
-    return restDirect(request).then((result) => result.body);
+    return executeRestRequest(request, requestOptions).then((result) => result.body);
   }
 
   graphql.batch = graphqlBatch;
@@ -113,6 +153,7 @@ export function createDbClient(options = {}) {
   rest.delete = (path, requestOptions) => rest('DELETE', path, undefined, requestOptions);
 
   return {
+    cache: cache.publicApi,
     graphql,
     operation,
     query,
@@ -142,6 +183,7 @@ function forkPathsForOptions(options) {
     restBasePath: `${base}/rest`,
     restBatchPath: `${base}/batch`,
     graphqlPath: `${base}/graphql`,
+    manifestPath: `${base}/manifest.json`,
   };
 }
 
@@ -321,6 +363,49 @@ async function postJson(url, body) {
         'content-type': 'application/json',
       },
       body: JSON.stringify(body),
+    });
+  } catch (error) {
+    throw dbError(
+      'CLIENT_FETCH_FAILED',
+      `db client could not reach ${url}.`,
+      {
+        hint: 'Make sure async-db serve is running and baseUrl points at the correct host and port.',
+        details: {
+          url,
+          cause: error.message,
+        },
+      },
+    );
+  }
+
+  const responseBody = await readResponseBody(response);
+  if (response.ok === false) {
+    throw dbError(
+      'CLIENT_HTTP_ERROR',
+      `db client request to ${url} failed with HTTP ${response.status}.`,
+      {
+        status: response.status,
+        hint: 'Inspect details.responseBody for the server error payload.',
+        details: {
+          url,
+          status: response.status,
+          responseBody,
+        },
+      },
+    );
+  }
+
+  return responseBody;
+}
+
+async function getJson(url) {
+  let response;
+  try {
+    response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        accept: 'application/json',
+      },
     });
   } catch (error) {
     throw dbError(

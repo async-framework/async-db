@@ -133,6 +133,7 @@ test('viewer manifest exposes custom-viewer metadata without runtime internals',
   ]);
   assert.equal(manifest.api.schema, '/_db/schema');
   assert.equal(manifest.api.events, '/_db/events');
+  assert.equal(manifest.api.log, '/_db/log');
   assert.equal(manifest.api.batch, '/_db/batch');
   assert.equal(manifest.api.import, '/_db/import');
   assert.equal(manifest.api.graphql, '/_db/graphql');

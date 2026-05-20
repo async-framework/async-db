@@ -10,8 +10,8 @@ const execFileAsync = promisify(execFile);
 
 test('consumer projects can import package APIs through the @async/db package', async () => {
   const cwd = await makeProject();
-  await writeFile(path.join(cwd, 'check-package.mjs'), `import { createDbRequestHandler, openDb } from '@async/db';
-import { createDbClient } from '@async/db/client';
+  await writeFile(path.join(cwd, 'check-package.mjs'), `import { createDbRequestHandler, createIndexedDbCacheStorage, openDb } from '@async/db';
+import { createDbClient, createIndexedDbCacheStorage as createClientIndexedDbCacheStorage } from '@async/db/client';
 import { defineConfig } from '@async/db/config';
 import { sqliteStore } from '@async/db/sqlite';
 import { postgresStore } from '@async/db/postgres';
@@ -21,6 +21,8 @@ import { redisStore } from '@async/db/redis';
 if (typeof openDb !== 'function') throw new Error('missing package API');
 if (typeof createDbRequestHandler !== 'function') throw new Error('missing request handler API');
 if (typeof createDbClient !== 'function') throw new Error('missing client API');
+if (typeof createIndexedDbCacheStorage !== 'function') throw new Error('missing indexeddb cache API');
+if (typeof createClientIndexedDbCacheStorage !== 'function') throw new Error('missing client indexeddb cache API');
 if (typeof defineConfig !== 'function') throw new Error('missing config API');
 if (typeof sqliteStore !== 'function') throw new Error('missing sqlite store API');
 if (typeof postgresStore !== 'function') throw new Error('missing postgres store API');
@@ -61,4 +63,16 @@ test('public declarations expose request tracing options and events', async () =
   assert.match(declarations, /export type DbRuntimeEvent = DbResourceChangeEvent \| DbRequestTraceEvent;/);
   assert.match(viteDeclarations, /trace\?: DbTraceOptions;/);
   assert.match(honoDeclarations, /trace\?: DbTraceOptions;/);
+});
+
+test('public declarations expose browser cache options', async () => {
+  const declarations = await readFile(path.resolve('src/index.d.ts'), 'utf8');
+  const viteDeclarations = await readFile(path.resolve('src/vite.d.ts'), 'utf8');
+
+  assert.match(declarations, /export type DbCacheReadPolicy = 'cache-first' \| 'cache-and-network' \| 'network-first' \| 'network-only' \| 'cache-only';/);
+  assert.match(declarations, /export type DbCacheWritePolicy = 'merge-and-invalidate' \| 'invalidate' \| 'refetch';/);
+  assert.match(declarations, /export type DbCacheEventPolicy = 'invalidate' \| 'refetch' \| false;/);
+  assert.match(declarations, /cache\?: DbClientCacheOptions;/);
+  assert.match(declarations, /export function createIndexedDbCacheStorage/);
+  assert.match(viteDeclarations, /clientCache\?: DbViteClientCacheOptions;/);
 });

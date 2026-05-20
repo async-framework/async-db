@@ -541,6 +541,75 @@ export type RestBatchResult = {
   body: unknown;
 };
 
+export type DbCacheReadPolicy = 'cache-first' | 'cache-and-network' | 'network-first' | 'network-only' | 'cache-only';
+export type DbCacheWritePolicy = 'merge-and-invalidate' | 'invalidate' | 'refetch';
+export type DbCacheEventPolicy = 'invalidate' | 'refetch' | false;
+
+export type DbCacheStorageContext = {
+  baseNamespace: string;
+  namespace: string;
+  manifestFingerprint: string | null;
+};
+
+export type DbCacheStorage = {
+  load?(context?: DbCacheStorageContext): unknown | Promise<unknown>;
+  save?(snapshot: unknown, context?: DbCacheStorageContext): void | Promise<void>;
+  clear?(context?: DbCacheStorageContext): void | Promise<void>;
+};
+
+export type DbCacheSnapshotQuery = {
+  key: string;
+  value: unknown;
+  stale: boolean;
+  resources: string[];
+  lists: string[];
+};
+
+export type DbClientCacheOptions = boolean | {
+  enabled?: boolean;
+  storage?: 'memory' | DbCacheStorage;
+  readPolicy?: DbCacheReadPolicy;
+  writePolicy?: DbCacheWritePolicy;
+  eventPolicy?: DbCacheEventPolicy;
+  /** Preloaded viewer manifest. When omitted, the client fetches <apiBase>/manifest.json on first cache use. */
+  manifest?: unknown;
+};
+
+export type DbClientCacheRequestOptions = false | DbCacheReadPolicy | {
+  readPolicy?: DbCacheReadPolicy;
+};
+
+export type DbCacheWatchRequest =
+  | {
+    kind?: 'rest';
+    method?: string;
+    path: string;
+  }
+  | ({
+    kind: 'graphql';
+  } & GraphqlRequest);
+
+export type DbCacheSnapshot = {
+  data: unknown;
+  stale: boolean;
+  source: 'cache' | string;
+};
+
+export type DbClientCache = {
+  readonly enabled: boolean;
+  clear(): void;
+  invalidate(resourceName?: string): void;
+  snapshot(): {
+    namespace?: string;
+    manifestFingerprint?: string | null;
+    manifest: unknown;
+    queries: DbCacheSnapshotQuery[];
+    resources: Record<string, Record<string, unknown>>;
+    entities?: Record<string, Record<string, unknown>>;
+  };
+  watch(request: DbCacheWatchRequest, subscriber: (snapshot: DbCacheSnapshot) => void): () => void;
+};
+
 export type DbClientOptions = {
   baseUrl?: string;
   /** Scoped base for default batch and fork paths. Defaults to "/__db". */
@@ -550,6 +619,8 @@ export type DbClientOptions = {
   restBasePath?: string;
   graphqlPath?: string;
   restBatchPath?: string;
+  manifestPath?: string;
+  cache?: DbClientCacheOptions;
   batching?: boolean | {
     enabled?: boolean;
     delayMs?: number;
@@ -559,9 +630,11 @@ export type DbClientOptions = {
 
 export type DbClientRequestOptions = {
   batch?: boolean;
+  cache?: DbClientCacheRequestOptions;
 };
 
 export type DbClient = {
+  cache: DbClientCache;
   graphql: {
     (query: string | GraphqlRequest, variables?: Record<string, unknown>, options?: DbClientRequestOptions): Promise<GraphqlResult>;
     request(query: string | GraphqlRequest, variables?: Record<string, unknown>, options?: DbClientRequestOptions): Promise<GraphqlResult>;
@@ -640,6 +713,12 @@ export type DbServer = {
 
 export function openDb<Types extends DbTypeMap = DbTypeMap>(options?: DbOptions): Promise<Db<Types>>;
 export function createDbClient(options?: DbClientOptions): DbClient;
+export function createIndexedDbCacheStorage(options?: {
+  name?: string;
+  storeName?: string;
+  key?: string;
+  indexedDB?: unknown;
+}): DbCacheStorage;
 export function createDbRequestHandler(db: Db, options?: DbRequestHandlerOptions): DbRequestHandler;
 export function loadConfig(options?: DbOptions): Promise<DbOptions>;
 export function runDbDoctor(config: DbOptions): Promise<DbDoctorResult>;

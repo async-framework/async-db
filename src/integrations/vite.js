@@ -55,7 +55,7 @@ export function dbPlugin(options = {}) {
         return null;
       }
 
-      return renderVirtualClient(routes, options.clientImport ?? DEFAULT_CLIENT_IMPORT);
+      return renderVirtualClient(routes, options.clientImport ?? DEFAULT_CLIENT_IMPORT, options.clientCache);
     },
   };
 }
@@ -71,14 +71,19 @@ function resolveViteRoutes(options) {
   };
 }
 
-function renderVirtualClient(routes, clientImport) {
+function renderVirtualClient(routes, clientImport, clientCache) {
   const forkBasePath = `${routes.apiBase || ''}/forks`;
+  const cacheOption = serializeVirtualClientCache(clientCache);
+  const defaultCacheLine = cacheOption ? `  cache: ${cacheOption},\n` : '';
+  const forkCacheLine = cacheOption ? `    cache: ${cacheOption},\n` : '';
   return `import { createDbClient } from ${JSON.stringify(clientImport)};
 
 export const client = createDbClient({
+  manifestPath: ${JSON.stringify(`${routes.apiBase}/manifest.json`)},
   restBasePath: ${JSON.stringify(routes.restBasePath)},
   restBatchPath: ${JSON.stringify(`${routes.apiBase}/batch`)},
   graphqlPath: ${JSON.stringify(routes.graphqlPath)},
+${defaultCacheLine}
 });
 
 export function fork(name) {
@@ -89,9 +94,11 @@ export function fork(name) {
 
   const forkBase = \`${forkBasePath}/\${encodeURIComponent(forkName)}\`;
   return createDbClient({
+    manifestPath: \`\${forkBase}/manifest.json\`,
     restBasePath: \`\${forkBase}/rest\`,
     restBatchPath: \`\${forkBase}/batch\`,
     graphqlPath: \`\${forkBase}/graphql\`,
+${forkCacheLine}
   });
 }
 
@@ -112,9 +119,36 @@ function dbOptions(options) {
     trace,
     clientVirtualModule,
     clientImport,
+    clientCache,
     ...db
   } = options;
   return db;
+}
+
+function serializeVirtualClientCache(value) {
+  if (value === undefined || value === false) {
+    return null;
+  }
+  if (value === true) {
+    return 'true';
+  }
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const cache = {};
+  if (value.enabled !== undefined) {
+    cache.enabled = Boolean(value.enabled);
+  }
+  for (const key of ['readPolicy', 'writePolicy']) {
+    if (typeof value[key] === 'string') {
+      cache[key] = value[key];
+    }
+  }
+  if (typeof value.eventPolicy === 'string' || value.eventPolicy === false) {
+    cache.eventPolicy = value.eventPolicy;
+  }
+  return JSON.stringify(cache);
 }
 
 function normalizeBasePath(value) {
