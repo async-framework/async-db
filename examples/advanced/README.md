@@ -35,8 +35,15 @@ http://127.0.0.1:7331/__db
 Leave `serve` running and run this from another terminal:
 
 ```bash
-curl 'http://127.0.0.1:7331/projects?select=id,name,status,metadata'
+curl 'http://127.0.0.1:7331/db/projects.json?select=id,name,status,metadata'
 ```
+
+## Features To Notice
+
+- [JavaScript schema sources](../../docs/fixtures-and-schemas.md#javascript-schema-sources)
+- [Schema defaults](../../docs/configuration.md#schema-defaults)
+- [Fixture-like `.json` REST routes](../../docs/server-and-viewer.md#fixture-like-json-routes)
+- [Generated types](../../docs/generated-files.md#generated-types)
 
 ## Cleanup
 

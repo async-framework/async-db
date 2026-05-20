@@ -162,7 +162,7 @@ TypeScript output include serializable metadata such as `computed` and
 REST resolves computed fields only when selected:
 
 ```txt
-GET /users/u_1.json?select=id,fullName
+GET /db/users/u_1.json?select=id,fullName
 ```
 
 GraphQL selections use the same projection/fanout layer. Collection reads prefer

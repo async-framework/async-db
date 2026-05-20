@@ -30,8 +30,15 @@ node ./src/cli.js serve --cwd ./examples/schema-manifest
 Leave `serve` running and run this from another terminal:
 
 ```bash
-curl 'http://127.0.0.1:7331/projects?expand=owner&select=id,name,status,owner.name'
+curl 'http://127.0.0.1:7331/db/projects.json?expand=owner&select=id,name,status,owner.name'
 ```
+
+## Features To Notice
+
+- [Schema manifest output](../../docs/generated-files.md#schema-manifest-output)
+- [Field UI metadata](../../docs/server-and-viewer.md#custom-viewer-manifest)
+- [Relationship expansion](../../docs/server-and-viewer.md#relationship-expansion)
+- [Fixture-like `.json` REST routes](../../docs/server-and-viewer.md#fixture-like-json-routes)
 
 ## Cleanup
 

@@ -27,15 +27,22 @@ ASYNC_DB_URL=http://127.0.0.1:7331 node ./examples/rest-client/src/client-demo.m
 
 ## Expected Result
 
-`sync` writes generated schema, types, and runtime state under `examples/rest-client/.db/`. The demo script prints users, settings, and a two-item batch result.
+`sync` writes generated schema, types, and runtime state under `examples/rest-client/.db/`. The demo script prints users from `/db/users.json`, settings from `/db/settings.json`, and a two-item batch result.
 
 ## REST Request To Try
 
 Leave `serve` running and run this from another terminal:
 
 ```bash
-curl 'http://127.0.0.1:7331/users?select=id,name,email'
+curl 'http://127.0.0.1:7331/db/users.json?select=id,name,email'
 ```
+
+## Features To Notice
+
+- [HTTP client operations](../../docs/package-api.md#http-client)
+- [Fixture-like `.json` REST routes](../../docs/server-and-viewer.md#fixture-like-json-routes)
+- [REST batching](../../docs/server-and-viewer.md#rest-batching)
+- [Schema-backed fixtures](../../docs/fixtures-and-schemas.md#schema-files)
 
 ## Cleanup
 

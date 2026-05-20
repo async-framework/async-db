@@ -103,19 +103,24 @@ const client = createDbClient({
   batching: true,
 });
 
-const users = await client.rest.get('/users');
+const users = await client.rest.get('/db/users.json');
 
-await client.rest.post('/users', {
+await client.rest.post('/db/users', {
   id: 'u_2',
   name: 'Grace Hopper',
   email: 'grace@example.com',
 });
 
 const batch = await client.rest.batch([
-  { method: 'GET', path: '/users' },
-  { method: 'GET', path: '/settings' },
+  { method: 'GET', path: '/db/users.json' },
+  { method: 'GET', path: '/db/settings.json' },
 ]);
 ```
+
+When using `createDbClient()` directly against standalone `async-db serve`, use
+the app-facing `/db` routes. Scoped clients, such as the Vite virtual client or
+a fork client, can keep resource paths like `/users` because the client sets a
+`restBasePath` for you.
 
 The client can batch requests made within a short timeout. The default batching window is `10ms`. Identical REST `GET` requests are deduped by default. Writes are not deduped unless you explicitly choose `dedupe: 'all'`.
 
@@ -136,11 +141,11 @@ const client = createDbClient({
   },
 });
 
-await client.rest.get('/users?select=id,name', { cache: 'cache-first' });
+await client.rest.get('/db/users.json?select=id,name', { cache: 'cache-first' });
 await client.graphql('{ users { id name __typename } }', {}, { cache: 'cache-and-network' });
 
 const stop = client.cache.watch(
-  { kind: 'rest', method: 'GET', path: '/users?select=id,name' },
+  { kind: 'rest', method: 'GET', path: '/db/users.json?select=id,name' },
   (snapshot) => {
     render(snapshot.data);
   },
@@ -170,11 +175,11 @@ Run registered queries or literal operation templates through the same client.
 ```ts
 await client.query('GetUser', { id: 'u_1' });
 
-await client.query('/users/{id}.json?select=id,name', { id: 'u_1' });
+await client.query('/db/users/{id}.json?select=id,name', { id: 'u_1' });
 
 await client.query({
   method: 'GET',
-  path: '/users/{id}.json',
+  path: '/db/users/{id}.json',
   query: {
     select: 'id,name',
   },

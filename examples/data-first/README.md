@@ -34,8 +34,15 @@ http://127.0.0.1:7331/__db
 Leave `serve` running and run this from another terminal:
 
 ```bash
-curl 'http://127.0.0.1:7331/users?select=id,name,email'
+curl 'http://127.0.0.1:7331/db/users.json?select=id,name,email'
 ```
+
+## Features To Notice
+
+- [Data-first JSON fixtures](../../docs/fixtures-and-schemas.md#data-first-json-or-jsonc)
+- [Fixture-like `.json` REST routes](../../docs/server-and-viewer.md#fixture-like-json-routes)
+- [REST query parameters](../../docs/server-and-viewer.md#rest-routes)
+- [Runtime state](../../docs/generated-files.md#runtime-state)
 
 ## Cleanup
 

@@ -139,14 +139,37 @@ Scoped REST remains available under the tool route base, such as
 routes such as `GET /users` for local convenience. Set `server.dataPath: false`
 to disable only the `/db` alias.
 
-Use `?id=` only with the explicit JSON route:
+### Fixture-Like `.json` Routes
+
+Use `.json` routes when you want the URL to resemble the source fixture path:
+`db/users.json` becomes `GET /db/users.json`. The server still reads the
+synced runtime resource, not the source fixture file directly, so local writes
+continue going to the selected runtime store.
+
+Collections can use `.json` for list and record reads:
+
+```txt
+GET /db/users.json
+GET /db/users/u_1.json
+```
+
+Singleton documents can use the same fixture-like read shape:
+
+```txt
+GET /db/settings.json
+```
+
+Use `?id=` only with the explicit collection `.json` route:
 
 ```txt
 GET /db/users.json?id=u_1
 ```
 
 Extensionless REST routes keep normal REST semantics and return a structured
-error for `?id=`. Use `GET /db/users/u_1.json` or `GET /users/u_1` there.
+error for `?id=`. Use `GET /db/users/u_1.json` or `GET /db/users/u_1` there.
+Query options such as `select`, `expand`, `offset`, and `limit` apply before
+the response format renders. Sibling `.html` and `.md` routes use the same
+shaped data for browser or Markdown views.
 
 Collections:
 
@@ -161,9 +184,9 @@ DELETE  /db/users/:id
 Singleton documents:
 
 ```txt
-GET     /settings
-PUT     /settings
-PATCH   /settings
+GET     /db/settings.json
+PUT     /db/settings
+PATCH   /db/settings
 ```
 
 REST examples:
@@ -173,6 +196,7 @@ curl http://127.0.0.1:7331/db/users.json
 curl 'http://127.0.0.1:7331/db/users.json?select=id,name&offset=0&limit=20'
 curl 'http://127.0.0.1:7331/db/users.json?id=u_1&select=id,name'
 curl http://127.0.0.1:7331/db/users/u_1.json
+curl http://127.0.0.1:7331/db/settings.json
 ```
 
 ```bash
@@ -192,7 +216,7 @@ curl -X DELETE http://127.0.0.1:7331/db/users/u_2
 ```
 
 Schema-backed computed fields are resolved only when selected. For example,
-`GET /users/u_1.json?select=id,fullName` calls the trusted resolver registered
+`GET /db/users/u_1.json?select=id,fullName` calls the trusted resolver registered
 by `field.computed(...)`; default reads continue returning only stored fixture
 fields.
 
@@ -265,7 +289,7 @@ Schema-backed scalar fields can declare relation metadata while fixtures keep pl
 Then REST can expand that to-one relation:
 
 ```bash
-curl 'http://127.0.0.1:7331/posts/p_1?expand=author&select=id,title,author.name'
+curl 'http://127.0.0.1:7331/db/posts/p_1.json?expand=author&select=id,title,author.name'
 ```
 
 `select` supports top-level fields and one nested expanded relation field. Relation expansion is depth 1 in this MVP. Reverse to-many expansion is intentionally deferred.
@@ -285,11 +309,11 @@ example `POST /_db/batch`.
 [
   {
     "method": "GET",
-    "path": "/users"
+    "path": "/db/users.json"
   },
   {
     "method": "PATCH",
-    "path": "/settings",
+    "path": "/db/settings",
     "body": {
       "theme": "dark"
     }
@@ -322,14 +346,14 @@ writes while local fixture CRUD can stay open by default. The underlying config
 and CLI still use the `operations` name.
 
 ```txt
-GET /users/{id}.json?select=id,name
+GET /db/users/{id}.json?select=id,name
 ```
 
 ```json
 {
   "name": "GetUser",
   "method": "GET",
-  "path": "/users/{id}.json",
+  "path": "/db/users/{id}.json",
   "query": {
     "select": "id,name"
   }

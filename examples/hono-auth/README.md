@@ -62,6 +62,12 @@ curl -X PATCH 'http://127.0.0.1:8787/api/pages/home' \
 
 This is intentionally tiny demo auth. In a real app, `beforeRequest` would read your session or token source, and `beforeWrite` would call your permission policy.
 
+## Features To Notice
+
+- [Hono route registration](../../docs/integrations.md#hono-route-registration)
+- [Lifecycle hooks](../../docs/integrations.md#hono-route-registration)
+- [Schema-backed fixtures](../../docs/fixtures-and-schemas.md#schema-files)
+
 ## More Docs
 
 - [Integrations](../../docs/integrations.md)

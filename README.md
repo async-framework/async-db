@@ -298,9 +298,9 @@ POST    /db/users
 PATCH   /db/users/:id
 DELETE  /db/users/:id
 
-GET     /settings
-PUT     /settings
-PATCH   /settings
+GET     /db/settings.json
+PUT     /db/settings
+PATCH   /db/settings
 ```
 
 Use `select`, `offset`, and `limit` when a prototype only needs part of a collection:
@@ -311,7 +311,11 @@ curl 'http://127.0.0.1:7331/db/users.json?id=u_1&select=id,name'
 ```
 
 The `?id=` shortcut is only for explicit JSON routes. Extensionless REST routes
-use normal record URLs such as `/db/users/u_1` or `/users/u_1`.
+use normal record URLs such as `/db/users/u_1`.
+
+The `.json` route is a fixture-like URL for the synced runtime resource:
+`db/users.json` maps to `GET /db/users.json`, while local writes still go to
+the selected runtime store. See [Fixture-Like `.json` Routes](./docs/server-and-viewer.md#fixture-like-json-routes).
 
 The viewer at `/__db` lets you inspect resources, import CSV files into the configured fixture folder, view generated schema metadata, read GraphQL SDL/operation references, and try REST requests without writing client code first.
 

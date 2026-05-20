@@ -34,10 +34,16 @@ http://127.0.0.1:7331/__db
 Leave `serve` running and run this from another terminal:
 
 ```bash
-curl http://127.0.0.1:7331/users
+curl http://127.0.0.1:7331/db/users.json
 ```
 
 Expected diagnostics include an extra `twitterHandle` field in `users.json` and an undefined nested `metadata.priority` field in `projects.schema.jsonc`.
+
+## Features To Notice
+
+- [Diagnostics workflow](../../docs/concepts.md#diagnostics)
+- [Schema validation](../../docs/fixtures-and-schemas.md#schema-files)
+- [Fixture-like `.json` REST routes](../../docs/server-and-viewer.md#fixture-like-json-routes)
 
 ## Cleanup
 

@@ -45,7 +45,7 @@ Routes:
 | `/cms/pages` | List pages from the mirror |
 | `/cms/pages/page_home` | SSR detail: resolved author link, markdown body text, filled editor controls |
 | `/templates` | Static component templates only (no database rows), matching the CLI renderer |
-| `/__db`, `/graphql`, `/pages`, … | Stock db viewer, GraphQL, and REST on the same origin |
+| `/__db`, `/graphql`, `/db/pages.json`, … | Stock db viewer, GraphQL, and REST on the same origin |
 
 URLs are printed when the server starts.
 
@@ -76,15 +76,22 @@ The standalone **`render-admin.mjs`** output still demonstrates placeholder-driv
 With **`serve.mjs`** or **`npm run examples`** (same stack), REST is already on the demo port:
 
 ```bash
-curl 'http://127.0.0.1:7342/pages?expand=author&select=id,title,status,author.name'
+curl 'http://127.0.0.1:7342/db/pages.json?expand=author&select=id,title,status,author.name'
 ```
 
 Or run the CLI server alone:
 
 ```bash
 node ./src/cli.js serve --cwd ./examples/schema-ui
-curl 'http://127.0.0.1:7331/pages?expand=author&select=id,title,status,author.name'
+curl 'http://127.0.0.1:7331/db/pages.json?expand=author&select=id,title,status,author.name'
 ```
+
+## Features To Notice
+
+- [Schema manifest output](../../docs/generated-files.md#schema-manifest-output)
+- [Custom viewer manifest](../../docs/server-and-viewer.md#custom-viewer-manifest)
+- [Relationship expansion](../../docs/server-and-viewer.md#relationship-expansion)
+- [Fixture-like `.json` REST routes](../../docs/server-and-viewer.md#fixture-like-json-routes)
 
 ## Cleanup
 

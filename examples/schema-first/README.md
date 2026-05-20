@@ -35,8 +35,15 @@ http://127.0.0.1:7331/__db
 Leave `serve` running and run this from another terminal:
 
 ```bash
-curl http://127.0.0.1:7331/audit-events
+curl http://127.0.0.1:7331/db/audit-events.json
 ```
+
+## Features To Notice
+
+- [Schema-first resources](../../docs/concepts.md#schema-first)
+- [Schema files](../../docs/fixtures-and-schemas.md#schema-files)
+- [Generated types](../../docs/generated-files.md#generated-types)
+- [Fixture-like `.json` REST routes](../../docs/server-and-viewer.md#fixture-like-json-routes)
 
 ## Cleanup
 

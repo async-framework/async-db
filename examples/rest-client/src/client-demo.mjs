@@ -6,11 +6,11 @@ const db = createDbClient({
   batching: true,
 });
 
-const users = await db.rest.get('/users?select=id,name,email', { batch: false });
-const settings = await db.rest.get('/settings', { batch: false });
+const users = await db.rest.get('/db/users.json', { batch: false });
+const settings = await db.rest.get('/db/settings.json', { batch: false });
 const batch = await db.rest.batch([
-  { method: 'GET', path: '/users?select=id,name' },
-  { method: 'GET', path: '/settings' },
+  { method: 'GET', path: '/db/users.json?select=id,name' },
+  { method: 'GET', path: '/db/settings.json' },
 ]);
 
 console.log(JSON.stringify({
