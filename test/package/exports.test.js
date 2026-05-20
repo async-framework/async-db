@@ -14,12 +14,18 @@ test('consumer projects can import package APIs through the @async/db package', 
 import { createDbClient } from '@async/db/client';
 import { defineConfig } from '@async/db/config';
 import { sqliteStore } from '@async/db/sqlite';
+import { postgresStore } from '@async/db/postgres';
+import { kvStore } from '@async/db/kv';
+import { redisStore } from '@async/db/redis';
 
 if (typeof openDb !== 'function') throw new Error('missing package API');
 if (typeof createDbRequestHandler !== 'function') throw new Error('missing request handler API');
 if (typeof createDbClient !== 'function') throw new Error('missing client API');
 if (typeof defineConfig !== 'function') throw new Error('missing config API');
 if (typeof sqliteStore !== 'function') throw new Error('missing sqlite store API');
+if (typeof postgresStore !== 'function') throw new Error('missing postgres store API');
+if (typeof kvStore !== 'function') throw new Error('missing kv store API');
+if (typeof redisStore !== 'function') throw new Error('missing redis store API');
 `);
 
   await execFileAsync(process.execPath, ['check-package.mjs'], { cwd });

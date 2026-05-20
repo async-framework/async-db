@@ -32,7 +32,7 @@ See [db.config.example.mjs](../db.config.example.mjs) for a commented config wit
 | Importable generated types | `.db/types/index.ts` | `types.commitOutFile` |
 | Importable schema manifest | Off | `schemaOutFile` |
 | Importable viewer manifest | Off | `viewerManifestOutFile` |
-| Registered REST operation hashes | Off | `operations` |
+| Registered query operation hashes | Off | `operations` |
 | REST response formats | `.json`, `.html`, `.md` | `rest.formats` |
 | App-facing data route base | `/db` | `server.dataPath` |
 | Route exposure policy | Open | `server.expose` |
@@ -192,6 +192,33 @@ The `sourceFile` store is intentionally narrow. It is only for resources where s
 
 `indexes` is metadata for store selection, generated tooling, and `doctor` scale warnings. The default JSON store does not build physical indexes.
 
+Optional database stores keep the same fixture/schema workflow while moving
+runtime persistence out of `.db/state`. They store whole resources as JSON
+values in v1, so package API, REST, GraphQL, defaults, and source-hash refresh
+behavior stay the same:
+
+```js
+import { defineConfig } from '@async/db/config';
+import { postgresStore } from '@async/db/postgres';
+import { redisStore } from '@async/db/redis';
+
+export default defineConfig({
+  resources: {
+    users: { store: 'postgres' },
+    sessions: { store: 'redis' },
+  },
+  stores: {
+    postgres: postgresStore({ client: pgPool }),
+    redis: redisStore({ client: redisClient, prefix: 'my-app:' }),
+  },
+});
+```
+
+The package does not install database clients for you. Pass a `pg` Pool/Client
+or compatible object to `postgresStore({ client })`, and pass a Redis-like,
+edge KV, Valkey, Dragonfly, or compatible object with `get(key)` and
+`set(key, value)` to `kvStore()` or `redisStore()`.
+
 ## Schema Strictness
 
 Unknown fields in schema-backed data warn by default. Use strict checks when fixture drift should fail:
@@ -315,14 +342,14 @@ export default defineConfig({
 
 Exposure values are `open`, `registered-only`, `dev`, `disabled`, and `false`.
 `dev` routes are available unless `NODE_ENV=production`. `registered-only` is
-primarily for REST: raw REST resource and batch routes are blocked, while
+primarily for REST and GraphQL: raw REST resource and batch routes are blocked, while
 `POST /__db/operations/:hash` can still execute registered operation templates.
 
-## Registered Operations
+## Registered Queries
 
-Registered operations are optional REST-native request templates. They are not a
-GraphQL wrapper. Put operation sources under `operations.sourceDir` and build
-server and client artifacts:
+Registered queries are optional allowlisted REST or GraphQL request templates.
+The config and CLI still use the `operations` name. Put operation sources under
+`operations.sourceDir` and build server and client artifacts:
 
 ```txt
 db/operations/get-user.jsonc
@@ -335,6 +362,19 @@ db/operations/get-user.jsonc
   "path": "/users/{id}.json",
   "query": {
     "select": "id,name"
+  }
+}
+```
+
+GraphQL templates use the same registry:
+
+```json
+{
+  "name": "GetUser",
+  "query": "query GetUser($id: ID!) { user(id: $id) { id name } }",
+  "operationName": "GetUser",
+  "variables": {
+    "id": "{id}"
   }
 }
 ```

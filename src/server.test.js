@@ -719,6 +719,133 @@ test('request handler can execute registered operations from a generated registr
   });
 });
 
+test('request handler executes registered GraphQL operations', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.schema.jsonc', `{
+    "kind": "collection",
+    "idField": "id",
+    "fields": {
+      "id": { "type": "string", "required": true },
+      "name": { "type": "string", "required": true },
+      "email": { "type": "string", "required": true }
+    },
+    "seed": [
+      { "id": "u_1", "name": "Ada", "email": "ada@example.com" }
+    ]
+  }`);
+
+  const db = await openDb({
+    cwd,
+    operations: {
+      enabled: true,
+      registry: {
+        'sha256:abc123': {
+          name: 'GetUser',
+          query: 'query GetUser($id: ID!) { user(id: $id) { id name } }',
+          operationName: 'GetUser',
+          variables: {
+            id: '{id}',
+          },
+        },
+      },
+    },
+    server: {
+      expose: {
+        graphql: 'registered-only',
+      },
+    },
+  });
+  const handler = createDbRequestHandler(db);
+  const rawGraphql = makeResponse();
+  const operation = makeResponse();
+
+  assert.equal(await handler(makeRequest('POST', '/graphql', {
+    query: '{ users { id } }',
+  }), rawGraphql), true);
+  assert.equal(await handler(makeRequest('POST', '/__db/operations/sha256%3Aabc123', {
+    variables: {
+      id: 'u_1',
+    },
+  }), operation), true);
+
+  assert.equal(rawGraphql.status, 403);
+  assert.equal(rawGraphql.json().error.code, 'GRAPHQL_REGISTERED_ONLY');
+  assert.equal(operation.status, 200);
+  assert.deepEqual(operation.json(), {
+    data: {
+      user: {
+        id: 'u_1',
+        name: 'Ada',
+      },
+    },
+  });
+});
+
+test('request handler can execute registered operations by name', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([
+    { id: 'u_1', name: 'Ada', email: 'ada@example.com' },
+  ]));
+
+  const db = await openDb({
+    cwd,
+    operations: {
+      enabled: true,
+      registry: {
+        'sha256:abc123': {
+          name: 'GetUser',
+          method: 'GET',
+          path: '/users/{id}.json',
+          query: {
+            select: 'id,email',
+          },
+        },
+      },
+    },
+  });
+  const handler = createDbRequestHandler(db);
+  const operation = makeResponse();
+
+  assert.equal(await handler(makeRequest('POST', '/__db/operations/GetUser', {
+    variables: {
+      id: 'u_1',
+    },
+  }), operation), true);
+
+  assert.equal(operation.status, 200);
+  assert.deepEqual(operation.json(), {
+    id: 'u_1',
+    email: 'ada@example.com',
+  });
+});
+
+test('registered GraphQL operations report disabled GraphQL', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([{ id: 'u_1', name: 'Ada' }]));
+
+  const db = await openDb({
+    cwd,
+    graphql: {
+      enabled: false,
+    },
+    operations: {
+      enabled: true,
+      registry: {
+        'sha256:abc123': {
+          query: '{ users { id } }',
+        },
+      },
+    },
+  });
+  const handler = createDbRequestHandler(db);
+  const operation = makeResponse();
+
+  assert.equal(await handler(makeRequest('POST', '/__db/operations/sha256%3Aabc123', {}), operation), true);
+
+  assert.equal(operation.status, 404);
+  assert.equal(operation.json().error.code, 'GRAPHQL_DISABLED');
+});
+
 test('request handler applies route exposure policies beyond REST', async (t) => {
   const previousNodeEnv = process.env.NODE_ENV;
   t.after(() => {

@@ -89,6 +89,8 @@ export type DbCustomStore = {
   writeResource?: (resource: Record<string, unknown>, value: unknown) => void | Promise<void>;
   read?: (resource: Record<string, unknown>, fallback: unknown) => unknown | Promise<unknown>;
   write?: (resource: Record<string, unknown>, value: unknown) => void | Promise<void>;
+  get?: (resource: Record<string, unknown>, fallback: unknown) => unknown | Promise<unknown>;
+  set?: (resource: Record<string, unknown>, value: unknown) => void | Promise<void>;
   withResourceWrite?: <Result>(
     resource: Record<string, unknown>,
     operation: () => Result | Promise<Result>,
@@ -152,7 +154,7 @@ export type DbRuntimeEvents = {
 
 export type DbRouteExposure = 'open' | 'registered-only' | 'dev' | 'disabled' | false;
 
-export type DbOperationTemplate = string | {
+export type DbRestOperationTemplate = {
   name?: string;
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | string;
   path: string;
@@ -160,6 +162,15 @@ export type DbOperationTemplate = string | {
   body?: unknown;
   variables?: Record<string, unknown>;
 };
+
+export type DbGraphqlOperationTemplate = {
+  name?: string;
+  query: string;
+  variables?: Record<string, unknown>;
+  operationName?: string | null;
+};
+
+export type DbOperationTemplate = string | DbRestOperationTemplate | DbGraphqlOperationTemplate;
 
 export type DbOperationRef = {
   name?: string;
@@ -517,6 +528,11 @@ export type DbClient = {
     delete(path: string, options?: DbClientRequestOptions): Promise<RestBatchResult>;
   };
   operation(
+    operation: DbOperationTemplate | DbOperationRef,
+    variables?: Record<string, unknown>,
+    options?: DbClientRequestOptions,
+  ): Promise<unknown>;
+  query(
     operation: DbOperationTemplate | DbOperationRef,
     variables?: Record<string, unknown>,
     options?: DbClientRequestOptions,

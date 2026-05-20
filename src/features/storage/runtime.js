@@ -111,11 +111,17 @@ function customStoreAdapter(storeName, store, queues) {
       if (store.readResource) {
         return store.readResource(resource, fallback);
       }
+      if (store.get) {
+        return store.get(resource, fallback);
+      }
       return store.read(resource, fallback);
     },
     writeResource(resource, value) {
       if (store.writeResource) {
         return store.writeResource(resource, value);
+      }
+      if (store.set) {
+        return store.set(resource, value);
       }
       return store.write(resource, value);
     },

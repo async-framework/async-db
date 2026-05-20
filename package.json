@@ -1,7 +1,7 @@
 {
   "name": "@async/db",
   "version": "0.1.0",
-  "description": "The Async data workflow package for JSON fixtures, generated types, local APIs, and SQLite-backed graduation.",
+  "description": "The Async data workflow package for fixtures, generated types, local APIs, runtime stores, and database-backed graduation.",
   "type": "module",
   "bin": {
     "async-db": "./src/cli.js"
@@ -30,6 +30,18 @@
     "./sqlite": {
       "types": "./src/sqlite.d.ts",
       "default": "./src/sqlite.js"
+    },
+    "./postgres": {
+      "types": "./src/postgres.d.ts",
+      "default": "./src/postgres.js"
+    },
+    "./kv": {
+      "types": "./src/kv.d.ts",
+      "default": "./src/kv.js"
+    },
+    "./redis": {
+      "types": "./src/redis.d.ts",
+      "default": "./src/redis.js"
     },
     "./vite": {
       "types": "./src/vite.d.ts",

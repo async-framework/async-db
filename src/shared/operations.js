@@ -15,18 +15,22 @@ export function normalizeOperationTemplate(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     throw dbError(
       'OPERATION_INVALID_TEMPLATE',
-      'Registered operation must be a REST template string or object.',
+      'Registered operation must be a REST or GraphQL template.',
       {
-        hint: 'Use "/users/{id}.json?select=id,name" or { method: "GET", path: "/users/{id}.json", query: { select: "id,name" } }.',
+        hint: 'Use "/users/{id}.json?select=id,name", { method: "GET", path: "/users/{id}.json", query: { select: "id,name" } }, or { query: "{ users { id } }" }.',
       },
     );
   }
 
-  if (input.hash && !input.path) {
+  if (input.hash && !input.path && !input.query) {
     return {
       name: input.name,
       hash: String(input.hash),
     };
+  }
+
+  if (input.kind === 'graphql' || isGraphqlTemplateObject(input)) {
+    return normalizeGraphqlOperation(input);
   }
 
   const method = normalizeMethod(input.method ?? 'GET');
@@ -55,6 +59,20 @@ export function normalizeOperationTemplate(input) {
 
 export function canonicalOperation(input) {
   const operation = normalizeOperationTemplate(input);
+  if (operation.kind === 'graphql') {
+    const canonical = {
+      kind: 'graphql',
+      query: operation.query,
+    };
+    if (operation.operationName) {
+      canonical.operationName = operation.operationName;
+    }
+    if (operation.variables) {
+      canonical.variables = stableObject(operation.variables);
+    }
+    return canonical;
+  }
+
   const canonical = {
     method: operation.method,
     path: operation.path,
@@ -74,6 +92,10 @@ export function operationRequest(input, variables = {}) {
     return {
       hash: operation.hash,
     };
+  }
+
+  if (operation.kind === 'graphql') {
+    return graphqlOperationRequest(operation, variables);
   }
 
   const placeholders = placeholdersForOperation(operation);
@@ -144,6 +166,91 @@ function normalizeStringOperation(input) {
     normalized.query = query;
   }
   return normalized;
+}
+
+function normalizeGraphqlOperation(input) {
+  if (typeof input.query !== 'string' || input.query.trim() === '') {
+    throw dbError(
+      'OPERATION_INVALID_GRAPHQL_QUERY',
+      'GraphQL operation query must be a non-empty string.',
+      {
+        status: 400,
+        hint: 'Use { query: "query GetUser { users { id } }" }.',
+      },
+    );
+  }
+
+  const normalized = {
+    kind: 'graphql',
+    query: input.query,
+  };
+  if (input.name) {
+    normalized.name = String(input.name);
+  }
+  if (input.operationName !== undefined && input.operationName !== null) {
+    normalized.operationName = String(input.operationName);
+  }
+  if (input.variables !== undefined) {
+    if (!input.variables || typeof input.variables !== 'object' || Array.isArray(input.variables)) {
+      throw dbError(
+        'OPERATION_INVALID_GRAPHQL_VARIABLES',
+        'GraphQL operation variables must be an object.',
+        {
+          status: 400,
+          hint: 'Use variables such as { id: "{id}" }.',
+        },
+      );
+    }
+    normalized.variables = stableObject(input.variables);
+  }
+  return normalized;
+}
+
+function isGraphqlTemplateObject(input) {
+  return !input.path && typeof input.query === 'string' && !input.method && !('body' in input);
+}
+
+function graphqlOperationRequest(operation, variables = {}) {
+  const placeholders = new Set();
+  if (operation.variables) {
+    collectPlaceholders(operation.variables, placeholders);
+  }
+  const provided = Object.keys(variables ?? {});
+  const missing = [...placeholders].filter((name) => !(name in (variables ?? {})));
+  const extra = operation.variables
+    ? provided.filter((name) => placeholders.size > 0 && !placeholders.has(name))
+    : [];
+
+  if (missing.length > 0) {
+    throw dbError(
+      'OPERATION_VARIABLE_MISSING',
+      `Operation is missing variable "${missing[0]}".`,
+      {
+        status: 400,
+        hint: `Pass variables for: ${[...placeholders].join(', ')}.`,
+        details: { missing, expectedVariables: [...placeholders] },
+      },
+    );
+  }
+
+  if (extra.length > 0) {
+    throw dbError(
+      'OPERATION_VARIABLE_UNKNOWN',
+      `Operation received unknown variable "${extra[0]}".`,
+      {
+        status: 400,
+        hint: `Only pass variables used by this operation: ${[...placeholders].join(', ')}.`,
+        details: { extra, expectedVariables: [...placeholders] },
+      },
+    );
+  }
+
+  return {
+    kind: 'graphql',
+    query: operation.query,
+    variables: operation.variables ? substituteValue(operation.variables, variables) : (variables ?? {}),
+    operationName: operation.operationName ?? null,
+  };
 }
 
 function normalizeMethod(value) {

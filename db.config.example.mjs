@@ -33,9 +33,13 @@ export default defineConfig({
   // Runtime stores. The default json store writes app edits to
   // .db/state/<resource>.json while keeping source fixtures unchanged.
   // Bind a resource to sourceFile only when supported writebacks should update
-  // a plain .json source fixture.
+  // a plain .json source fixture. Optional database stores such as
+  // @async/db/postgres, @async/db/kv, and @async/db/redis accept injected
+  // clients so the core package stays dependency-light.
   stores: {
     default: 'json',
+    // postgres: postgresStore({ client: pgPool }),
+    // redis: redisStore({ client: redisClient, prefix: 'my-app:' }),
   },
 
   resources: {

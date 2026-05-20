@@ -119,12 +119,15 @@ const batch = await client.rest.batch([
 
 The client can batch requests made within a short timeout. The default batching window is `10ms`. Identical REST `GET` requests are deduped by default. Writes are not deduped unless you explicitly choose `dedupe: 'all'`.
 
-Run registered or literal REST operations through the same client:
+Run registered queries or literal operation templates through the same client.
+`query()` is the app-facing alias for `operation()`:
 
 ```ts
-await client.operation('/users/{id}.json?select=id,name', { id: 'u_1' });
+await client.query('GetUser', { id: 'u_1' });
 
-await client.operation({
+await client.query('/users/{id}.json?select=id,name', { id: 'u_1' });
+
+await client.query({
   method: 'GET',
   path: '/users/{id}.json',
   query: {
@@ -132,12 +135,25 @@ await client.operation({
   },
 }, { id: 'u_1' });
 
-await client.operation({ name: 'GetUser', hash: 'sha256:abc123' }, { id: 'u_1' });
+await client.query({
+  query: 'query GetUser($id: ID!) { user(id: $id) { id name } }',
+  operationName: 'GetUser',
+  variables: {
+    id: '{id}',
+  },
+}, { id: 'u_1' });
+
+await client.query({ name: 'GetUser', hash: 'sha256:abc123' }, { id: 'u_1' });
 ```
 
-Literal string and JSON templates execute as normal REST requests. Hash refs call
-`POST /__db/operations/:hash`; the server looks up the registered template,
-substitutes variables, and runs it through normal REST shaping.
+String values passed to `query()` that start with `/`, or with an HTTP method
+followed by `/`, are literal REST templates. Other strings are registered query
+refs, such as an operation name or SHA-256 hash, and call
+`POST /__db/operations/:ref`. Object REST templates execute as normal REST
+requests. Object GraphQL templates are inferred when an object has `query` and
+no REST `path`, and execute as normal GraphQL requests. The server looks up
+registered refs, substitutes variables, and runs REST templates through normal
+REST shaping or GraphQL templates through the GraphQL executor.
 
 ## Fork Client
 
@@ -174,8 +190,12 @@ The helper is also attached to the default client as `db.fork('legacy-demo')`.
 | `@async/db/vite` | Optional Vite dev server plugin. |
 | `@async/db/hono` | Optional Hono route registration helpers. |
 | `@async/db/sqlite` | Optional SQLite adapter helpers. |
+| `@async/db/postgres` | Optional Postgres runtime store helpers using an injected client. |
+| `@async/db/kv` | Optional generic KV runtime store helpers using an injected `get`/`set` client. |
+| `@async/db/redis` | Optional Redis-named helper over the generic KV store. |
 
-The core package stays dependency-light. Optional integrations use dynamic imports or generated app dependencies.
+The core package stays dependency-light. Optional integrations use dynamic
+imports, generated app dependencies, or injected database clients.
 
 The root export also includes `hashOperation()` and `buildOperationManifest()`
 for tools that want to build operation registries without shelling out to the

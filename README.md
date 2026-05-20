@@ -141,6 +141,7 @@ See [docs/getting-started.md](./docs/getting-started.md) for the expanded walkth
 | App data routes | Exposed under `/db` by default, such as `GET /db/users.json`. |
 | Runtime writes | Go to the default JSON store under `.db/state`. |
 | Source writes | Only happen for resources bound to the `sourceFile` store, and only for supported writebacks such as generated ids in plain `.json` collections. |
+| Optional stores | SQLite, Postgres, generic KV, and Redis-like stores plug into the same runtime store boundary without adding mandatory database client dependencies. |
 | Generated output | `.db/` is runtime output and normally stays uncommitted. |
 | Local server | Binds to `127.0.0.1:7331` by default and exposes writable local development endpoints. |
 | Trusted code | `.schema.mjs`, `db.config.mjs`, source readers, and manifest hooks execute as local project code. |

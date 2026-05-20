@@ -6,6 +6,7 @@ import { openDb } from './db.js';
 import { serializeError } from './errors.js';
 import { loadForkDb } from './features/config/forks.js';
 import { defaultHttpFeatureRegistry } from './features/http/registry.js';
+import { executeGraphql } from './graphql/index.js';
 import { runMockBehavior } from './mock.js';
 import { handleRestRequest, readJsonBody, sendJson } from './rest/handler.js';
 import { operationRequest } from './shared/operations.js';
@@ -176,27 +177,55 @@ async function handleRegisteredOperationRequest(db, request, response, hash, rou
   const body = await readJsonBody(request, {
     maxBytes: Number(db.config.server?.maxBodyBytes ?? 1048576),
   });
-  const operation = await operationForHash(db.config, hash);
+  const operation = await operationForRef(db.config, hash);
   if (!operation) {
     throw dbError(
       'OPERATION_NOT_FOUND',
-      `Unknown registered operation "${hash}".`,
+      `Unknown registered operation "${decodeURIComponent(hash)}".`,
       {
         status: 404,
-        hint: 'Register the operation hash in operations.registry or generate an operations manifest.',
-        details: { hash },
+        hint: 'Register the operation name or hash in operations.registry, or generate an operations manifest.',
+        details: { ref: decodeURIComponent(hash) },
       },
     );
   }
 
-  const restRequest = operationRequest(operation, body?.variables ?? {});
+  const operationResult = operationRequest(operation, body?.variables ?? {});
+  if (operationResult.kind === 'graphql') {
+    if (db.config.graphql?.enabled === false) {
+      sendJson(response, 404, {
+        error: {
+          code: 'GRAPHQL_DISABLED',
+          message: 'GraphQL endpoint is disabled.',
+          hint: 'Set graphql.enabled to true in db.config.mjs to enable registered GraphQL operations.',
+          details: {
+            graphqlEnabled: false,
+            hash,
+          },
+        },
+      });
+      return;
+    }
+
+    sendJson(response, 200, await executeGraphql(db, {
+      query: operationResult.query,
+      variables: operationResult.variables,
+      operationName: operationResult.operationName,
+    }));
+    return;
+  }
+
+  const restRequest = operationResult;
   const restUrl = new URL(restRequest.path, 'http://db.local');
   await handleRestRequest(db, internalRestRequest(restRequest), response, restUrl, routes);
 }
 
-async function operationForHash(config, hash) {
+async function operationForRef(config, hash) {
   const registry = await operationRegistry(config);
-  return registry[hash] ?? registry[decodeURIComponent(hash)];
+  const decoded = decodeURIComponent(hash);
+  return registry[hash]
+    ?? registry[decoded]
+    ?? Object.values(registry).find((operation) => operation?.name === decoded);
 }
 
 async function operationRegistry(config) {

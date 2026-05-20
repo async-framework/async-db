@@ -68,10 +68,30 @@ export function createDbClient(options = {}) {
       ? { hash: template }
       : operationRequest(template, variables);
 
+    return executeOperationRequest(request, variables, requestOptions);
+  }
+
+  async function query(template, variables = {}, requestOptions = {}) {
+    const request = typeof template === 'string' && !isRestOperationString(template)
+      ? { hash: template }
+      : operationRequest(template, variables);
+
+    return executeOperationRequest(request, variables, requestOptions);
+  }
+
+  async function executeOperationRequest(request, variables, requestOptions) {
     if (request.hash) {
       return postJson(resolveUrl(baseUrl, `${apiBase}/operations/${encodeURIComponent(request.hash)}`), {
         variables,
       });
+    }
+
+    if (request.kind === 'graphql') {
+      return graphql({
+        query: request.query,
+        variables: request.variables,
+        operationName: request.operationName,
+      }, undefined, requestOptions);
     }
 
     if (shouldBatch(requestOptions, batching)) {
@@ -95,6 +115,7 @@ export function createDbClient(options = {}) {
   return {
     graphql,
     operation,
+    query,
     rest,
   };
 }
@@ -187,6 +208,20 @@ function shouldBatch(requestOptions, batching) {
   }
 
   return batching.enabled;
+}
+
+function isRestOperationString(value) {
+  const trimmed = String(value ?? '').trim();
+  if (trimmed.startsWith('/')) {
+    return true;
+  }
+
+  const methodMatch = trimmed.match(/^(GET|POST|PUT|PATCH|DELETE)\s+/i);
+  if (!methodMatch) {
+    return false;
+  }
+
+  return trimmed.slice(methodMatch[0].length).trimStart().startsWith('/');
 }
 
 function createQueue(flush, batching, options = {}) {

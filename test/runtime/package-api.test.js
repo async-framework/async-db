@@ -534,6 +534,45 @@ export default {
   );
 });
 
+test('custom stores can expose get and set aliases for resource reads and writes', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([
+    { id: 'u_1', name: 'Ada Lovelace' },
+  ]));
+  await writeConfig(cwd, `const values = new Map();
+
+export default {
+  stores: {
+    default: 'simpleKv',
+    simpleKv: {
+      hydrate(resources) {
+        for (const resource of resources) {
+          values.set(resource.name, structuredClone(resource.seed));
+        }
+      },
+      get(resource, fallback) {
+        return structuredClone(values.get(resource.name) ?? fallback);
+      },
+      set(resource, value) {
+        values.set(resource.name, structuredClone(value));
+      }
+    }
+  }
+};`);
+
+  const db = await openDb({ cwd });
+  await db.collection('users').create({ id: 'u_2', name: 'Grace Hopper' });
+
+  assert.deepEqual(await db.collection('users').all(), [
+    { id: 'u_1', name: 'Ada Lovelace' },
+    { id: 'u_2', name: 'Grace Hopper' },
+  ]);
+  await assert.rejects(
+    () => access(path.join(cwd, '.db/state/users.json')),
+    { code: 'ENOENT' },
+  );
+});
+
 test('missing configured store names produce store-facing diagnostics', async () => {
   const cwd = await makeProject();
   await writeFixture(cwd, 'users.json', JSON.stringify([

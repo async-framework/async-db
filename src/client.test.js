@@ -495,6 +495,71 @@ test('client operation executes literal REST templates and hash references', asy
   });
 });
 
+test('client query aliases registered operations and supports GraphQL templates', async () => {
+  const calls = withMockFetch([
+    {
+      id: 'u_registry',
+      name: 'Ada',
+    },
+    {
+      id: 'u_1',
+      name: 'Ada',
+    },
+    {
+      data: {
+        user: {
+          id: 'u_1',
+        },
+      },
+    },
+    {
+      data: {
+        user: {
+          id: 'u_2',
+        },
+      },
+    },
+  ]);
+  const client = createDbClient({ baseUrl: 'http://db.local' });
+
+  await client.query('GetUser', { id: 'u_1' });
+  await client.query('/users/{id}.json?select=id,name', { id: 'u 1' });
+  await client.query({
+    query: 'query GetUser($id: ID!) { user(id: $id) { id } }',
+    operationName: 'GetUser',
+    variables: {
+      id: '{id}',
+    },
+  }, { id: 'u_1' });
+  await client.query('sha256:abc123', { id: 'u_2' });
+
+  assert.equal(calls[0].url, 'http://db.local/__db/operations/GetUser');
+  assert.equal(calls[0].init.method, 'POST');
+  assert.deepEqual(JSON.parse(calls[0].init.body), {
+    variables: {
+      id: 'u_1',
+    },
+  });
+  assert.equal(calls[1].url, 'http://db.local/users/u%201.json?select=id,name');
+  assert.equal(calls[1].init.method, 'GET');
+  assert.equal(calls[2].url, 'http://db.local/graphql');
+  assert.equal(calls[2].init.method, 'POST');
+  assert.deepEqual(JSON.parse(calls[2].init.body), {
+    query: 'query GetUser($id: ID!) { user(id: $id) { id } }',
+    variables: {
+      id: 'u_1',
+    },
+    operationName: 'GetUser',
+  });
+  assert.equal(calls[3].url, 'http://db.local/__db/operations/sha256%3Aabc123');
+  assert.equal(calls[3].init.method, 'POST');
+  assert.deepEqual(JSON.parse(calls[3].init.body), {
+    variables: {
+      id: 'u_2',
+    },
+  });
+});
+
 function withMockFetch(responses) {
   const originalFetch = globalThis.fetch;
   const calls = [];

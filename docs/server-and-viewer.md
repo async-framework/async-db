@@ -288,9 +288,10 @@ Errors are shaped for humans and automation:
 
 ## Registered REST Operations
 
-Registered operations are optional REST request templates with stable SHA-256
-hashes. They let production-style apps allowlist specific REST reads while local
-fixture CRUD can stay open by default.
+Registered queries are optional REST or GraphQL request templates with stable
+SHA-256 hashes. They let production-style apps allowlist specific reads and
+writes while local fixture CRUD can stay open by default. The underlying config
+and CLI still use the `operations` name.
 
 ```txt
 GET /users/{id}.json?select=id,name
@@ -303,6 +304,19 @@ GET /users/{id}.json?select=id,name
   "path": "/users/{id}.json",
   "query": {
     "select": "id,name"
+  }
+}
+```
+
+GraphQL templates use the same registry and hash execution route:
+
+```json
+{
+  "name": "GetUser",
+  "query": "query GetUser($id: ID!) { user(id: $id) { id name } }",
+  "operationName": "GetUser",
+  "variables": {
+    "id": "{id}"
   }
 }
 ```
@@ -346,9 +360,11 @@ export default defineConfig({
 });
 ```
 
-`registered-only` blocks raw REST resource and batch routes. Registered
-operation execution still uses normal REST shaping, including `select`, formats,
-schema validation, and computed resolver projection.
+`registered-only` blocks raw REST resource and batch routes. Registered REST
+operation execution still uses normal REST shaping, including `select`,
+formats, schema validation, and computed resolver projection. Registered
+GraphQL operations execute through the same GraphQL executor as direct GraphQL
+requests, and still require `graphql.enabled !== false`.
 
 ## GraphQL Boundary
 
@@ -361,7 +377,8 @@ GraphQL HTTP batches execute sequentially and are intentionally non-transactiona
 REST remains the documented happy path because REST plus the viewer is the intended default workflow.
 
 GraphQL selections use the same read projection/fanout path as REST for computed
-fields, but registered operations are REST-native and do not wrap GraphQL.
+fields. Registered GraphQL operations are fixed query templates; they are not a
+direct database query language and do not expose backend SQL or Redis commands.
 
 Use `server.expose.graphql`, `server.expose.viewer`, `server.expose.schema`, and
 `server.expose.manifest` to keep non-REST surfaces `open`, `dev`, or disabled in

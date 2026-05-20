@@ -25,12 +25,12 @@ db/*.json, *.jsonc, *.csv, *.schema.json(c), *.schema.mjs
 | Runtime API | `src/index.js`, `src/features/runtime/` | Collections, singleton documents, validation, and storage adapters. |
 | Config API | `src/config-public.js`, `src/config.d.ts` | `defineConfig`, manifest helpers, and user config shape. |
 | Schema helpers | `src/schema-builders.js`, `src/schema.d.ts` | `.schema.mjs` authoring helpers. |
-| HTTP client | `src/client.js` | REST, GraphQL, direct batching, automatic batching, fork support. |
+| HTTP client | `src/client.js` | REST, GraphQL, registered query operations, direct batching, automatic batching, fork support. |
 | REST server | `src/server.js`, `src/rest/` | Dependency-free local routes and response shaping. |
 | GraphQL | `src/graphql/` | Dependency-free subset parser, executor, and HTTP handler. |
 | Viewer | `src/web/` | Built-in UI served at `server.apiBase`, defaulting to `/__db`. |
 | Vite integration | `src/vite.js`, `src/integrations/` | Optional dev server plugin and virtual client. |
-| Hono/SQLite | `src/hono.js`, `src/sqlite.js`, `src/generate/hono.js` | Optional runtime integration and generated starter output. |
+| Hono/SQLite/Postgres/KV | `src/hono.js`, `src/sqlite.js`, `src/postgres.js`, `src/kv.js`, `src/redis.js`, `src/generate/hono.js` | Optional runtime integration, injected-client stores, and generated starter output. |
 
 ## Core Boundaries
 
@@ -38,7 +38,7 @@ db/*.json, *.jsonc, *.csv, *.schema.json(c), *.schema.mjs
 - Field normalization, inference, relations, and resource construction live under `src/features/schema/`.
 - Validation and diagnostics live under `src/features/schema/validation.js` and nearby schema feature modules.
 - Sync lives under `src/features/sync/`. It writes generated schema, generated types, optional schema manifests, source metadata, and hydrates runtime store state.
-- Runtime storage lives under `src/features/storage/` and `src/features/runtime/`. The default store is JSON files under `.db/state`; memory, static, sourceFile, SQLite, and future stores fit behind the store boundary.
+- Runtime storage lives under `src/features/storage/` and `src/features/runtime/`. The default store is JSON files under `.db/state`; memory, static, sourceFile, SQLite, Postgres, KV, Redis-like, and custom stores fit behind the store boundary.
 - HTTP serving starts in `src/server.js`. REST routing lives in `src/rest/`, GraphQL lives in `src/graphql/`, and built-in viewer HTML/JS lives in `src/web/`.
 - Optional graduation paths are separate from the core. Hono/SQLite starter generation lives in `src/generate/hono.js` and `src/generate/hono/`; optional integrations live in `src/integrations/`.
 
@@ -58,6 +58,7 @@ db/*.json, *.jsonc, *.csv, *.schema.json(c), *.schema.mjs
 | Hono/SQLite starter generation | `src/generate/hono.js`, `src/generate/hono/` |
 | Optional Hono integration | `src/hono.js` |
 | Optional SQLite adapter | `src/sqlite.js` |
+| Optional Postgres/KV/Redis-like stores | `src/postgres.js`, `src/kv.js`, `src/redis.js`, `src/integrations/` |
 
 ## Generated Outputs
 
