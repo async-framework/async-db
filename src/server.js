@@ -12,6 +12,7 @@ import { handleRestRequest, readJsonBody, sendJson } from './rest/handler.js';
 import { operationRequest } from './shared/operations.js';
 import { dbError } from './errors.js';
 import { syncDb } from './sync.js';
+import { createRequestTrace, tracePhase, tracePhaseSync } from './tracing.js';
 
 export async function startDbServer(options = {}) {
   const db = await openDb({
@@ -68,20 +69,35 @@ export function createDbRequestHandler(db, options = {}) {
   const routes = resolveRequestRoutes(db.config, options);
 
   return async function dbRequestHandler(request, response, next) {
-    const handled = await handleRequest(db, request, response, events, routes);
-    if (!handled && typeof next === 'function') {
-      next();
+    const trace = createRequestTrace(db, request, { trace: options.trace });
+    let handled = false;
+    try {
+      handled = await handleRequest(db, request, response, events, routes, trace);
+      if (!handled && typeof next === 'function') {
+        next();
+      }
+      return handled;
+    } catch (error) {
+      trace?.setError(error);
+      throw error;
+    } finally {
+      trace?.finish(db, response);
     }
-    return handled;
   };
 }
 
-async function handleRequest(db, request, response, events, routes) {
+async function handleRequest(db, request, response, events, routes, trace = null) {
   const url = new URL(request.url, 'http://db.local');
-  const forkName = forkNameForRequest(url, routes);
+  const forkName = tracePhaseSync(trace, 'route-match', () => forkNameForRequest(url, routes), {
+    family: 'fork',
+  });
   if (forkName) {
+    trace?.markHandled(response);
+    trace?.setRoute({ route: 'fork', fork: forkName });
     try {
-      const forkDb = await loadForkDb(db, forkName, openDb);
+      const forkDb = await tracePhase(trace, 'fork-load', () => loadForkDb(db, forkName, openDb), {
+        fork: forkName,
+      });
       const forkRoutes = resolveRequestRoutes(forkDb.config, {
         ...routes,
         apiBase: forkApiBase(routes, forkName),
@@ -93,61 +109,89 @@ async function handleRequest(db, request, response, events, routes) {
         manifestHtmlPath: `${forkApiBase(routes, forkName)}/manifest.html`,
         manifestMarkdownPath: `${forkApiBase(routes, forkName)}/manifest.md`,
       });
-      return handleRequest(forkDb, request, response, events, forkRoutes);
+      return tracePhase(trace, 'fork-dispatch', () => handleRequest(forkDb, request, response, events, forkRoutes, trace), {
+        fork: forkName,
+      });
     } catch (error) {
+      trace?.setError(error);
       sendJson(response, error.status ?? 500, serializeError(error, 'SERVER_ERROR'));
       return true;
     }
   }
 
   if (request.method === 'GET' && url.pathname === routes.eventsPath) {
+    trace?.markHandled(response);
+    trace?.setRoute({ route: 'events', operation: 'subscribe' });
     events.subscribe(request, response, db);
     return true;
   }
 
-  const operationHash = operationHashForRequest(url, routes);
+  const operationHash = tracePhaseSync(trace, 'route-match', () => operationHashForRequest(url, routes), {
+    family: 'operation',
+  });
   if (operationHash) {
-    await handleRegisteredOperationRequest(db, request, response, operationHash, routes);
+    trace?.markHandled(response);
+    trace?.setRoute({ route: 'operation', operation: 'execute', id: operationHash });
+    await handleRegisteredOperationRequest(db, request, response, operationHash, routes, trace);
     return true;
   }
 
-  const exposureViolation = routeExposureViolation(db.config, url, routes);
+  const exposureViolation = tracePhaseSync(trace, 'route-exposure', () => routeExposureViolation(db.config, url, routes));
   if (exposureViolation) {
+    trace?.markHandled(response);
+    trace?.setRoute({ route: exposureViolation.kind, operation: 'exposure-check' });
     sendRouteExposureViolation(response, exposureViolation, routes);
     return true;
   }
 
   const httpFeatures = defaultHttpFeatureRegistry();
-  if (await httpFeatures.handle({ db, request, response, url, routes }, { phase: 'preMock' })) {
+  const featureContext = { db, request, response, url, routes };
+  if (httpFeatures.matches(featureContext, { phase: 'preMock' })) {
+    trace?.markHandled(response);
+    trace?.setRoute(featureTraceRoute(url, routes));
+    await tracePhase(trace, 'registered-http-feature', () => httpFeatures.handle(featureContext, { phase: 'preMock' }), {
+      phase: 'preMock',
+    });
     return true;
   }
 
-  const restUrl = restUrlForRequest(url, routes);
+  const restUrl = tracePhaseSync(trace, 'route-match', () => restUrlForRequest(url, routes), {
+    family: 'rest',
+  });
   const handlesRegisteredFeature = httpFeatures.matches({ db, request, response, url, routes }, { phase: 'postMock' });
   if (!restUrl && !handlesRegisteredFeature) {
     return false;
   }
 
   if (restUrl && !handlesRegisteredFeature && db.config.rest?.enabled === false) {
-    await handleRestRequest(db, request, response, restUrl, routes);
+    trace?.markHandled(response);
+    await handleRestRequest(db, request, response, restUrl, { ...routes, trace });
     return true;
   }
 
-  const mockResult = await runMockBehavior(db.config, url);
+  const mockResult = await tracePhase(trace, 'mock', () => runMockBehavior(db.config, url));
   if (mockResult) {
+    trace?.markHandled(response);
+    trace?.setRoute({ route: restUrl ? 'rest' : 'mock', operation: 'mock', shortCircuit: true });
     sendJson(response, mockResult.status, mockResult.body);
     return true;
   }
 
-  if (await httpFeatures.handle({ db, request, response, url, routes }, { phase: 'postMock' })) {
+  if (handlesRegisteredFeature) {
+    trace?.markHandled(response);
+    trace?.setRoute(featureTraceRoute(url, routes));
+    await tracePhase(trace, 'registered-http-feature', () => httpFeatures.handle(featureContext, { phase: 'postMock' }), {
+      phase: 'postMock',
+    });
     return true;
   }
 
-  await handleRestRequest(db, request, response, restUrl, routes);
+  trace?.markHandled(response);
+  await tracePhase(trace, 'rest-handler', () => handleRestRequest(db, request, response, restUrl, { ...routes, trace }));
   return true;
 }
 
-async function handleRegisteredOperationRequest(db, request, response, hash, routes) {
+async function handleRegisteredOperationRequest(db, request, response, hash, routes, trace = null) {
   if (db.config.operations?.enabled !== true) {
     sendJson(response, 404, {
       error: {
@@ -174,10 +218,12 @@ async function handleRegisteredOperationRequest(db, request, response, hash, rou
     return;
   }
 
-  const body = await readJsonBody(request, {
+  const body = await tracePhase(trace, 'registered-operation-body', () => readJsonBody(request, {
     maxBytes: Number(db.config.server?.maxBodyBytes ?? 1048576),
+  }));
+  const operation = await tracePhase(trace, 'registered-operation-lookup', () => operationForRef(db.config, hash), {
+    hash,
   });
-  const operation = await operationForRef(db.config, hash);
   if (!operation) {
     throw dbError(
       'OPERATION_NOT_FOUND',
@@ -190,7 +236,9 @@ async function handleRegisteredOperationRequest(db, request, response, hash, rou
     );
   }
 
-  const operationResult = operationRequest(operation, body?.variables ?? {});
+  const operationResult = tracePhaseSync(trace, 'registered-operation-execution', () => operationRequest(operation, body?.variables ?? {}), {
+    hash,
+  });
   if (operationResult.kind === 'graphql') {
     if (db.config.graphql?.enabled === false) {
       sendJson(response, 404, {
@@ -207,17 +255,20 @@ async function handleRegisteredOperationRequest(db, request, response, hash, rou
       return;
     }
 
-    sendJson(response, 200, await executeGraphql(db, {
+    const result = await tracePhase(trace, 'graphql-handler', () => executeGraphql(db, {
       query: operationResult.query,
       variables: operationResult.variables,
       operationName: operationResult.operationName,
-    }));
+    }), {
+      hash,
+    });
+    sendJson(response, 200, result);
     return;
   }
 
   const restRequest = operationResult;
   const restUrl = new URL(restRequest.path, 'http://db.local');
-  await handleRestRequest(db, internalRestRequest(restRequest), response, restUrl, routes);
+  await tracePhase(trace, 'rest-handler', () => handleRestRequest(db, internalRestRequest(restRequest), response, restUrl, { ...routes, trace }));
 }
 
 async function operationForRef(config, hash) {
@@ -640,6 +691,16 @@ function routeExposureLabel(kind) {
     code: 'ROUTE',
     display: 'Route',
   };
+}
+
+function featureTraceRoute(url, routes) {
+  if (url.pathname === routes.logPath) {
+    return { route: 'runtime-log', operation: 'subscribe' };
+  }
+  if (url.pathname === routes.graphqlPath) {
+    return { route: 'graphql', operation: 'execute' };
+  }
+  return { route: 'http-feature' };
 }
 
 function restUrlForRequest(url, routes) {

@@ -31,6 +31,7 @@ export function dbPlugin(options = {}) {
       const handler = createDbRequestHandler(db, {
         ...routes,
         events,
+        trace: options.trace,
       });
 
       server.middlewares.use((request, response, next) => {
@@ -108,6 +109,7 @@ function dbOptions(options) {
     rootRoutes,
     restBasePath,
     graphqlPath,
+    trace,
     clientVirtualModule,
     clientImport,
     ...db

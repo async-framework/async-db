@@ -47,6 +47,18 @@ Plugin options include `cwd`, `dbDir`, `stateDir`, `forks`, `apiBase`, `dataPath
 The plugin uses `apiBase` first, then `server.apiBase`, then `/__db` for scoped dev routes.
 Use `server.dataPath: false` to disable the `/db` app-facing data route alias.
 
+Add `trace` to the plugin options to override `db.config.mjs` for Vite dev
+requests:
+
+```ts
+dbPlugin({
+  trace: {
+    enabled: true,
+    slowMs: 100,
+  },
+});
+```
+
 Set `rootRoutes: true` only when you intentionally want Vite dev to also answer unscoped routes like `/users`. Standalone `async-db serve` keeps those root REST routes by default.
 
 The plugin watches fixture sources, not generated runtime output. @async/db also skips rewriting generated and state files when their content is unchanged, so normal `sync` or `openDb()` calls should not trigger Vite reloads by changing mtimes alone.
@@ -78,6 +90,7 @@ import { registerDbRoutes } from '@async/db/hono';
 
 registerDbRoutes(app, db, {
   prefix: '/api',
+  trace: true,
   resources: ['pages', 'charts'],
   lifecycleHooks: {
     beforeRequest({ c }) {
@@ -109,6 +122,8 @@ Hook order is deterministic:
 5. @async/db operation
 
 Any hook can return a Hono response to short-circuit the request. Write hooks can mutate `body` before @async/db validates and writes it.
+When tracing is enabled, hook phases and short-circuit responses are included in
+the request trace event without recording request or response bodies.
 
 See [examples/hono-auth](../examples/hono-auth/README.md) for a runnable Hono app with bearer-token auth.
 

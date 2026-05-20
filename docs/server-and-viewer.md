@@ -15,6 +15,34 @@ Important write surfaces:
 
 Config and schema JavaScript are trusted project code. Do not treat `.schema.mjs` or config hooks as untrusted data.
 
+## Request Tracing
+
+Enable request tracing when a local page appears stuck or slow and you need to
+see where a DB request spent time:
+
+```js
+import { defineConfig } from '@async/db/config';
+
+export default defineConfig({
+  server: {
+    trace: true,
+  },
+});
+```
+
+Tracing adds an `x-async-db-request-id` response header, emits
+`request-trace` events through `GET /__db/log`, and prints concise console
+lines unless disabled. Traces include method, pathname, query keys, route
+family, resource, operation, id when known, status, handled state, duration,
+slow status, safe error code/message, and phase timings for clear boundaries
+such as route matching, mock behavior, REST handling, Hono hooks, collection or
+document reads/writes, response shaping, registered operations, batch items, and
+fork dispatch.
+
+Trace data intentionally omits request bodies, response bodies, cookie headers,
+authorization headers, and query values. Query strings are represented as keys
+only, for example `["select", "expand"]`.
+
 ## Viewer
 
 Open the built-in viewer after starting the server:

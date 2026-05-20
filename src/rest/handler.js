@@ -9,19 +9,23 @@ import { renderViewerManifest } from '../viewer-manifest.js';
 import { renderDbViewer } from '../web/viewer.js';
 import { availableRestFormats, negotiateRestFormat, resolveRestFormat, restFormatMetadata } from './formats.js';
 import { shapeCollectionRead } from './shape.js';
+import { tracePhase, tracePhaseSync } from '../tracing.js';
 
 export async function handleRestRequest(db, request, response, url = new URL(request.url, 'http://db.local'), options = {}) {
   try {
     await handleRestRequestUnsafe(db, request, response, url, options);
   } catch (error) {
+    options.trace?.setError(error);
     sendJson(response, error.status ?? 500, serializeError(error, 'REST_ERROR'));
   }
 }
 
 async function handleRestRequestUnsafe(db, request, response, url, options) {
   const routeOptions = normalizeRestRouteOptions(db, options);
+  const trace = routeOptions.trace;
 
   if (request.method === 'GET' && url.pathname === routeOptions.viewerPath) {
+    setRestTraceRoute(trace, routeOptions, { route: 'viewer', operation: 'render' });
     sendText(response, 200, renderDbViewer({
       graphqlPath: routeOptions.graphqlPath,
       schemaPath: routeOptions.schemaPath,
@@ -36,24 +40,30 @@ async function handleRestRequestUnsafe(db, request, response, url, options) {
   }
 
   if (request.method === 'POST' && url.pathname === routeOptions.batchPath) {
+    setRestTraceRoute(trace, routeOptions, { operation: 'batch' });
     if (!routeOptions.resourceRoutesEnabled) {
       sendRestDisabled(response, 'REST batch routes are disabled.');
       return;
     }
 
-    const result = await tryRest(async () => executeRestBatch(db, await readJsonBody(request, {
+    const body = await tracePhase(trace, 'request-body', () => readJsonBody(request, {
       maxBytes: maxBodyBytes(db),
-    }), routeOptions));
+    }));
+    const result = await tryRest(async () => tracePhase(trace, 'batch-execution', () => executeRestBatch(db, body, routeOptions), {
+      itemCount: Array.isArray(body) ? body.length : Array.isArray(body?.requests) ? body.requests.length : undefined,
+    }));
     sendJson(response, result.status, result.body);
     return;
   }
 
   if (request.method === 'POST' && url.pathname === routeOptions.importPath) {
-    sendJson(response, 201, await importCsvFixture(db, request, routeOptions));
+    setRestTraceRoute(trace, routeOptions, { route: 'import', operation: 'csv' });
+    sendJson(response, 201, await tracePhase(trace, 'import-csv', () => importCsvFixture(db, request, routeOptions)));
     return;
   }
 
   if (request.method === 'GET' && url.pathname === routeOptions.schemaPath) {
+    setRestTraceRoute(trace, routeOptions, { route: 'schema', operation: 'read' });
     sendJson(response, 200, makeGeneratedSchema([...db.resources.values()], db.diagnostics ?? []));
     return;
   }
@@ -62,10 +72,11 @@ async function handleRestRequestUnsafe(db, request, response, url, options) {
     ? manifestResponseFormat(url, request, routeOptions, db.config)
     : null;
   if (manifestFormat) {
-    const manifest = renderViewerManifest([...db.resources.values()], db.config, {
+    setRestTraceRoute(trace, routeOptions, { route: 'manifest', operation: 'render' });
+    const manifest = tracePhaseSync(trace, 'manifest-build', () => renderViewerManifest([...db.resources.values()], db.config, {
       diagnostics: db.diagnostics ?? [],
       routes: routeOptions,
-    });
+    }));
 
     const resolved = resolveRestFormat(db.config, manifestFormat, 'manifest');
     if (!resolved) {
@@ -73,7 +84,7 @@ async function handleRestRequestUnsafe(db, request, response, url, options) {
       return;
     }
 
-    const result = await resolved.renderer({
+    const result = await tracePhase(trace, 'response-formatting', () => resolved.renderer({
       db,
       data: manifest,
       manifest,
@@ -82,16 +93,20 @@ async function handleRestRequestUnsafe(db, request, response, url, options) {
       url,
       routes: routeOptions,
       target: 'manifest',
+    }), {
+      format: resolved.key,
+      target: 'manifest',
     });
     const normalized = normalizeFormatResult(result, resolved.contentType);
     sendText(response, normalized.status, normalized.body, normalized.contentType);
     return;
   }
 
-  const resourceUrl = restResourceUrl(url, routeOptions);
+  const resourceUrl = tracePhaseSync(trace, 'rest-route', () => restResourceUrl(url, routeOptions));
   const [rawRouteName, rawId] = resourceUrl.pathname.split('/').filter(Boolean);
   const { routeName, id, format } = parseFormattedResourcePath(rawRouteName, rawId);
   if (!routeName) {
+    setRestTraceRoute(trace, routeOptions, { operation: 'discovery' });
     const discovery = rootDiscovery(db, routeOptions);
     if (request.method === 'GET' && requestPrefersHtml(db.config, request)) {
       sendText(response, 200, renderRootDiscovery(discovery), 'text/html; charset=utf-8');
@@ -102,8 +117,11 @@ async function handleRestRequestUnsafe(db, request, response, url, options) {
     return;
   }
 
-  const resource = findResourceByRoute(db, routeName);
+  const resource = tracePhaseSync(trace, 'resource-lookup', () => findResourceByRoute(db, routeName), {
+    routeName,
+  });
   if (!resource) {
+    setRestTraceRoute(trace, routeOptions, { resource: routeName, operation: 'unknown' });
     sendJson(response, 404, {
       error: {
         code: 'REST_UNKNOWN_RESOURCE',
@@ -123,6 +141,7 @@ async function handleRestRequestUnsafe(db, request, response, url, options) {
   }
 
   if (!routeOptions.resourceRoutesEnabled) {
+    setRestTraceRoute(trace, routeOptions, { resource: resource.name, operation: 'disabled' });
     sendRestDisabled(response, `REST resource routes are disabled. Cannot serve "${routeName}".`, {
       resource: resource.name,
       routeName,
@@ -131,9 +150,9 @@ async function handleRestRequestUnsafe(db, request, response, url, options) {
   }
 
   if (resource.kind === 'collection') {
-    await handleCollection(db, resource, id, request, response, resourceUrl, format);
+    await handleCollection(db, resource, id, request, response, resourceUrl, format, routeOptions);
   } else {
-    await handleDocument(db, resource, request, response, format);
+    await handleDocument(db, resource, request, response, format, routeOptions);
   }
 }
 
@@ -195,12 +214,19 @@ export async function executeRestBatch(db, body, options = {}) {
 
   const results = [];
   for (const [index, request] of requests.entries()) {
+    const itemDetails = batchItemTraceDetails(index, request);
     try {
+      const result = await tracePhase(options.trace, 'batch-item', () => executeRestBatchItem(db, request, options), itemDetails);
       results.push({
         index,
-        ...await executeRestBatchItem(db, request, options),
+        ...result,
       });
     } catch (error) {
+      options.trace?.setError(error);
+      options.trace?.addPhase('batch-item', 0, {
+        ...itemDetails,
+        error: error.code ? String(error.code) : 'REST_ERROR',
+      });
       results.push({
         index,
         status: error.status ?? 500,
@@ -281,6 +307,8 @@ function normalizeRestRouteOptions(db, options = {}) {
     graphqlPath: options.graphqlPath ?? db.config.graphql?.path ?? '/graphql',
     restBasePath: options.restBasePath ?? '',
     resourceRoutesEnabled: options.resourceRoutesEnabled ?? db.config.rest?.enabled !== false,
+    trace: options.trace ?? null,
+    traceNested: options.traceNested === true,
   };
 }
 
@@ -598,7 +626,7 @@ async function executeRestBatchItem(db, item, options = {}) {
     makeBatchRequest(method, item.body),
     response,
     new URL(requestPath, 'http://db.local'),
-    options,
+    { ...options, traceNested: true },
   );
 
   return {
@@ -670,7 +698,8 @@ function makeBatchResponse() {
   };
 }
 
-async function handleCollection(db, resource, id, request, response, url, format) {
+async function handleCollection(db, resource, id, request, response, url, format, options = {}) {
+  const trace = options.trace;
   const collection = db.collection(resource.name);
   const hasQueryId = request.method === 'GET' && !id && url.searchParams.has('id');
   if (hasQueryId && format !== 'json') {
@@ -683,44 +712,73 @@ async function handleCollection(db, resource, id, request, response, url, format
   const recordId = id ?? queryId;
 
   if (request.method === 'GET' && !recordId) {
-    await sendFormattedResource(db, response, resource, await shapeCollectionRead(db, resource, await collection.all(), url, { allowPagination: true }), format, request, url);
+    setRestTraceRoute(trace, options, { resource: resource.name, operation: 'list' });
+    const records = await tracePhase(trace, 'collection-read', () => collection.all(), {
+      resource: resource.name,
+      operation: 'all',
+    });
+    const shaped = await tracePhase(trace, 'response-shaping', () => shapeCollectionRead(db, resource, records, url, { allowPagination: true }), {
+      resource: resource.name,
+    });
+    await sendFormattedResource(db, response, resource, shaped, format, request, url, trace);
     return;
   }
 
   if (request.method === 'GET' && recordId) {
-    const record = await collection.get(recordId);
+    setRestTraceRoute(trace, options, { resource: resource.name, operation: 'get', id: recordId });
+    const record = await tracePhase(trace, 'collection-read', () => collection.get(recordId), {
+      resource: resource.name,
+      operation: 'get',
+    });
     const body = record
-      ? await shapeCollectionRead(db, resource, [record], url, { allowPagination: false })
+      ? await tracePhase(trace, 'response-shaping', () => shapeCollectionRead(db, resource, [record], url, { allowPagination: false }), {
+        resource: resource.name,
+      })
       : null;
     if (!record) {
       sendJson(response, 404, { error: 'Not found' });
       return;
     }
-    await sendFormattedResource(db, response, resource, body[0], format, request, url);
+    await sendFormattedResource(db, response, resource, body[0], format, request, url, trace);
     return;
   }
 
   if (request.method === 'POST' && !id) {
-    sendJson(response, 201, await collection.create(await readJsonBody(request, {
+    setRestTraceRoute(trace, options, { resource: resource.name, operation: 'create' });
+    const body = await tracePhase(trace, 'request-body', () => readJsonBody(request, {
       maxBytes: maxBodyBytes(db),
-    })));
+    }));
+    sendJson(response, 201, await tracePhase(trace, 'collection-write', () => collection.create(body), {
+      resource: resource.name,
+      operation: 'create',
+    }));
     return;
   }
 
   if (request.method === 'PATCH' && id) {
-    const record = await collection.patch(id, await readJsonBody(request, {
+    setRestTraceRoute(trace, options, { resource: resource.name, operation: 'patch', id });
+    const body = await tracePhase(trace, 'request-body', () => readJsonBody(request, {
       maxBytes: maxBodyBytes(db),
     }));
+    const record = await tracePhase(trace, 'collection-write', () => collection.patch(id, body), {
+      resource: resource.name,
+      operation: 'patch',
+    });
     sendJson(response, record ? 200 : 404, record ?? { error: 'Not found' });
     return;
   }
 
   if (request.method === 'DELETE' && id) {
-    const deleted = await collection.delete(id);
+    setRestTraceRoute(trace, options, { resource: resource.name, operation: 'delete', id });
+    const deleted = await tracePhase(trace, 'collection-write', () => collection.delete(id), {
+      resource: resource.name,
+      operation: 'delete',
+    });
     sendJson(response, deleted ? 204 : 404, deleted ? null : { error: 'Not found' });
     return;
   }
 
+  setRestTraceRoute(trace, options, { resource: resource.name, operation: 'method-not-allowed' });
   sendJson(response, 405, {
     error: 'Method not allowed',
   });
@@ -746,34 +804,51 @@ function idQueryRequiresJsonRoute(resource, id) {
   );
 }
 
-async function handleDocument(db, resource, request, response, format) {
+async function handleDocument(db, resource, request, response, format, options = {}) {
+  const trace = options.trace;
   const document = db.document(resource.name);
 
   if (request.method === 'GET') {
-    await sendFormattedResource(db, response, resource, await document.all(), format, request, new URL(request.url ?? '/', 'http://db.local'));
+    setRestTraceRoute(trace, options, { resource: resource.name, operation: 'get' });
+    const data = await tracePhase(trace, 'document-read', () => document.all(), {
+      resource: resource.name,
+      operation: 'all',
+    });
+    await sendFormattedResource(db, response, resource, data, format, request, new URL(request.url ?? '/', 'http://db.local'), trace);
     return;
   }
 
   if (request.method === 'PUT') {
-    sendJson(response, 200, await document.put(await readJsonBody(request, {
+    setRestTraceRoute(trace, options, { resource: resource.name, operation: 'put' });
+    const body = await tracePhase(trace, 'request-body', () => readJsonBody(request, {
       maxBytes: maxBodyBytes(db),
-    })));
+    }));
+    sendJson(response, 200, await tracePhase(trace, 'document-write', () => document.put(body), {
+      resource: resource.name,
+      operation: 'put',
+    }));
     return;
   }
 
   if (request.method === 'PATCH') {
-    sendJson(response, 200, await document.update(await readJsonBody(request, {
+    setRestTraceRoute(trace, options, { resource: resource.name, operation: 'patch' });
+    const body = await tracePhase(trace, 'request-body', () => readJsonBody(request, {
       maxBytes: maxBodyBytes(db),
-    })));
+    }));
+    sendJson(response, 200, await tracePhase(trace, 'document-write', () => document.update(body), {
+      resource: resource.name,
+      operation: 'patch',
+    }));
     return;
   }
 
+  setRestTraceRoute(trace, options, { resource: resource.name, operation: 'method-not-allowed' });
   sendJson(response, 405, {
     error: 'Method not allowed',
   });
 }
 
-async function sendFormattedResource(db, response, resource, data, format, request, url) {
+async function sendFormattedResource(db, response, resource, data, format, request, url, trace = null) {
   const effectiveFormat = format ?? negotiateRestFormat(db.config, request, 'resource');
   const resolved = resolveRestFormat(db.config, effectiveFormat, 'resource');
   if (!resolved) {
@@ -781,7 +856,7 @@ async function sendFormattedResource(db, response, resource, data, format, reque
     return;
   }
 
-  const result = await resolved.renderer({
+  const result = await tracePhase(trace, 'response-formatting', () => resolved.renderer({
     db,
     resource,
     resourceName: resource.name,
@@ -790,10 +865,38 @@ async function sendFormattedResource(db, response, resource, data, format, reque
     request,
     url,
     target: 'resource',
+  }), {
+    resource: resource.name,
+    format: resolved.key,
+    target: 'resource',
   });
   const normalized = normalizeFormatResult(result, resolved.contentType);
 
   sendText(response, normalized.status, normalized.body, normalized.contentType);
+}
+
+function setRestTraceRoute(trace, options, details) {
+  if (!trace || options.traceNested) {
+    return;
+  }
+  trace.setRoute({
+    route: trace.event.route === 'operation' ? undefined : 'rest',
+    ...details,
+  });
+}
+
+function batchItemTraceDetails(index, request) {
+  const method = String(request?.method ?? 'GET').toUpperCase();
+  const rawPath = String(request?.path ?? '/');
+  const url = rawPath.startsWith('/')
+    ? new URL(rawPath, 'http://db.local')
+    : null;
+  return {
+    index,
+    method,
+    pathname: url?.pathname,
+    queryKeys: url ? [...new Set([...url.searchParams.keys()])].sort() : [],
+  };
 }
 
 function manifestResponseFormat(url, request, routes, config) {

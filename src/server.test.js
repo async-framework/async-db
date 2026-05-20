@@ -290,6 +290,143 @@ test('request handler preserves standalone root REST and GraphQL routes', async 
   assert.deepEqual(graphql.json().data.users, [{ id: 'u_1' }]);
 });
 
+test('request tracing is disabled by default', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([{ id: 'u_1', name: 'Ada' }]));
+
+  const db = await openDb({ cwd, allowSourceErrors: true });
+  const events = [];
+  const unsubscribe = db.events.subscribe((event) => events.push(event));
+  const handler = createDbRequestHandler(db);
+  const response = makeResponse();
+
+  assert.equal(await handler(makeRequest('GET', '/db/users.json'), response), true);
+  unsubscribe();
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers['x-async-db-request-id'], undefined);
+  assert.deepEqual(events, []);
+});
+
+test('request handler traces a standalone REST collection request', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([{ id: 'u_1', name: 'Ada' }]));
+
+  const db = await openDb({ cwd, allowSourceErrors: true });
+  const traces = [];
+  const unsubscribe = db.events.subscribe((event) => {
+    if (event.type === 'request-trace') traces.push(event);
+  });
+  const handler = createDbRequestHandler(db, {
+    trace: {
+      console: false,
+    },
+  });
+  const response = makeResponse();
+
+  assert.equal(await handler(makeRequest('GET', '/db/users.json?select=id'), response), true);
+  unsubscribe();
+
+  assert.equal(response.status, 200);
+  assert.match(response.headers['x-async-db-request-id'], /.+/);
+  assert.equal(traces.length, 1);
+  assert.equal(traces[0].requestId, response.headers['x-async-db-request-id']);
+  assert.equal(traces[0].method, 'GET');
+  assert.equal(traces[0].pathname, '/db/users.json');
+  assert.deepEqual(traces[0].queryKeys, ['select']);
+  assert.equal(traces[0].route, 'rest');
+  assert.equal(traces[0].resource, 'users');
+  assert.equal(traces[0].operation, 'list');
+  assert.equal(traces[0].status, 200);
+  assert.equal(traces[0].handled, true);
+  assert.equal(traces[0].slow, true);
+  assert.equal(typeof traces[0].durationMs, 'number');
+  assert.deepEqual(new Set(traces[0].phases.map((phase) => phase.name)).has('collection-read'), true);
+  assert.deepEqual(new Set(traces[0].phases.map((phase) => phase.name)).has('response-shaping'), true);
+  assert.deepEqual(new Set(traces[0].phases.map((phase) => phase.name)).has('response-formatting'), true);
+});
+
+test('request tracing slow threshold marks only requests at or above slowMs', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([{ id: 'u_1', name: 'Ada' }]));
+
+  const db = await openDb({ cwd, allowSourceErrors: true });
+  const traces = [];
+  const unsubscribe = db.events.subscribe((event) => {
+    if (event.type === 'request-trace') traces.push(event);
+  });
+
+  const fastHandler = createDbRequestHandler(db, {
+    trace: {
+      slowMs: 60_000,
+      console: false,
+    },
+  });
+  const slowHandler = createDbRequestHandler(db, {
+    trace: {
+      slowMs: 0,
+      console: false,
+    },
+  });
+
+  assert.equal(await fastHandler(makeRequest('GET', '/db/users.json'), makeResponse()), true);
+  assert.equal(await slowHandler(makeRequest('GET', '/db/users.json'), makeResponse()), true);
+  unsubscribe();
+
+  assert.equal(traces.length, 2);
+  assert.equal(traces[0].slow, false);
+  assert.equal(traces[1].slow, true);
+});
+
+test('request traces redact bodies, auth and cookie headers, and query values', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([]));
+
+  const db = await openDb({ cwd, allowSourceErrors: true });
+  const traces = [];
+  const unsubscribe = db.events.subscribe((event) => {
+    if (event.type === 'request-trace') traces.push(event);
+  });
+  const handler = createDbRequestHandler(db, {
+    trace: {
+      console: false,
+    },
+  });
+  const response = makeResponse();
+
+  assert.equal(await handler(makeRawRequest('POST', '/db/users?token=secret-query&select=id', JSON.stringify({
+    id: 'u_1',
+    name: 'Ada',
+    password: 'secret-body',
+  }), {
+    authorization: 'Bearer secret-auth',
+    cookie: 'session=secret-cookie',
+    'content-type': 'application/json',
+  }), response), true);
+
+  assert.equal(response.status, 201);
+  assert.equal(traces.length, 1);
+  assert.deepEqual(traces[0].queryKeys, ['select', 'token']);
+  const traceJson = JSON.stringify(traces[0]);
+  assert.doesNotMatch(traceJson, /secret-query/);
+  assert.doesNotMatch(traceJson, /secret-body/);
+  assert.doesNotMatch(traceJson, /secret-auth/);
+  assert.doesNotMatch(traceJson, /secret-cookie/);
+  assert.doesNotMatch(traceJson, /authorization/i);
+  assert.doesNotMatch(traceJson, /cookie/i);
+  assert.doesNotMatch(traceJson, /password/i);
+
+  traces.length = 0;
+  const errorResponse = makeResponse();
+  assert.equal(await handler(makeRequest('GET', '/db/users.json?offset=secret-offset'), errorResponse), true);
+  assert.equal(errorResponse.status, 400);
+  assert.equal(traces.length, 1);
+  assert.equal(traces[0].error.code, 'REST_INVALID_OFFSET');
+  const errorTraceJson = JSON.stringify(traces[0]);
+  assert.doesNotMatch(errorTraceJson, /secret-offset/);
+  unsubscribe();
+});
+
 test('request handler can disable the dataPath alias while keeping scoped REST', async () => {
   const cwd = await makeProject();
   await writeFixture(cwd, 'users.json', JSON.stringify([
@@ -920,6 +1057,37 @@ test('request handler streams live runtime log events', async () => {
   assert.match(response.body, /event: db-log/);
   assert.match(response.body, /"resource":"users"/);
   assert.match(response.body, /"op":"create"/);
+});
+
+test('runtime log streams request trace events without breaking resource events', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([
+    {
+      id: 'u_1',
+      name: 'Ada',
+    },
+  ]));
+
+  const db = await openDb({ cwd, allowSourceErrors: true });
+  const handler = createDbRequestHandler(db, {
+    trace: {
+      console: false,
+    },
+  });
+  const logResponse = makeResponse();
+  const usersResponse = makeResponse();
+
+  assert.equal(await handler(makeRequest('GET', '/__db/log'), logResponse), true);
+  assert.equal(await handler(makeRequest('GET', '/db/users.json'), usersResponse), true);
+  await db.collection('users').create({ id: 'u_2', name: 'Grace' });
+
+  assert.equal(logResponse.status, 200);
+  assert.match(logResponse.headers['content-type'], /text\/event-stream/);
+  assert.match(logResponse.body, /event: db-log/);
+  assert.match(logResponse.body, /"type":"request-trace"/);
+  assert.match(logResponse.body, /"pathname":"\/db\/users.json"/);
+  assert.match(logResponse.body, /"resource":"users"/);
+  assert.match(logResponse.body, /"op":"create"/);
 });
 
 function makeRequest(method, requestPath, body) {

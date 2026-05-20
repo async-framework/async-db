@@ -47,3 +47,18 @@ test('public GraphQL declarations expose operation names and structured errors',
   assert.match(declarations, /export type GraphqlError = \{\s+message: string;\s+extensions\?: \{\s+code\?: string;\s+hint\?: string;\s+details\?: unknown;\s+\};\s+\};/);
   assert.match(declarations, /export type GraphqlResult = \{\s+data: unknown;\s+errors\?: GraphqlError\[\];\s+\};/);
 });
+
+test('public declarations expose request tracing options and events', async () => {
+  const declarations = await readFile(path.resolve('src/index.d.ts'), 'utf8');
+  const viteDeclarations = await readFile(path.resolve('src/vite.d.ts'), 'utf8');
+  const honoDeclarations = await readFile(path.resolve('src/hono.d.ts'), 'utf8');
+
+  assert.match(declarations, /export type DbTraceConfig = \{/);
+  assert.match(declarations, /export type DbTraceOptions = boolean \| DbTraceConfig;/);
+  assert.match(declarations, /export type DbRequestTraceEvent = \{/);
+  assert.match(declarations, /type: 'request-trace';/);
+  assert.match(declarations, /trace\?: DbTraceOptions;/);
+  assert.match(declarations, /export type DbRuntimeEvent = DbResourceChangeEvent \| DbRequestTraceEvent;/);
+  assert.match(viteDeclarations, /trace\?: DbTraceOptions;/);
+  assert.match(honoDeclarations, /trace\?: DbTraceOptions;/);
+});

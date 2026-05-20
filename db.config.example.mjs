@@ -86,6 +86,17 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 7331,
     maxBodyBytes: 1048576,
+    // Opt-in request tracing. When enabled, traces are written to /__db/log,
+    // concise console lines are printed, and responses get a request id header.
+    // Trace metadata includes query keys only, never request bodies, response
+    // bodies, cookie headers, authorization headers, or query values.
+    trace: {
+      enabled: false,
+      slowMs: 100,
+      console: true,
+      events: true,
+      header: 'x-async-db-request-id',
+    },
     // Optional custom data viewer links shown in discovery and manifest output.
     viewerLinks: [
       // { label: 'My Viewer', href: 'http://127.0.0.1:5173/db' },
