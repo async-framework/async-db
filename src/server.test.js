@@ -171,7 +171,21 @@ test('request handler supports scoped Vite routes without root REST routes', asy
     },
   ]));
 
-  const db = await openJsonFixtureDb({ cwd, allowSourceErrors: true });
+  const db = await openJsonFixtureDb({
+    cwd,
+    allowSourceErrors: true,
+    rest: {
+      formats: {
+        yaml: {
+          mediaTypes: ['application/yaml'],
+          contentType: 'application/yaml; charset=utf-8',
+          render({ data }) {
+            return `yaml: ${JSON.stringify(data)}\n`;
+          },
+        },
+      },
+    },
+  });
   const handler = createJsonDbRequestHandler(db, {
     apiBase: '/__jsondb',
     rootRoutes: false,
@@ -181,6 +195,9 @@ test('request handler supports scoped Vite routes without root REST routes', asy
 
   const users = makeResponse();
   const schema = makeResponse();
+  const manifest = makeResponse();
+  const manifestMarkdown = makeResponse();
+  const manifestYaml = makeResponse();
   const batch = makeResponse();
   const graphql = makeResponse();
   const rootUsers = makeResponse();
@@ -188,6 +205,9 @@ test('request handler supports scoped Vite routes without root REST routes', asy
 
   assert.equal(await handler(makeRequest('GET', '/__jsondb/rest/users'), users), true);
   assert.equal(await handler(makeRequest('GET', '/__jsondb/schema'), schema), true);
+  assert.equal(await handler(makeRequest('GET', '/__jsondb/manifest'), manifest), true);
+  assert.equal(await handler(makeRequest('GET', '/__jsondb/manifest.md'), manifestMarkdown), true);
+  assert.equal(await handler(makeRequest('GET', '/__jsondb/manifest.yaml'), manifestYaml), true);
   assert.equal(await handler(makeRequest('POST', '/__jsondb/batch', [
     { method: 'GET', path: '/users' },
   ]), batch), true);
@@ -202,6 +222,17 @@ test('request handler supports scoped Vite routes without root REST routes', asy
   assert.deepEqual(users.json(), [{ id: 'u_1', name: 'Ada' }]);
   assert.equal(schema.status, 200);
   assert.equal(schema.json().resources.users.routePath, '/users');
+  assert.equal(manifest.status, 200);
+  assert.equal(manifest.json().api.manifest, '/__jsondb/manifest');
+  assert.equal(manifest.json().api.manifestJson, '/__jsondb/manifest.json');
+  assert.equal(manifest.json().api.manifestMarkdown, '/__jsondb/manifest.md');
+  assert.equal(manifest.json().api.resources.users.list, '/__jsondb/rest/users');
+  assert.equal(manifestMarkdown.status, 200);
+  assert.match(manifestMarkdown.headers['content-type'], /text\/markdown/);
+  assert.match(manifestMarkdown.body, /^# jsondb viewer manifest/m);
+  assert.equal(manifestYaml.status, 200);
+  assert.match(manifestYaml.headers['content-type'], /application\/yaml/);
+  assert.match(manifestYaml.body, /jsondb\.viewerManifest/);
   assert.equal(batch.status, 200);
   assert.equal(batch.json()[0].body[0].id, 'u_1');
   assert.equal(graphql.status, 200);
@@ -254,6 +285,17 @@ test('request handler derives standalone dev-tool routes from configured server 
     server: {
       apiBase: '/_jsondb',
     },
+    rest: {
+      formats: {
+        yaml: {
+          mediaTypes: ['application/yaml'],
+          contentType: 'application/yaml; charset=utf-8',
+          render({ data }) {
+            return 'yaml: ' + JSON.stringify(data) + '\\n';
+          },
+        },
+      },
+    },
     forks: ['legacy-demo'],
   };`);
 
@@ -261,6 +303,7 @@ test('request handler derives standalone dev-tool routes from configured server 
   const handler = createJsonDbRequestHandler(db);
   const viewer = makeResponse();
   const schema = makeResponse();
+  const manifest = makeResponse();
   const batch = makeResponse();
   const imported = makeResponse();
   const events = makeResponse();
@@ -268,12 +311,15 @@ test('request handler derives standalone dev-tool routes from configured server 
   const forkUsers = makeResponse();
   const forkBatch = makeResponse();
   const forkSchema = makeResponse();
+  const forkManifest = makeResponse();
+  const forkManifestYaml = makeResponse();
   const forkGraphql = makeResponse();
   const rootUsers = makeResponse();
   const rootGraphql = makeResponse();
 
   assert.equal(await handler(makeRequest('GET', '/_jsondb'), viewer), true);
   assert.equal(await handler(makeRequest('GET', '/_jsondb/schema'), schema), true);
+  assert.equal(await handler(makeRequest('GET', '/_jsondb/manifest'), manifest), true);
   assert.equal(await handler(makeRequest('POST', '/_jsondb/batch', [
     { method: 'GET', path: '/users' },
   ]), batch), true);
@@ -287,6 +333,8 @@ test('request handler derives standalone dev-tool routes from configured server 
     { method: 'GET', path: '/users' },
   ]), forkBatch), true);
   assert.equal(await handler(makeRequest('GET', '/_jsondb/forks/legacy-demo/schema'), forkSchema), true);
+  assert.equal(await handler(makeRequest('GET', '/_jsondb/forks/legacy-demo/manifest'), forkManifest), true);
+  assert.equal(await handler(makeRequest('GET', '/_jsondb/forks/legacy-demo/manifest.yaml'), forkManifestYaml), true);
   assert.equal(await handler(makeRequest('POST', '/_jsondb/forks/legacy-demo/graphql', {
     query: '{ users { id fullName } }',
   }), forkGraphql), true);
@@ -299,6 +347,11 @@ test('request handler derives standalone dev-tool routes from configured server 
   assert.match(viewer.body, /jsondb viewer/);
   assert.equal(schema.status, 200);
   assert.equal(schema.json().resources.users.routePath, '/users');
+  assert.equal(manifest.status, 200);
+  assert.equal(manifest.json().api.manifest, '/_jsondb/manifest');
+  assert.equal(manifest.json().api.manifestJson, '/_jsondb/manifest.json');
+  assert.equal(manifest.json().api.manifestMarkdown, '/_jsondb/manifest.md');
+  assert.equal(manifest.json().api.resources.users.list, '/users');
   assert.equal(batch.status, 200);
   assert.equal(batch.json()[0].body[0].id, 'u_main');
   assert.equal(imported.status, 201);
@@ -310,6 +363,13 @@ test('request handler derives standalone dev-tool routes from configured server 
   assert.deepEqual(forkUsers.json(), [{ id: 'u_legacy', fullName: 'Legacy Ada' }]);
   assert.equal(forkBatch.json()[0].body[0].id, 'u_legacy');
   assert.equal(forkSchema.json().resources.users.fields.fullName.type, 'string');
+  assert.equal(forkManifest.json().api.manifest, '/_jsondb/forks/legacy-demo/manifest');
+  assert.equal(forkManifest.json().api.manifestJson, '/_jsondb/forks/legacy-demo/manifest.json');
+  assert.equal(forkManifest.json().api.manifestMarkdown, '/_jsondb/forks/legacy-demo/manifest.md');
+  assert.equal(forkManifest.json().api.resources.users.list, '/_jsondb/forks/legacy-demo/rest/users');
+  assert.equal(forkManifestYaml.status, 200);
+  assert.match(forkManifestYaml.headers['content-type'], /application\/yaml/);
+  assert.match(forkManifestYaml.body, /jsondb\.viewerManifest/);
   assert.deepEqual(forkGraphql.json().data.users, [{ id: 'u_legacy', fullName: 'Legacy Ada' }]);
   assert.deepEqual(rootUsers.json(), [{ id: 'u_main', name: 'Main Ada' }]);
   assert.deepEqual(rootGraphql.json().data.users, [{ id: 'u_main' }]);
@@ -340,6 +400,7 @@ test('request handler routes configured fork REST, batch, schema, and GraphQL re
   const forkUsers = makeResponse();
   const forkBatch = makeResponse();
   const forkSchema = makeResponse();
+  const forkManifest = makeResponse();
   const forkGraphql = makeResponse();
 
   assert.equal(await handler(makeRequest('GET', '/users'), mainUsers), true);
@@ -348,6 +409,7 @@ test('request handler routes configured fork REST, batch, schema, and GraphQL re
     { method: 'GET', path: '/users' },
   ]), forkBatch), true);
   assert.equal(await handler(makeRequest('GET', '/__jsondb/forks/legacy-demo/schema'), forkSchema), true);
+  assert.equal(await handler(makeRequest('GET', '/__jsondb/forks/legacy-demo/manifest'), forkManifest), true);
   assert.equal(await handler(makeRequest('POST', '/__jsondb/forks/legacy-demo/graphql', {
     query: '{ users { id fullName } }',
   }), forkGraphql), true);
@@ -356,6 +418,10 @@ test('request handler routes configured fork REST, batch, schema, and GraphQL re
   assert.deepEqual(forkUsers.json(), [{ id: 'u_legacy', fullName: 'Legacy Ada' }]);
   assert.equal(forkBatch.json()[0].body[0].id, 'u_legacy');
   assert.equal(forkSchema.json().resources.users.fields.fullName.type, 'string');
+  assert.equal(forkManifest.json().api.manifest, '/__jsondb/forks/legacy-demo/manifest');
+  assert.equal(forkManifest.json().api.manifestJson, '/__jsondb/forks/legacy-demo/manifest.json');
+  assert.equal(forkManifest.json().api.manifestMarkdown, '/__jsondb/forks/legacy-demo/manifest.md');
+  assert.equal(forkManifest.json().api.resources.users.list, '/__jsondb/forks/legacy-demo/rest/users');
   assert.deepEqual(forkGraphql.json().data.users, [{ id: 'u_legacy', fullName: 'Legacy Ada' }]);
 });
 

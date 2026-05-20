@@ -15,6 +15,7 @@ test('web viewer renders the jsondb tool surface', () => {
   assert.match(html, /GraphQL Runner/);
   assert.match(html, /Generated Schema/);
   assert.match(html, /\/__jsondb\/schema/);
+  assert.match(html, /\/__jsondb\/manifest\.json/);
   assert.match(html, /\/__jsondb\/events/);
   assert.match(html, /inline-flex min-h-10 items-center justify-center gap-2 rounded-md border/);
   assert.match(html, /px-3 py-2/);
@@ -45,6 +46,7 @@ test('web viewer renders configured scoped API paths', () => {
   const html = renderJsonDbViewer({
     graphqlPath: '/__jsondb/graphql',
     schemaPath: '/__jsondb/schema',
+    manifestPath: '/__jsondb/manifest.json',
     eventsPath: '/__jsondb/events',
     importPath: '/__jsondb/import',
     restBatchPath: '/__jsondb/batch',
@@ -53,6 +55,7 @@ test('web viewer renders configured scoped API paths', () => {
 
   assert.match(html, /const GRAPHQL_PATH = "\/__jsondb\/graphql"/);
   assert.match(html, /const SCHEMA_PATH = "\/__jsondb\/schema"/);
+  assert.match(html, /const MANIFEST_PATH = "\/__jsondb\/manifest\.json"/);
   assert.match(html, /const EVENTS_PATH = "\/__jsondb\/events"/);
   assert.match(html, /const IMPORT_PATH = "\/__jsondb\/import"/);
   assert.match(html, /const REST_BATCH_PATH = "\/__jsondb\/batch"/);

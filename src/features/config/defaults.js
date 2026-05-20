@@ -3,6 +3,7 @@ export const DEFAULT_CONFIG = {
   sourceDir: './db',
   stateDir: './.jsondb',
   schemaOutFile: null,
+  viewerManifestOutFile: null,
   schemaManifest: {},
   sources: {
     readers: [],
@@ -47,6 +48,7 @@ export const DEFAULT_CONFIG = {
     host: '127.0.0.1',
     port: 7331,
     maxBodyBytes: 1048576,
+    viewerLinks: [],
   },
   rest: {
     enabled: true,

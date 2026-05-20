@@ -39,6 +39,60 @@ The viewer includes:
 - schema and field inspection
 - source diagnostics when one fixture file is broken
 
+## Custom Viewer Manifest
+
+The built-in viewer reads the same JSON manifest that custom viewer UIs can use:
+
+```txt
+GET /__jsondb/manifest
+GET /__jsondb/manifest.json
+GET /__jsondb/manifest.html
+GET /__jsondb/manifest.md
+```
+
+`/manifest.json` returns JSON. `/manifest.html` returns the built-in formatted JSON viewer with dark mode by default, dark/light/system theme controls, copy, and pretty/raw formatting controls. `/manifest.md` returns Markdown with the manifest JSON in a fenced code block for AI clients. `/manifest` chooses from registered response formats using the request `Accept` header. If `server.apiBase` changes, the routes move with it, for example `GET /_jsondb/manifest`.
+
+The manifest includes:
+
+- API links for the viewer, manifest, manifest JSON/HTML/Markdown routes, schema, events, batch, import, GraphQL, and each REST resource
+- built-in and configured custom viewer links
+- resource and field metadata, including generated UI hints and relation hints
+- viewer capabilities such as writes, batching, CSV import, GraphQL, and live events
+- diagnostics suitable for display in a custom UI
+
+The manifest does not include seed records, source paths, source hashes, runtime state paths, or GraphQL SDL. Custom viewers should fetch `manifest.json` for UI metadata and route links, then fetch actual records from REST or GraphQL. `api.formats` lists the registered response formats, media types, and manifest paths for custom viewers and tools.
+
+Add custom viewer links when a project ships its own data UI:
+
+Override the built-in Markdown renderer when a project needs a different shape:
+
+```js
+import { defineConfig } from 'jsondb/config';
+import { stringify as stringifyYaml } from 'yaml';
+
+export default defineConfig({
+  server: {
+    viewerLinks: [
+      { label: 'App Data Viewer', href: 'http://127.0.0.1:5173/jsondb' },
+    ],
+  },
+});
+```
+
+You can also write the same shape to a committed artifact:
+
+```js
+import { defineConfig } from 'jsondb/config';
+
+export default defineConfig({
+  viewerManifestOutFile: './src/generated/jsondb.viewer.json',
+});
+```
+
+```bash
+jsondb viewer manifest --out ./src/generated/jsondb.viewer.json
+```
+
 ## REST Routes
 
 Collections:
@@ -90,11 +144,15 @@ Resource `GET` routes return JSON by default. The explicit `.json` extension use
 ```txt
 GET /users
 GET /users.json
+GET /users.html
+GET /users.md
 GET /users/u_1
 GET /users/u_1.json
+GET /users/u_1.html
+GET /users/u_1.md
 ```
 
-Configure `rest.formats` to add formats such as `.md` or `.html`. Format renderers receive data after normal REST shaping, so `select`, `expand`, `offset`, and `limit` apply before rendering.
+`.json`, `.html`, and `.md` are built in. Config entries with the same extension override the built-in resource renderer, and object entries can also override manifest rendering. Extensionless resource and manifest routes negotiate registered media types from `Accept`; unsupported `Accept` values fall back to the configured default format. Format renderers receive data after normal REST shaping, so `select`, `expand`, `offset`, and `limit` apply before rendering.
 
 ```js
 import { defineConfig } from 'jsondb/config';
@@ -109,12 +167,22 @@ export default defineConfig({
           contentType: 'text/markdown; charset=utf-8',
         };
       },
+      yaml: {
+        mediaTypes: ['application/yaml', 'text/yaml'],
+        contentType: 'application/yaml; charset=utf-8',
+        render({ data }) {
+          return stringifyYaml(data);
+        },
+        renderManifest({ data }) {
+          return stringifyYaml(data);
+        },
+      },
     },
   },
 });
 ```
 
-jsondb does not execute `.jsx` routes directly; JSX is a source/runtime choice for your renderer, while `.html` is the response format.
+Function shorthand is resource-only for compatibility. Use object syntax when a format needs media-type negotiation or manifest support, such as `GET /__jsondb/manifest.yaml`. jsondb does not execute `.jsx` routes directly; JSX is a source/runtime choice for your renderer, while `.html` is the response format.
 
 ## Relationship Expansion
 

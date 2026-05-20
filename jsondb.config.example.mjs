@@ -12,6 +12,10 @@ export default defineConfig({
   // Generated during `jsondb sync` when set.
   schemaOutFile: null,
 
+  // Optional committed JSON viewer manifest for custom data viewers.
+  // Includes UI metadata, diagnostics, capabilities, and route links.
+  viewerManifestOutFile: null,
+
   // Optional visitor hook for changing or omitting generated manifest fields.
   schemaManifest: {
     customizeField({ defaultManifest }) {
@@ -75,6 +79,26 @@ export default defineConfig({
     host: '127.0.0.1',
     port: 7331,
     maxBodyBytes: 1048576,
+    // Optional custom data viewer links shown in discovery and manifest output.
+    viewerLinks: [
+      // { label: 'My Viewer', href: 'http://127.0.0.1:5173/jsondb' },
+    ],
+  },
+
+  // REST and manifest response formats. Built-ins are json, html, and md.
+  // Object entries can register media types for Accept negotiation and can
+  // render both resource routes and /__jsondb/manifest.<extension>.
+  rest: {
+    formats: {
+      default: 'json',
+      // yaml: {
+      //   mediaTypes: ['application/yaml', 'text/yaml'],
+      //   contentType: 'application/yaml; charset=utf-8',
+      //   render({ data }) {
+      //     return stringifyYaml(data);
+      //   },
+      // },
+    },
   },
 
   // Local latency is on by default so loading states are visible. Use 0 to

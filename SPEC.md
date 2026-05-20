@@ -782,17 +782,23 @@ REST batches are non-transactional by design. Items execute in order, and earlie
 
 Schema-backed writes should validate declared field types before mutating runtime state. Required fields, primitive types, enum values, arrays, nullable fields, datetime strings, flexible objects with intentional additional properties, nested objects, and field constraints (`unique`, `min`, `max`, `minLength`, `maxLength`, `pattern`) should be checked for package API writes, REST writes, GraphQL mutations, `jsondb sync`, and `jsondb schema validate`.
 
-The root route should work as a discovery endpoint. API-style requests to `GET /` should return JSON with resource names plus links for the data viewer, schema endpoint, GraphQL endpoint, and resource routes. Browser-style requests that prefer `text/html` should return a small HTML index with those same links.
+The root route should work as a discovery endpoint. API-style requests to `GET /` should return JSON with resource names plus links for the data viewer, schema endpoint, GraphQL endpoint, resource routes, and registered response formats. Browser-style requests that prefer `text/html` should return a small HTML index with those same links.
 
 The local server should also expose a built-in dependency-free viewer:
 
 ```txt
 GET /__jsondb
+GET /__jsondb/manifest
+GET /__jsondb/manifest.json
+GET /__jsondb/manifest.html
+GET /__jsondb/manifest.md
 ```
 
 `server.apiBase` should default to `/__jsondb` and should configure the
-standalone viewer, schema, batch, import, events, log, and fork route base
+standalone viewer, viewer manifest, schema, batch, import, events, log, and fork route base
 without changing root REST resource routes or the standalone GraphQL path.
+
+The viewer manifest should be the shared JSON contract used by the built-in viewer and custom data viewers. `/manifest.json` should return JSON by default. `/manifest.html` should render a formatted JSON viewer with dark mode as the default, dark/light/system controls, copy, and pretty/raw formatting controls. `/manifest.md` should render Markdown with the manifest JSON in a fenced code block for AI clients. `/manifest` should choose among registered media types from `Accept`, and explicit `/manifest.<extension>` routes should use the matching registered response format. The manifest should include API links, capabilities, diagnostics, configured viewer links, response format metadata, collections, documents, field metadata, UI hints, and relation hints. It must not include seed records, source paths, source hashes, runtime state paths, or GraphQL SDL. Custom viewers should use the manifest for UI metadata and fetch actual records from REST or GraphQL.
 
 The viewer should support:
 
@@ -1096,6 +1102,23 @@ When `schemaOutFile` is set, `jsondb sync` writes the manifest. The CLI can also
 
 ```bash
 jsondb schema manifest --out ./src/generated/jsondb.schema.json
+```
+
+Custom viewer UIs can use the live `GET /__jsondb/manifest.json` route or a committed viewer manifest. Browser users can open `GET /__jsondb/manifest.html`, AI clients can open `GET /__jsondb/manifest.md`, and `GET /__jsondb/manifest` negotiates from registered `Accept` media types:
+
+```js
+export default {
+  viewerManifestOutFile: './src/generated/jsondb.viewer.json',
+  server: {
+    viewerLinks: [
+      { label: 'App Data Viewer', href: 'http://127.0.0.1:5173/jsondb' },
+    ],
+  },
+};
+```
+
+```bash
+jsondb viewer manifest --out ./src/generated/jsondb.viewer.json
 ```
 
 The manifest should have this top-level shape:

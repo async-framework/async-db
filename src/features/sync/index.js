@@ -3,6 +3,7 @@ import path from 'node:path';
 import { loadProjectSchema, makeGeneratedSchema } from '../../schema.js';
 import { generateSchemaManifest } from '../../schema-manifest.js';
 import { generateTypes } from '../../types.js';
+import { generateViewerManifest } from '../../viewer-manifest.js';
 import { readJsonState, writeJsonState } from '../runtime/state.js';
 import { createRuntime } from '../storage/runtime.js';
 import { writeSourceMetadata } from '../storage/source.js';
@@ -46,6 +47,13 @@ export async function syncJsonFixtureDb(config, options = {}) {
 
   if (config.schemaOutFile) {
     const result = await generateSchemaManifest(config, { project });
+    for (const outFile of result.outFiles) {
+      logs.push(`Generated ${path.relative(config.cwd, outFile)}`);
+    }
+  }
+
+  if (config.viewerManifestOutFile) {
+    const result = await generateViewerManifest(config, { project });
     for (const outFile of result.outFiles) {
       logs.push(`Generated ${path.relative(config.cwd, outFile)}`);
     }

@@ -28,6 +28,30 @@ test('CLI schema manifest --out writes relative to --cwd', async () => {
   assert.equal(manifest.collections.users.fields.email.ui.component, 'email');
 });
 
+test('CLI viewer manifest --out writes relative to --cwd', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([{ id: 'u_1', email: 'ada@example.com' }]));
+
+  const { stdout } = await execFileAsync(process.execPath, [
+    path.resolve('src/cli.js'),
+    'viewer',
+    'manifest',
+    '--cwd',
+    cwd,
+    '--out',
+    './src/generated/jsondb.viewer.json',
+  ]);
+
+  const manifest = JSON.parse(await readFile(path.join(cwd, 'src/generated/jsondb.viewer.json'), 'utf8'));
+
+  assert.match(stdout, /Generated src\/generated\/jsondb\.viewer\.json/);
+  assert.equal(manifest.kind, 'jsondb.viewerManifest');
+  assert.equal(manifest.api.manifest, '/__jsondb/manifest');
+  assert.equal(manifest.api.manifestJson, '/__jsondb/manifest.json');
+  assert.equal(manifest.api.manifestMarkdown, '/__jsondb/manifest.md');
+  assert.equal(manifest.collections.users.fields.email.ui.component, 'email');
+});
+
 test('CLI schema infer prints data-inferred resources while ignoring explicit schemas', async () => {
   const cwd = await makeProject();
   await writeFixture(cwd, 'users.json', JSON.stringify([{ id: 'u_1', name: 'Ada' }]));
