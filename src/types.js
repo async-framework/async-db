@@ -28,7 +28,7 @@ export function renderTypes(resources, config) {
 
   const enumAliases = collectEnumAliases(resources);
   for (const alias of enumAliases) {
-    lines.push(`export type ${alias.name} = ${alias.values.map((value) => literalType(value)).join(' | ')};`, '');
+    lines.push(renderEnumAlias(alias), '');
   }
 
   const variantAliases = collectVariantAliases(resources);
@@ -176,6 +176,18 @@ function renderVariantAlias(alias, config) {
     lines.push(`${prefix} ${variantObjectType(variantName, variant, alias.resource, config, alias.fieldPath, 2)}`);
   }
   return [`${lines.join('\n')};`];
+}
+
+function renderEnumAlias(alias) {
+  const values = alias.values.map((value) => literalType(value));
+  if (values.length <= 3) {
+    return `export type ${alias.name} = ${values.join(' | ')};`;
+  }
+
+  return [
+    `export type ${alias.name} =`,
+    ...values.map((value) => `  | ${value}`),
+  ].join('\n') + ';';
 }
 
 function variantObjectType(variantName, variant, resource, config, fieldPath, depth) {
