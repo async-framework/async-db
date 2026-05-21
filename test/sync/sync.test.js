@@ -496,6 +496,44 @@ async function fileMtimes(filePaths) {
   return Object.fromEntries(entries);
 }
 
+test('generated enum union aliases use stable inline and multiline formatting', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'charts.schema.jsonc', `{
+    "kind": "collection",
+    "idField": "id",
+    "fields": {
+      "id": { "type": "string", "required": true },
+      "status": {
+        "type": "enum",
+        "values": ["draft", "published"]
+      },
+      "requiredRoles": {
+        "type": "array",
+        "items": {
+          "type": "enum",
+          "values": ["xAxis", "yAxis", "groupBy", "label", "value"]
+        }
+      }
+    },
+    "seed": []
+  }`);
+
+  const config = await loadConfig({ cwd });
+  await syncDb(config);
+
+  const typesPath = path.join(cwd, '.db/types/index.ts');
+  const generated = await readFile(typesPath, 'utf8');
+  const before = await fileMtimes([typesPath]);
+
+  await delay(20);
+  await syncDb(config);
+
+  assert.equal(await readFile(typesPath, 'utf8'), generated);
+  assert.deepEqual(await fileMtimes([typesPath]), before);
+  assert.match(generated, /export type ChartStatus = "draft" \| "published";/);
+  assert.match(generated, /export type ChartRequiredRolesItem =\n  \| "xAxis"\n  \| "yAxis"\n  \| "groupBy"\n  \| "label"\n  \| "value";/);
+});
+
 test('types.commitOutFile writes a committed type copy', async () => {
   const cwd = await makeProject();
   await writeConfig(cwd, `export default {
