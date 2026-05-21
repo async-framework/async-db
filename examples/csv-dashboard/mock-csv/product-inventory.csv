@@ -1,0 +1,6 @@
+SKU,Product,Category,Warehouse,Units On Hand,Reorder Point,Unit Cost,Backordered
+sku_101,Fixture Kit,Hardware,West,128,40,24.5,false
+sku_102,Schema Notebook,Stationery,East,62,25,8.75,false
+sku_103,Runtime Mug,Merch,South,18,30,6.1,true
+sku_104,Manifest Poster,Print,West,240,80,2.8,false
+sku_105,CSV Import Cable,Hardware,North,34,50,14.2,true

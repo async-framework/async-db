@@ -4,6 +4,29 @@
 
 Use this when your app already has a Hono server and you want db to own the CRUD routes while your app owns auth, permissions, and write normalization.
 
+## Why This Shape?
+
+- `pages` is the protected content collection mounted behind the app's Hono routes.
+- `users` supplies demo identities for bearer-token sessions.
+- Auth and permission decisions stay in app middleware and hooks rather than in async/db schemas.
+- There are no schema-declared relations in this example; the focus is route integration, auth checks, and write normalization.
+
+## Data Model Diagram
+
+```mermaid
+erDiagram
+  pages["pages"] {
+    string id PK
+  }
+  users["users"] {
+    string id PK
+  }
+```
+
+## Relations To Notice
+
+There are no schema-declared relations in this example; each resource can be inspected independently.
+
 ## Files To Inspect
 
 - [src/app.mjs](./src/app.mjs): registers db REST routes with `beforeRequest`, `beforeWrite`, and a pages-specific create hook.

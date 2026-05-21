@@ -1,0 +1,51 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Editable app settings for a small admin panel.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "group": {
+      "type": "enum",
+      "values": ["appearance", "notifications", "billing"],
+      "required": true
+    },
+    "valueType": {
+      "type": "enum",
+      "values": ["string", "boolean", "number"],
+      "required": true
+    },
+    "value": {
+      "type": "string",
+      "required": true,
+      "description": "The lightweight admin UI stores editable values as strings."
+    },
+    "updatedBy": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "setting_theme",
+      "label": "Default theme",
+      "group": "appearance",
+      "valueType": "string",
+      "value": "system",
+      "updatedBy": "admin@example.com"
+    },
+    {
+      "id": "setting_invoice_reminders",
+      "label": "Invoice reminders",
+      "group": "billing",
+      "valueType": "boolean",
+      "value": "true",
+      "updatedBy": "admin@example.com"
+    }
+  ]
+}

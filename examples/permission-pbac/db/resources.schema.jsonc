@@ -1,0 +1,51 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Resources evaluated against central policy records.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "kind": {
+      "type": "enum",
+      "values": ["article", "settings"],
+      "required": true
+    },
+    "status": {
+      "type": "enum",
+      "values": ["draft", "published"],
+      "default": "draft"
+    },
+    "ownerId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "owner",
+        "to": "users",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    }
+  },
+  "seed": [
+    {
+      "id": "res_launch_post",
+      "title": "Launch post",
+      "kind": "article",
+      "status": "draft",
+      "ownerId": "user_editor"
+    },
+    {
+      "id": "res_public_update",
+      "title": "Public update",
+      "kind": "article",
+      "status": "published",
+      "ownerId": "user_editor"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+Event ID,Event Name,Product Area,Device,Users,Error Count,Conversion Rate,Experiment Active
+evt_1001,Signup Started,Onboarding,desktop,482,3,0.41,true
+evt_1002,Signup Completed,Onboarding,mobile,318,1,0.29,true
+evt_1003,Dashboard Viewed,Analytics,desktop,794,0,0.67,false
+evt_1004,Report Exported,Reports,desktop,146,2,0.18,false
+evt_1005,Invite Sent,Collaboration,mobile,221,4,0.24,true

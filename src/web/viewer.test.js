@@ -11,6 +11,10 @@ test('web viewer renders the db tool surface', () => {
   assert.match(html, /Data/);
   assert.match(html, /REST Specs/);
   assert.match(html, /GraphQL Examples/);
+  assert.match(html, /Model/);
+  assert.match(html, /Data Model/);
+  assert.match(html, /Copy Mermaid/);
+  assert.match(html, /id="model-graph"/);
   assert.match(html, /REST Runner/);
   assert.match(html, /GraphQL Runner/);
   assert.match(html, /Generated Schema/);
@@ -31,6 +35,8 @@ test('web viewer renders the db tool surface', () => {
   assert.match(html, /data-relation-link/);
   assert.match(html, /\/__db\/import/);
   assert.match(html, /x-db-file-name/);
+  assert.doesNotMatch(html, /cdn\.jsdelivr\.net\/npm\/(?:d3|mermaid)/);
+  assert.doesNotMatch(html, /unpkg\.com\/(?:d3|mermaid)/);
 });
 
 test('web viewer renders configured fixture folder label', () => {

@@ -1,0 +1,62 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Sellable product variants with distinct SKUs.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "productId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "product",
+        "to": "products",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "sku": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "priceCents": {
+      "type": "number",
+      "required": true,
+      "min": 0
+    },
+    "attributes": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "App-owned variant options such as license tier or format."
+    }
+  },
+  "seed": [
+    {
+      "id": "var_fixture_kit_standard",
+      "productId": "prod_fixture_kit",
+      "sku": "ADB-FIXTURE-KIT-STD",
+      "name": "Standard",
+      "priceCents": 4900,
+      "attributes": {
+        "tier": "standard"
+      }
+    },
+    {
+      "id": "var_schema_guide_pdf",
+      "productId": "prod_schema_guide",
+      "sku": "ADB-SCHEMA-GUIDE-PDF",
+      "name": "PDF",
+      "priceCents": 1900,
+      "attributes": {
+        "format": "pdf"
+      }
+    }
+  ]
+}

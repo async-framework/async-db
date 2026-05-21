@@ -1,0 +1,51 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Tools an agent may reference during a run.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "category": {
+      "type": "enum",
+      "values": ["read", "write", "approval"],
+      "default": "read"
+    },
+    "risk": {
+      "type": "enum",
+      "values": ["low", "medium", "high"],
+      "default": "low"
+    },
+    "description": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "tool_fixture_reader",
+      "name": "Fixture Reader",
+      "category": "read",
+      "risk": "low",
+      "description": "Reads local fixture records for planning."
+    },
+    {
+      "id": "tool_import_planner",
+      "name": "Import Planner",
+      "category": "write",
+      "risk": "medium",
+      "description": "Produces a proposed import artifact."
+    },
+    {
+      "id": "tool_human_approval",
+      "name": "Human Approval",
+      "category": "approval",
+      "risk": "high",
+      "description": "Represents a human gate before side effects."
+    }
+  ]
+}

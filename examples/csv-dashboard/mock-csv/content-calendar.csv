@@ -1,0 +1,6 @@
+Content ID,Title,Channel,Owner,Status,Publish Week,Estimated Views,Approved
+cnt_1,CSV Import Launch,Blog,Maya,scheduled,2026-W22,4200,true
+cnt_2,Dashboard Walkthrough,Docs,Noah,draft,2026-W23,2600,false
+cnt_3,Customer Story: Ops,Newsletter,Iris,scheduled,2026-W23,5100,true
+cnt_4,Release Notes Video,Social,Leo,review,2026-W24,3600,false
+cnt_5,Data Modeling Guide,Docs,Maya,draft,2026-W25,3000,false

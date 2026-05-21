@@ -1,0 +1,45 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Files protected by user, resource, and environment attributes.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "department": {
+      "type": "enum",
+      "values": ["finance", "engineering"],
+      "required": true
+    },
+    "sensitivity": {
+      "type": "enum",
+      "values": ["internal", "confidential"],
+      "required": true
+    },
+    "requiresBusinessHours": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "seed": [
+    {
+      "id": "file_budget",
+      "title": "Quarterly budget",
+      "department": "finance",
+      "sensitivity": "confidential",
+      "requiresBusinessHours": true
+    },
+    {
+      "id": "file_release_plan",
+      "title": "Release plan",
+      "department": "engineering",
+      "sensitivity": "internal",
+      "requiresBusinessHours": false
+    }
+  ]
+}

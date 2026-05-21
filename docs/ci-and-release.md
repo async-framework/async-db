@@ -75,6 +75,8 @@ Committed generated files are allowed when configured:
 examples/advanced/src/generated/db.types.ts
 examples/basic/src/generated/db.types.ts
 examples/schema-first/src/generated/db.types.ts
+examples/recursive-schema-ui/src/generated/db.schema.json
+examples/recursive-schema-ui/src/generated/db.types.ts
 examples/schema-manifest/src/generated/db.schema.json
 examples/schema-manifest/src/generated/db.types.ts
 examples/schema-ui/src/generated/db.schema.json

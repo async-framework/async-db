@@ -1,0 +1,85 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Human change requests that need invited reviewers and approval gates.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "key": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "summary": {
+      "type": "string"
+    },
+    "requestType": {
+      "type": "enum",
+      "values": ["policy", "process", "access"],
+      "default": "process"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["open", "changes_requested", "approved", "action_ready", "completed"],
+      "default": "open"
+    },
+    "requesterId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "requester",
+        "to": "members",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "targetTeamId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "targetTeam",
+        "to": "teams",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "actionIntent": {
+      "type": "string"
+    },
+    "createdAt": {
+      "type": "datetime"
+    }
+  },
+  "seed": [
+    {
+      "id": "cr_launch_policy",
+      "key": "CR-1001",
+      "title": "Publish launch approval policy",
+      "summary": "Clarifies which teams must sign off before a public launch checklist changes.",
+      "requestType": "policy",
+      "status": "action_ready",
+      "requesterId": "mem_ana",
+      "targetTeamId": "team_product_ops",
+      "actionIntent": "Publish the revised launch checklist",
+      "createdAt": "2026-05-01T16:30:00.000Z"
+    },
+    {
+      "id": "cr_vendor_access",
+      "key": "CR-1002",
+      "title": "Approve vendor workspace access",
+      "summary": "Requests temporary workspace access for a support vendor during onboarding.",
+      "requestType": "access",
+      "status": "changes_requested",
+      "requesterId": "mem_max",
+      "targetTeamId": "team_security",
+      "actionIntent": "Enable vendor workspace for support review",
+      "createdAt": "2026-05-03T18:10:00.000Z"
+    }
+  ]
+}

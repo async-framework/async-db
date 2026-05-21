@@ -1,0 +1,47 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "issueId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "issue",
+        "to": "issues",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "authorId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "author",
+        "to": "users",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "bodyMarkdown": {
+      "type": "string",
+      "required": true
+    },
+    "createdAt": {
+      "type": "datetime",
+      "required": true
+    }
+  },
+  "seed": [
+    {
+      "id": "comment_1",
+      "issueId": "issue_1",
+      "authorId": "u_2",
+      "bodyMarkdown": "This should be the smallest docs example that still proves custom readers.",
+      "createdAt": "2026-05-02T10:00:00.000Z"
+    }
+  ]
+}

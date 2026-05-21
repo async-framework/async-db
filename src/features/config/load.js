@@ -72,6 +72,14 @@ export async function loadConfig(options = {}) {
   }
   merged.outputs.operationRefs = merged.operations?.refsOutFile ?? null;
 
+  if (merged.outputs?.diagramMermaid) {
+    merged.outputs.diagramMermaid = resolveFrom(cwd, merged.outputs.diagramMermaid);
+  }
+
+  if (merged.outputs?.diagramModel) {
+    merged.outputs.diagramModel = resolveFrom(cwd, merged.outputs.diagramModel);
+  }
+
   if (merged.generate?.hono?.outDir) {
     merged.generate.hono.outDir = resolveFrom(cwd, merged.generate.hono.outDir);
   }

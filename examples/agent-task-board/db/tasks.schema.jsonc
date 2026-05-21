@@ -1,0 +1,66 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Requested work that an agent can run.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "summary": {
+      "type": "string"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["queued", "running", "blocked", "done"],
+      "default": "queued"
+    },
+    "requester": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "enum",
+      "values": ["low", "medium", "high"],
+      "default": "medium"
+    },
+    "agentId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "agent",
+        "to": "agents",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "createdAt": {
+      "type": "datetime"
+    }
+  },
+  "seed": [
+    {
+      "id": "task_customer_import",
+      "title": "Prepare customer import",
+      "summary": "Review incoming CSV rows, map fields, and produce an import summary.",
+      "status": "running",
+      "requester": "Customer Ops",
+      "priority": "high",
+      "agentId": "agent_data_importer",
+      "createdAt": "2026-05-10T16:00:00.000Z"
+    },
+    {
+      "id": "task_policy_cleanup",
+      "title": "Draft policy cleanup",
+      "summary": "Summarize outdated policy notes and wait for approval before publishing.",
+      "status": "blocked",
+      "requester": "Product Ops",
+      "priority": "medium",
+      "agentId": "agent_ops_planner",
+      "createdAt": "2026-05-11T18:30:00.000Z"
+    }
+  ]
+}

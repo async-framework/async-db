@@ -1,0 +1,67 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Reusable block definitions that a simple CMS page builder can offer to editors.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "kind": {
+      "type": "enum",
+      "values": ["hero", "featureGrid", "logoCloud", "testimonial", "cta"],
+      "required": true
+    },
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "string"
+    },
+    "defaultVariant": {
+      "type": "enum",
+      "values": ["centered", "split", "cards", "compact", "quote"],
+      "default": "centered"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "archived"],
+      "default": "active"
+    }
+  },
+  "seed": [
+    {
+      "id": "block_hero",
+      "kind": "hero",
+      "label": "Hero Section",
+      "description": "A page-opening block with headline, supporting copy, and optional media.",
+      "defaultVariant": "split",
+      "status": "active"
+    },
+    {
+      "id": "block_feature_grid",
+      "kind": "featureGrid",
+      "label": "Feature Grid",
+      "description": "A compact set of feature cards for product or service pages.",
+      "defaultVariant": "cards",
+      "status": "active"
+    },
+    {
+      "id": "block_testimonial",
+      "kind": "testimonial",
+      "label": "Customer Quote",
+      "description": "A short proof point with an optional customer portrait.",
+      "defaultVariant": "quote",
+      "status": "active"
+    },
+    {
+      "id": "block_cta",
+      "kind": "cta",
+      "label": "Call To Action",
+      "description": "A closing block with a short message and primary link.",
+      "defaultVariant": "compact",
+      "status": "active"
+    }
+  ]
+}

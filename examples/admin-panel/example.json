@@ -1,0 +1,5 @@
+{
+  "title": "Admin Panel",
+  "description": "Use the package API for lightweight settings and feature-flag CRUD.",
+  "tags": ["admin", "crud", "settings"]
+}

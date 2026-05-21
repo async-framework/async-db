@@ -1,0 +1,47 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Users receive permissions through assigned roles.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "roleIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Role ids assigned by the app."
+    }
+  },
+  "seed": [
+    {
+      "id": "user_admin",
+      "name": "Ada Admin",
+      "email": "ada.admin@example.com",
+      "roleIds": ["role_admin"]
+    },
+    {
+      "id": "user_editor",
+      "name": "Eli Editor",
+      "email": "eli.editor@example.com",
+      "roleIds": ["role_editor"]
+    },
+    {
+      "id": "user_viewer",
+      "name": "Vera Viewer",
+      "email": "vera.viewer@example.com",
+      "roleIds": ["role_viewer"]
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Checkout carts with nested line items and computed totals stored by the app.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "customerId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "customer",
+        "to": "customers",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "converted", "abandoned"],
+      "default": "active"
+    },
+    "discountCode": {
+      "type": "string",
+      "nullable": true
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "fields": {
+          "variantId": {
+            "type": "string",
+            "required": true
+          },
+          "title": {
+            "type": "string",
+            "required": true
+          },
+          "quantity": {
+            "type": "number",
+            "required": true,
+            "min": 1
+          },
+          "unitPriceCents": {
+            "type": "number",
+            "required": true,
+            "min": 0
+          }
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "fields": {
+        "subtotalCents": {
+          "type": "number",
+          "required": true
+        },
+        "discountCents": {
+          "type": "number",
+          "default": 0
+        },
+        "taxCents": {
+          "type": "number",
+          "default": 0
+        },
+        "shippingCents": {
+          "type": "number",
+          "default": 0
+        },
+        "totalCents": {
+          "type": "number",
+          "required": true
+        },
+        "currency": {
+          "type": "string",
+          "default": "USD"
+        }
+      }
+    },
+    "updatedAt": {
+      "type": "datetime",
+      "required": true
+    }
+  },
+  "seed": [
+    {
+      "id": "cart_ada_active",
+      "customerId": "cust_ada",
+      "status": "active",
+      "discountCode": "SAVE10",
+      "items": [
+        {
+          "variantId": "var_fixture_kit_standard",
+          "title": "Fixture Starter Kit - Standard",
+          "quantity": 1,
+          "unitPriceCents": 4900
+        },
+        {
+          "variantId": "var_schema_guide_pdf",
+          "title": "Schema Guide - PDF",
+          "quantity": 1,
+          "unitPriceCents": 1900
+        }
+      ],
+      "totals": {
+        "subtotalCents": 6800,
+        "discountCents": 680,
+        "taxCents": 551,
+        "shippingCents": 0,
+        "totalCents": 6671,
+        "currency": "USD"
+      },
+      "updatedAt": "2026-05-10T10:00:00.000Z"
+    }
+  ]
+}

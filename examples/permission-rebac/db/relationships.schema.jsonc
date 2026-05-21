@@ -1,0 +1,72 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Relationship tuples used by app-owned access checks.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "subjectType": {
+      "type": "enum",
+      "values": ["user"],
+      "required": true
+    },
+    "subjectId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "subject",
+        "to": "users",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "relation": {
+      "type": "enum",
+      "values": ["owner", "editor", "viewer"],
+      "required": true
+    },
+    "objectType": {
+      "type": "enum",
+      "values": ["document"],
+      "required": true
+    },
+    "objectId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "document",
+        "to": "documents",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    }
+  },
+  "seed": [
+    {
+      "id": "rel_ada_owner_roadmap",
+      "subjectType": "user",
+      "subjectId": "user_ada",
+      "relation": "owner",
+      "objectType": "document",
+      "objectId": "doc_roadmap"
+    },
+    {
+      "id": "rel_grace_viewer_roadmap",
+      "subjectType": "user",
+      "subjectId": "user_grace",
+      "relation": "viewer",
+      "objectType": "document",
+      "objectId": "doc_roadmap"
+    },
+    {
+      "id": "rel_grace_editor_handbook",
+      "subjectType": "user",
+      "subjectId": "user_grace",
+      "relation": "editor",
+      "objectType": "document",
+      "objectId": "doc_handbook"
+    }
+  ]
+}

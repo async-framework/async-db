@@ -5,7 +5,7 @@ import test from 'node:test';
 import { syncDb, loadConfig } from '../../src/index.js';
 import { makeProject, writeConfig, writeFixture } from '../helpers.js';
 
-test('schemaOutFile writes a committed manifest with inferred UI defaults without changing fixtures', async () => {
+test('schemaOutFile writes a committed manifest without UI defaults or fixture changes', async () => {
   const cwd = await makeProject();
   const usersFixture = JSON.stringify([
     {
@@ -33,11 +33,11 @@ test('schemaOutFile writes a committed manifest with inferred UI defaults withou
   assert.equal(manifest.collections.users.kind, 'collection');
   assert.equal(manifest.collections.users.name, 'users');
   assert.equal(manifest.collections.users.idField, 'id');
-  assert.equal(manifest.collections.users.fields.id.ui.readonly, true);
-  assert.equal(manifest.collections.users.fields.email.ui.component, 'email');
-  assert.equal(manifest.collections.users.fields.active.ui.component, 'toggle');
-  assert.equal(manifest.collections.users.fields.avatarUrl.ui.component, 'image');
-  assert.equal(manifest.collections.users.fields.body.ui.component, 'textarea');
+  assert.equal('ui' in manifest.collections.users.fields.id, false);
+  assert.equal('ui' in manifest.collections.users.fields.email, false);
+  assert.equal('ui' in manifest.collections.users.fields.active, false);
+  assert.equal('ui' in manifest.collections.users.fields.avatarUrl, false);
+  assert.equal('ui' in manifest.collections.users.fields.body, false);
   assert.equal(manifest.collections.users.fields.email.required, true);
   assert.equal('seed' in manifest.collections.users, false);
   assert.equal('source' in manifest.collections.users, false);
@@ -46,7 +46,7 @@ test('schemaOutFile writes a committed manifest with inferred UI defaults withou
   assert.equal('rest' in manifest, false);
 });
 
-test('schema manifest includes schema defaults, nested fields, arrays, relations, and enum UI defaults', async () => {
+test('schema manifest includes schema defaults, nested fields, arrays, and relations without UI hints', async () => {
   const cwd = await makeProject();
   await writeConfig(cwd, `export default {
     schemaOutFile: './src/generated/db.schema.json'
@@ -84,17 +84,17 @@ test('schema manifest includes schema defaults, nested fields, arrays, relations
 
   assert.equal(users.fields.role.default, 'user');
   assert.deepEqual(users.fields.role.values, ['admin', 'user']);
-  assert.equal(users.fields.role.ui.component, 'radio');
-  assert.equal(users.fields.status.ui.component, 'select');
-  assert.equal(users.fields.groupId.ui.component, 'relationSelect');
-  assert.equal(users.fields.groupId.ui.optionsFrom, 'groups');
-  assert.equal(users.fields.tags.ui.component, 'tags');
+  assert.equal('ui' in users.fields.role, false);
+  assert.equal('ui' in users.fields.status, false);
+  assert.equal(users.fields.groupId.relation.to, 'groups');
+  assert.equal('ui' in users.fields.groupId, false);
   assert.equal(users.fields.tags.items.type, 'string');
-  assert.equal(users.fields.profile.ui.component, 'fieldset');
-  assert.equal(users.fields.profile.fields.bio.ui.component, 'textarea');
+  assert.equal('ui' in users.fields.tags, false);
+  assert.equal(users.fields.profile.fields.bio.type, 'string');
+  assert.equal('ui' in users.fields.profile, false);
 });
 
-test('schema manifest customizeField can override and omit field output', async () => {
+test('schema manifest customizeField can attach app-owned metadata and omit field output', async () => {
   const cwd = await makeProject();
   await writeConfig(cwd, `export default {
     schemaOutFile: './src/generated/db.schema.json',
@@ -107,8 +107,7 @@ test('schema manifest customizeField can override and omit field output', async 
         if (resourceName === 'users' && fieldName.endsWith('Markdown')) {
           return {
             ...defaultManifest,
-            ui: {
-              ...defaultManifest.ui,
+            schemaUi: {
               component: 'markdown',
               section: \`\${file}:\${path}\`
             }
@@ -132,21 +131,17 @@ test('schema manifest customizeField can override and omit field output', async 
 
   const manifest = JSON.parse(await readFile(path.join(cwd, 'src/generated/db.schema.json'), 'utf8'));
 
-  assert.equal(manifest.collections.users.fields.bioMarkdown.ui.component, 'markdown');
-  assert.equal(manifest.collections.users.fields.bioMarkdown.ui.section, 'db/users.json:bioMarkdown');
+  assert.equal(manifest.collections.users.fields.bioMarkdown.schemaUi.component, 'markdown');
+  assert.equal(manifest.collections.users.fields.bioMarkdown.schemaUi.section, 'db/users.json:bioMarkdown');
   assert.equal('secret' in manifest.collections.users.fields, false);
 });
 
-test('schema manifest customizeField can customize object fields inside arrays', async () => {
+test('schema manifest customizeField can attach app-owned metadata to object fields inside arrays', async () => {
   const cwd = await makeProject();
   await writeConfig(cwd, `export default {
     schemaOutFile: './src/generated/db.schema.json',
     schemaManifest: {
       customizeField({ resourceName, fieldName, path, file, defaultManifest }) {
-        const baseUi = defaultManifest.ui && typeof defaultManifest.ui === 'object'
-          ? defaultManifest.ui
-          : {};
-
         if (resourceName !== 'pages') {
           return defaultManifest;
         }
@@ -154,8 +149,7 @@ test('schema manifest customizeField can customize object fields inside arrays',
         if (path === 'blocks') {
           return {
             ...defaultManifest,
-            ui: {
-              ...baseUi,
+            schemaUi: {
               component: 'block-list',
               source: file
             }
@@ -166,8 +160,7 @@ test('schema manifest customizeField can customize object fields inside arrays',
           return {
             ...defaultManifest,
             values: ['chart', 'metric'],
-            ui: {
-              ...baseUi,
+            schemaUi: {
               component: 'select',
               label: 'Block type',
               orderKey: path
@@ -178,8 +171,7 @@ test('schema manifest customizeField can customize object fields inside arrays',
         if (fieldName === 'chartId') {
           return {
             ...defaultManifest,
-            ui: {
-              ...baseUi,
+            schemaUi: {
               component: 'relation-select',
               relationTo: 'charts',
               source: file
@@ -215,15 +207,15 @@ test('schema manifest customizeField can customize object fields inside arrays',
   const manifest = JSON.parse(await readFile(path.join(cwd, 'src/generated/db.schema.json'), 'utf8'));
   const blocks = manifest.collections.pages.fields.blocks;
 
-  assert.equal(blocks.ui.component, 'block-list');
-  assert.equal(blocks.ui.source, 'db/cms/pages.schema.jsonc');
+  assert.equal(blocks.schemaUi.component, 'block-list');
+  assert.equal(blocks.schemaUi.source, 'db/cms/pages.schema.jsonc');
   assert.equal(blocks.items.fields.type.values[0], 'chart');
-  assert.equal(blocks.items.fields.type.ui.component, 'select');
-  assert.equal(blocks.items.fields.type.ui.label, 'Block type');
-  assert.equal(blocks.items.fields.type.ui.orderKey, 'blocks.type');
-  assert.equal(blocks.items.fields.chartId.ui.component, 'relation-select');
-  assert.equal(blocks.items.fields.chartId.ui.relationTo, 'charts');
-  assert.equal(blocks.items.fields.chartId.ui.source, 'db/cms/pages.schema.jsonc');
+  assert.equal(blocks.items.fields.type.schemaUi.component, 'select');
+  assert.equal(blocks.items.fields.type.schemaUi.label, 'Block type');
+  assert.equal(blocks.items.fields.type.schemaUi.orderKey, 'blocks.type');
+  assert.equal(blocks.items.fields.chartId.schemaUi.component, 'relation-select');
+  assert.equal(blocks.items.fields.chartId.schemaUi.relationTo, 'charts');
+  assert.equal(blocks.items.fields.chartId.schemaUi.source, 'db/cms/pages.schema.jsonc');
 });
 
 test('schema manifest customizeResource can add resource-level metadata', async () => {
@@ -234,7 +226,7 @@ test('schema manifest customizeResource can add resource-level metadata', async 
       customizeResource({ resourceName, file, defaultManifest }) {
         return {
           ...defaultManifest,
-          editor: {
+          schemaUi: {
             group: file.startsWith('db/cms/') ? 'CMS' : 'Data',
             label: resourceName
           }
@@ -255,7 +247,7 @@ test('schema manifest customizeResource can add resource-level metadata', async 
 
   const manifest = JSON.parse(await readFile(path.join(cwd, 'src/generated/db.schema.json'), 'utf8'));
 
-  assert.deepEqual(manifest.collections.pages.editor, {
+  assert.deepEqual(manifest.collections.pages.schemaUi, {
     group: 'CMS',
     label: 'pages',
   });
@@ -269,8 +261,7 @@ test('schema manifest rejects non-serializable customizeField output with diagno
       customizeField({ defaultManifest }) {
         return {
           ...defaultManifest,
-          ui: {
-            ...defaultManifest.ui,
+          schemaUi: {
             render: () => 'nope'
           }
         };

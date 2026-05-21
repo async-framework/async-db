@@ -1,0 +1,5 @@
+{
+  "title": "Agent Task Board",
+  "description": "Model agent work with tasks, runs, steps, tools, artifacts, and approvals.",
+  "tags": ["agentic", "workflow", "approvals"]
+}

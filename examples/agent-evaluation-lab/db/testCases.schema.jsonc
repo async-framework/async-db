@@ -1,0 +1,55 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Fixture inputs and expected behavior for evaluations.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "evalSuiteId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "evalSuite",
+        "to": "evalSuites",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "input": {
+      "type": "string"
+    },
+    "expectedBehavior": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "seed": [
+    {
+      "id": "case_refund_priority",
+      "evalSuiteId": "suite_support_triage",
+      "name": "Refund priority",
+      "input": "Customer asks for a refund after a failed subscription renewal.",
+      "expectedBehavior": "Classify as billing and ask for account context before promising a refund.",
+      "tags": ["billing", "classification"]
+    },
+    {
+      "id": "case_security_escalation",
+      "evalSuiteId": "suite_support_triage",
+      "name": "Security escalation",
+      "input": "Customer reports a suspicious login from a new country.",
+      "expectedBehavior": "Classify as security and recommend immediate escalation.",
+      "tags": ["security", "escalation"]
+    }
+  ]
+}

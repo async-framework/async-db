@@ -135,6 +135,50 @@ export async function readSourceFile(config, filename) {
   };
 }
 
+export async function readDerivedSources(config, filenames) {
+  const derivedSources = normalizeDerivedSources(config.sources?.derived);
+  const diagnostics = [];
+  const sources = [];
+
+  for (const definition of derivedSources) {
+    const label = derivedSourceLabel(definition);
+    let files;
+    try {
+      files = await derivedSourceFiles(config, filenames, definition);
+    } catch (error) {
+      diagnostics.push(derivedSourceDiagnostic(error, label, definition));
+      continue;
+    }
+
+    const context = {
+      config,
+      name: String(definition.name),
+      files,
+    };
+
+    let result;
+    try {
+      result = await definition.read(context);
+    } catch (error) {
+      diagnostics.push(derivedSourceDiagnostic(error, label, definition));
+      continue;
+    }
+
+    if (result === null || result === undefined) {
+      continue;
+    }
+
+    const normalized = normalizeDerivedSourceResult(result, context, definition, label);
+    diagnostics.push(...normalized.diagnostics);
+    sources.push(...normalized.sources);
+  }
+
+  return {
+    sources,
+    diagnostics,
+  };
+}
+
 async function createSourceReaderContext(config, filename) {
   const sourceFile = path.join(config.sourceDir, filename);
   const file = sourceFileLabel(config, filename);
@@ -165,6 +209,84 @@ async function createSourceReaderContext(config, filename) {
   };
 }
 
+async function createDerivedSourceFileContext(config, filename) {
+  const sourceFile = path.join(config.sourceDir, filename);
+  const sourcePath = sourceRelativePath(filename);
+  const file = sourceFileLabel(config, filename);
+  let buffer;
+  let text;
+
+  const readBuffer = async () => {
+    buffer ??= await readFile(sourceFile);
+    return buffer;
+  };
+
+  const hash = createHash('sha256').update(await readBuffer()).digest('hex');
+
+  return {
+    path: sourcePath,
+    file,
+    sourceFile,
+    hash,
+    async readBuffer() {
+      return readBuffer();
+    },
+    async readText() {
+      text ??= (await readBuffer()).toString('utf8');
+      return text;
+    },
+  };
+}
+
+async function derivedSourceFiles(config, filenames, definition) {
+  const matchers = derivedSourcePatterns(definition.dependsOn).map((pattern) => patternToMatcher(pattern));
+  const matched = filenames
+    .filter((filename) => matchers.some((matcher) => matcher(sourceRelativePath(filename))))
+    .sort((left, right) => sourceRelativePath(left).localeCompare(sourceRelativePath(right)));
+
+  return Promise.all(matched.map((filename) => createDerivedSourceFileContext(config, filename)));
+}
+
+function derivedSourcePatterns(patterns) {
+  return (Array.isArray(patterns) ? patterns : [patterns])
+    .filter((pattern) => typeof pattern === 'string')
+    .map((pattern) => pattern.split(path.sep).join('/').replace(/^\/+/, ''));
+}
+
+function patternToMatcher(pattern) {
+  const expression = new RegExp(`^${globPatternToRegExp(pattern)}$`);
+  return (file) => expression.test(file);
+}
+
+function globPatternToRegExp(pattern) {
+  let expression = '';
+
+  for (let index = 0; index < pattern.length; index += 1) {
+    const character = pattern[index];
+    if (character === '*') {
+      if (pattern[index + 1] === '*') {
+        expression += '.*';
+        index += 1;
+      } else {
+        expression += '[^/]*';
+      }
+      continue;
+    }
+
+    expression += escapeRegExp(character);
+  }
+
+  return expression;
+}
+
+function escapeRegExp(character) {
+  return /[\\^$+?.()|[\]{}]/.test(character) ? `\\${character}` : character;
+}
+
+function sourceRelativePath(filename) {
+  return filename.split(path.sep).join('/');
+}
+
 function sourceReaders(config) {
   return [
     ...normalizeUserSourceReaders(config.sources?.readers),
@@ -178,6 +300,20 @@ function normalizeUserSourceReaders(readers) {
   }
 
   return readers.filter((reader) => reader && typeof reader.match === 'function' && typeof reader.read === 'function');
+}
+
+function normalizeDerivedSources(derivedSources) {
+  if (!Array.isArray(derivedSources)) {
+    return [];
+  }
+
+  return derivedSources.filter((definition) => (
+    definition
+    && typeof definition.name === 'string'
+    && definition.name
+    && typeof definition.read === 'function'
+    && (typeof definition.dependsOn === 'string' || Array.isArray(definition.dependsOn))
+  ));
 }
 
 function builtInSourceReaders() {
@@ -337,6 +473,88 @@ function normalizeSourceReaderResult(result, context, reader) {
   };
 }
 
+function normalizeDerivedSourceResult(result, context, definition, label) {
+  const rawSources = flattenSourceReaderResult(result);
+  const diagnostics = [];
+  const sources = [];
+  const multipleSources = rawSources.length > 1;
+  const hash = compositeDerivedHash(context.files);
+  const dependencies = context.files.map((file) => ({
+    path: file.file,
+    hash: file.hash,
+  }));
+
+  for (const [index, rawSource] of rawSources.entries()) {
+    if (!rawSource || typeof rawSource !== 'object' || Array.isArray(rawSource)) {
+      diagnostics.push(invalidDerivedSourceResultDiagnostic(label, definition, `Result ${index + 1} must be an object.`));
+      continue;
+    }
+
+    if (rawSource.kind !== 'data' && rawSource.kind !== 'schema') {
+      diagnostics.push(invalidDerivedSourceResultDiagnostic(label, definition, `Result ${index + 1} must set kind to "data" or "schema".`));
+      continue;
+    }
+
+    if (multipleSources && !rawSource.resourceName) {
+      diagnostics.push({
+        code: 'SOURCE_DERIVED_RESOURCE_NAME_REQUIRED',
+        severity: 'error',
+        file: label,
+        message: `Derived source "${definition.name}" returned multiple sources, but result ${index + 1} does not include resourceName.`,
+        hint: 'Add resourceName to every source returned from a multi-source derived source.',
+        details: {
+          derivedSource: definition.name,
+          sourceIndex: index,
+        },
+      });
+      continue;
+    }
+
+    if (!sourceKindAllowed(context.config, rawSource.kind)) {
+      continue;
+    }
+
+    if (rawSource.kind === 'data' && !Object.prototype.hasOwnProperty.call(rawSource, 'data')) {
+      diagnostics.push(invalidDerivedSourceResultDiagnostic(label, definition, `Data result ${index + 1} must include data.`));
+      continue;
+    }
+
+    if (rawSource.kind === 'schema' && !Object.prototype.hasOwnProperty.call(rawSource, 'schema')) {
+      diagnostics.push(invalidDerivedSourceResultDiagnostic(label, definition, `Schema result ${index + 1} must include schema.`));
+      continue;
+    }
+
+    const name = rawSource.resourceName
+      ? String(rawSource.resourceName)
+      : String(definition.resourceName ?? definition.name);
+    const format = rawSource.format ? String(rawSource.format) : label;
+
+    sources.push({
+      kind: rawSource.kind,
+      name,
+      file: label,
+      sourceFile: null,
+      format,
+      hash,
+      derived: true,
+      dependencies,
+      data: rawSource.kind === 'data' ? rawSource.data : undefined,
+      schema: rawSource.kind === 'schema' ? rawSource.schema : undefined,
+    });
+  }
+
+  return {
+    sources,
+    diagnostics,
+  };
+}
+
+function compositeDerivedHash(files) {
+  return createHash('sha256')
+    .update(JSON.stringify(files.map((file) => ({ path: file.path, hash: file.hash }))))
+    .digest('hex');
+}
+
 function flattenSourceReaderResult(result) {
   if (result === null || result === undefined) {
     return [];
@@ -385,6 +603,10 @@ function resolveSourceResourceName(config, filename) {
 
 function sourceFileLabel(config, filename) {
   return path.relative(config.cwd, path.join(config.sourceDir, filename)).split(path.sep).join('/');
+}
+
+function derivedSourceLabel(definition) {
+  return `derived:${definition.name}`;
 }
 
 export function trackResourceSource(resourceSources, name, filename, kind) {
@@ -472,6 +694,34 @@ function invalidSourceReaderResultDiagnostic(context, reader, message) {
     details: {
       reader: reader.name,
       path: context.file,
+    },
+  };
+}
+
+function derivedSourceDiagnostic(error, label, definition) {
+  return {
+    code: 'SOURCE_DERIVED_FAILED',
+    severity: 'error',
+    file: label,
+    message: `Derived source "${definition.name}" failed: ${error.message}`,
+    hint: 'Update the derived source read function or return null to skip generating this source.',
+    details: {
+      derivedSource: definition.name,
+      parserMessage: error.message,
+      code: error.code,
+    },
+  };
+}
+
+function invalidDerivedSourceResultDiagnostic(label, definition, message) {
+  return {
+    code: 'SOURCE_DERIVED_INVALID_RESULT',
+    severity: 'error',
+    file: label,
+    message: `Derived source "${definition.name}" returned an invalid result: ${message}`,
+    hint: 'Return { kind: "data", data } or { kind: "schema", schema }, optionally with format and resourceName.',
+    details: {
+      derivedSource: definition.name,
     },
   };
 }

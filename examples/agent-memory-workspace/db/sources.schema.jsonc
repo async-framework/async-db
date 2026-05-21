@@ -1,0 +1,54 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Source material used as evidence for agent memory.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "memorySpaceId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "memorySpace",
+        "to": "memorySpaces",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "sourceType": {
+      "type": "enum",
+      "values": ["document", "ticket", "transcript", "webpage"],
+      "default": "document"
+    },
+    "uri": {
+      "type": "string"
+    },
+    "capturedAt": {
+      "type": "datetime"
+    }
+  },
+  "seed": [
+    {
+      "id": "source_support_playbook",
+      "memorySpaceId": "space_support_ops",
+      "title": "Support playbook",
+      "sourceType": "document",
+      "uri": "source://support-playbook",
+      "capturedAt": "2026-05-01T15:00:00.000Z"
+    },
+    {
+      "id": "source_escalation_ticket",
+      "memorySpaceId": "space_support_ops",
+      "title": "Escalation policy ticket",
+      "sourceType": "ticket",
+      "uri": "source://ticket-812",
+      "capturedAt": "2026-05-05T18:30:00.000Z"
+    }
+  ]
+}

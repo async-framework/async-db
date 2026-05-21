@@ -1,5 +1,7 @@
 /**
  * Minimal SSR HTML from schema manifest metadata plus collection records.
+ * async/db supplies model facts; this example owns the `schemaUi` convention.
+ *
  * @param {unknown} manifest
  * @param {Record<string, unknown[]>} recordsByCollection
  */
@@ -7,11 +9,11 @@ export function renderHomePage(manifest, recordsByCollection) {
   const collections = Object.values(manifest.collections ?? {}).filter((c) => c.kind === 'collection');
   const links = collections.map((resource) => {
     const count = recordsByCollection[resource.name]?.length ?? 0;
-    return `<li><a href="/cms/${escapeHtml(resource.name)}">${escapeHtml(resource.editor?.title ?? resource.name)}</a> — ${count} record${count === 1 ? '' : 's'}</li>`;
+    return `<li><a href="/cms/${escapeHtml(resource.name)}">${escapeHtml(resourceTitle(resource))}</a> - ${count} record${count === 1 ? '' : 's'}</li>`;
   });
 
   return pageShell({
-    title: 'Schema UI · CMS home',
+    title: 'Schema UI - CMS home',
     body: `
     <h1>CMS home</h1>
     <p>Resources from <code>src/generated/db.schema.json</code>, records loaded from the db mirror.</p>
@@ -31,7 +33,7 @@ export function renderCollectionListPage(manifest, collectionName, records) {
     return null;
   }
 
-  const title = resource.editor?.title ?? collectionName;
+  const title = resourceTitle(resource);
   const rows = records.map((record) => {
     const id = record?.[resource.idField ?? 'id'];
     const label = pickListLabel(record, resource);
@@ -39,11 +41,11 @@ export function renderCollectionListPage(manifest, collectionName, records) {
   });
 
   return pageShell({
-    title: `Schema UI · ${title}`,
+    title: `Schema UI - ${title}`,
     body: `
-    <p><a href="/">← Home</a></p>
+    <p><a href="/">Home</a></p>
     <h1>${escapeHtml(title)}</h1>
-    ${resource.editor?.description ? `<p>${escapeHtml(resource.editor.description)}</p>` : ''}
+    ${resourceDescription(resource)}
     <ul>${rows.join('\n')}</ul>`,
   });
 }
@@ -60,19 +62,19 @@ export function renderRecordDetailPage(manifest, collectionName, record, records
     return null;
   }
 
-  const title = resource.editor?.title ?? collectionName;
+  const title = resourceTitle(resource);
   const fields = Object.entries(resource.fields ?? {});
-  const viewBlocks = fields.map(([fieldName, field]) => renderFieldBlock('view', fieldName, field, record[fieldName], recordsByCollection));
-  const editorBlocks = fields.map(([fieldName, field]) => renderFieldBlock('editor', fieldName, field, record[fieldName], recordsByCollection));
+  const viewBlocks = fields.map(([fieldName, field]) => renderFieldBlock('view', resource, fieldName, field, record[fieldName], recordsByCollection));
+  const editorBlocks = fields.map(([fieldName, field]) => renderFieldBlock('editor', resource, fieldName, field, record[fieldName], recordsByCollection));
 
   const id = record[resource.idField ?? 'id'];
 
   return pageShell({
-    title: `Schema UI · ${title} · ${id}`,
+    title: `Schema UI - ${title} - ${id}`,
     body: `
-    <p><a href="/">← Home</a> · <a href="/cms/${escapeHtml(collectionName)}">← ${escapeHtml(title)}</a></p>
+    <p><a href="/">Home</a> / <a href="/cms/${escapeHtml(collectionName)}">${escapeHtml(title)}</a></p>
     <h1>${escapeHtml(String(record.title ?? record.name ?? id))}</h1>
-    ${resource.editor?.description ? `<p>${escapeHtml(resource.editor.description)}</p>` : ''}
+    ${resourceDescription(resource)}
     <section class="cms-live-view">
       <h2>Rendered view</h2>
 ${viewBlocks.join('\n')}
@@ -129,12 +131,12 @@ function pickListLabel(record, resource) {
 /**
  * @param {'view' | 'editor'} mode
  */
-function renderFieldBlock(mode, fieldName, field, value, recordsByCollection) {
-  const component = field.ui?.component ?? 'text';
-  const label = field.ui?.label ?? labelFromFieldName(fieldName);
+function renderFieldBlock(mode, resource, fieldName, field, value, recordsByCollection) {
+  const component = componentForField(fieldName, field);
+  const label = field.schemaUi?.label ?? labelFromFieldName(fieldName);
   const inner = mode === 'view'
-    ? renderViewField(component, fieldName, field, value, recordsByCollection)
-    : renderEditorField(component, fieldName, field, value, recordsByCollection);
+    ? renderViewField(component, resource, fieldName, field, value, recordsByCollection)
+    : renderEditorField(component, resource, fieldName, field, value, recordsByCollection);
 
   return `      <div class="field-block" data-component="${escapeHtml(component)}" data-field="${escapeHtml(fieldName)}">
         <label>${escapeHtml(label)}</label>
@@ -142,7 +144,7 @@ function renderFieldBlock(mode, fieldName, field, value, recordsByCollection) {
       </div>`;
 }
 
-function renderViewField(component, fieldName, field, value, recordsByCollection) {
+function renderViewField(component, resource, fieldName, field, value, recordsByCollection) {
   switch (component) {
     case 'email': {
       const text = scalarText(value);
@@ -152,21 +154,22 @@ function renderViewField(component, fieldName, field, value, recordsByCollection
       return `<p>${escapeHtml(scalarText(value))}</p>${hint(field)}`;
     case 'markdown':
       return `<article data-markdown data-field="${escapeHtml(fieldName)}">${escapeHtml(scalarText(value))}</article>${hint(field)}`;
+    case 'select':
     case 'segmented-control':
       return `<span>${escapeHtml(scalarText(value))}</span>${hint(field)}`;
     case 'relationSelect':
       return `${relationAnchor(field, value, recordsByCollection)}${hint(field)}`;
     case 'text':
     default:
-      if (field.ui?.readonly) {
+      if (isReadOnlyField(resource, fieldName, field)) {
         return `<span><code>${escapeHtml(scalarText(value))}</code></span>${hint(field)}`;
       }
       return `<span>${escapeHtml(scalarText(value))}</span>${hint(field)}`;
   }
 }
 
-function renderEditorField(component, fieldName, field, value, recordsByCollection) {
-  if (field.ui?.readonly) {
+function renderEditorField(component, resource, fieldName, field, value, recordsByCollection) {
+  if (isReadOnlyField(resource, fieldName, field)) {
     return `<span><code>${escapeHtml(scalarText(value))}</code></span>${hint(field)}`;
   }
 
@@ -187,12 +190,41 @@ function renderEditorField(component, fieldName, field, value, recordsByCollecti
       ));
       return `<fieldset>${radios.join('<br>\n')}</fieldset>${hint(field)}`;
     }
+    case 'select': {
+      const vals = Array.isArray(field.values) ? field.values : [];
+      const current = scalarText(value);
+      const options = vals.map((option) => (
+        `<option value="${escapeHtml(String(option))}" ${current === String(option) ? 'selected' : ''}>${escapeHtml(String(option))}</option>`
+      ));
+      return `<select name="${escapeHtml(fieldName)}" ${req}>${options.join('\n')}</select>${hint(field)}`;
+    }
     case 'relationSelect':
       return `${relationSelect(field, fieldName, value, recordsByCollection)}${hint(field)}`;
     case 'text':
     default:
       return `<input type="text" name="${escapeHtml(fieldName)}" value="${escapeHtml(scalarText(value))}" ${req}>${hint(field)}`;
   }
+}
+
+function componentForField(fieldName, field) {
+  if (typeof field.schemaUi?.component === 'string') {
+    return field.schemaUi.component;
+  }
+  if (field.relation?.to) {
+    return 'relationSelect';
+  }
+  if (field.type === 'enum') {
+    return 'select';
+  }
+
+  const name = fieldName.toLowerCase();
+  if (name.includes('email')) {
+    return 'email';
+  }
+  if (name.includes('summary') || name.includes('body') || name.includes('description')) {
+    return 'textarea';
+  }
+  return 'text';
 }
 
 function relationAnchor(field, foreignKey, recordsByCollection) {
@@ -206,11 +238,11 @@ function relationAnchor(field, foreignKey, recordsByCollection) {
 }
 
 function relationSelect(field, fieldName, selectedKey, recordsByCollection) {
-  const targetCollection = field.relation?.to ?? field.ui?.optionsFrom;
+  const targetCollection = field.relation?.to;
   const idField = field.relation?.toField ?? 'id';
   const rows = targetCollection ? recordsByCollection[targetCollection] ?? [] : [];
   const current = scalarText(selectedKey);
-  const options = [`<option value="">Choose…</option>`].concat(rows.map((row) => {
+  const options = [`<option value="">Choose</option>`].concat(rows.map((row) => {
     const id = row?.[idField];
     const label = row?.name ?? row?.email ?? row?.title ?? String(id ?? '');
     return `<option value="${escapeHtml(String(id ?? ''))}" ${String(id ?? '') === current ? 'selected' : ''}>${escapeHtml(String(label))}</option>`;
@@ -230,6 +262,19 @@ function relationDisplayLabel(field, foreignKey, recordsByCollection) {
     return scalarText(foreignKey);
   }
   return String(match.name ?? match.email ?? match.title ?? foreignKey ?? '');
+}
+
+function resourceTitle(resource) {
+  return resource.schemaUi?.title ?? resource.schemaUi?.label ?? resource.name;
+}
+
+function resourceDescription(resource) {
+  const description = resource.schemaUi?.description ?? resource.description ?? '';
+  return description ? `<p>${escapeHtml(description)}</p>` : '';
+}
+
+function isReadOnlyField(resource, fieldName, field) {
+  return fieldName === (resource.idField ?? 'id') || field.readOnly === true;
 }
 
 function scalarText(value) {

@@ -1,0 +1,84 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Ordered execution steps within an agent run.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "runId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "run",
+        "to": "runs",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "toolId": {
+      "type": "string",
+      "nullable": true,
+      "relation": {
+        "name": "tool",
+        "to": "tools",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "stepNumber": {
+      "type": "number"
+    },
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enum",
+      "values": ["pending", "running", "completed", "blocked"],
+      "default": "pending"
+    },
+    "outputSummary": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "step_customer_read",
+      "runId": "run_customer_import",
+      "toolId": "tool_fixture_reader",
+      "stepNumber": 1,
+      "label": "Read source records",
+      "status": "completed",
+      "outputSummary": "Found 240 rows and 3 fields that need mapping."
+    },
+    {
+      "id": "step_customer_plan",
+      "runId": "run_customer_import",
+      "toolId": "tool_import_planner",
+      "stepNumber": 2,
+      "label": "Create import plan",
+      "status": "running",
+      "outputSummary": "Drafting field mapping and duplicate strategy."
+    },
+    {
+      "id": "step_policy_draft",
+      "runId": "run_policy_cleanup",
+      "toolId": "tool_fixture_reader",
+      "stepNumber": 1,
+      "label": "Summarize old notes",
+      "status": "completed",
+      "outputSummary": "Grouped outdated policy notes into three cleanup items."
+    },
+    {
+      "id": "step_policy_approval",
+      "runId": "run_policy_cleanup",
+      "toolId": "tool_human_approval",
+      "stepNumber": 2,
+      "label": "Wait for approval",
+      "status": "blocked",
+      "outputSummary": "Human approval is required before publishing."
+    }
+  ]
+}

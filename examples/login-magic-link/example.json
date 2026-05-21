@@ -1,0 +1,5 @@
+{
+  "title": "Magic Link Login",
+  "description": "Model passwordless login requests, code fingerprints, delivery state, and sessions.",
+  "tags": ["login", "auth", "passwordless"]
+}

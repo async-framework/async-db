@@ -1,0 +1,84 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Invitations for teams or specific reviewers to join a change request.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "changeRequestId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "changeRequest",
+        "to": "changeRequests",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "invitedById": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "invitedBy",
+        "to": "members",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "inviteeMemberId": {
+      "type": "string",
+      "nullable": true,
+      "relation": {
+        "name": "inviteeMember",
+        "to": "members",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "inviteeTeamId": {
+      "type": "string",
+      "nullable": true,
+      "relation": {
+        "name": "inviteeTeam",
+        "to": "teams",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "status": {
+      "type": "enum",
+      "values": ["pending", "accepted", "declined"],
+      "default": "pending"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "createdAt": {
+      "type": "datetime"
+    }
+  },
+  "seed": [
+    {
+      "id": "invite_launch_security",
+      "changeRequestId": "cr_launch_policy",
+      "invitedById": "mem_ana",
+      "inviteeMemberId": null,
+      "inviteeTeamId": "team_security",
+      "status": "accepted",
+      "reason": "Security should confirm the public launch checklist language.",
+      "createdAt": "2026-05-01T17:05:00.000Z"
+    },
+    {
+      "id": "invite_vendor_compliance",
+      "changeRequestId": "cr_vendor_access",
+      "invitedById": "mem_lina",
+      "inviteeMemberId": "mem_omar",
+      "inviteeTeamId": null,
+      "status": "pending",
+      "reason": "Compliance needs to approve the vendor access record before the action can proceed.",
+      "createdAt": "2026-05-03T19:00:00.000Z"
+    }
+  ]
+}

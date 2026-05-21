@@ -4,24 +4,35 @@
 
 Use this when product, customer, or spreadsheet-like data starts as CSV. db scans the header row, infers field shapes, generates types, and mirrors the rows into JSON runtime state.
 
+## Why This Shape?
+
+- `customers.csv` is a single source table because CSV works best for flat, spreadsheet-like rows.
+- The runtime mirror becomes JSON so the same REST and viewer workflow works after sync.
+- There are no cross-resource relations in this example; it keeps the focus on CSV inference and source refresh behavior.
+
+## Data Model Diagram
+
+```mermaid
+erDiagram
+  customers["customers"] {
+    string customerId PK
+  }
+```
+
+## Relations To Notice
+
+There are no schema-declared relations in this example; each resource can be inspected independently.
+
 ## Files To Inspect
 
-- [db/customers.csv](./db/customers.csv): source CSV fixture.
-- [db.config.mjs](./db.config.mjs): default mirror setup using `defineConfig`.
+- [db/customers.csv](./db/customers.csv): source data or schema for this example.
+- [db.config.mjs](./db.config.mjs): example configuration for fixture discovery, outputs, and local runtime behavior.
 
 ## Run It
-
-From the repository root, use the repo-internal CLI path:
 
 ```bash
 node ./src/cli.js sync --cwd ./examples/csv
 node ./src/cli.js serve --cwd ./examples/csv
-```
-
-Open the viewer:
-
-```txt
-http://127.0.0.1:7331/__db
 ```
 
 ## Expected Result

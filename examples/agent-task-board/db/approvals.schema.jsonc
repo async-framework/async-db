@@ -1,0 +1,67 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Human approval checkpoints for agent runs or artifacts.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "runId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "run",
+        "to": "runs",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "artifactId": {
+      "type": "string",
+      "nullable": true,
+      "relation": {
+        "name": "artifact",
+        "to": "artifacts",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "requestedByAgentId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "requestedByAgent",
+        "to": "agents",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "reviewer": {
+      "type": "string"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["pending", "approved", "rejected"],
+      "default": "pending"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "requestedAt": {
+      "type": "datetime"
+    }
+  },
+  "seed": [
+    {
+      "id": "approval_policy_cleanup",
+      "runId": "run_policy_cleanup",
+      "artifactId": "artifact_policy_cleanup_draft",
+      "requestedByAgentId": "agent_ops_planner",
+      "reviewer": "Product Ops",
+      "status": "pending",
+      "reason": "Approve the cleanup summary before it is published.",
+      "requestedAt": "2026-05-11T19:00:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Sessions created by accepted passwordless login requests.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "userId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "user",
+        "to": "users",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "loginRequestId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "loginRequest",
+        "to": "loginRequests",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "expired"],
+      "default": "active"
+    },
+    "createdAt": {
+      "type": "datetime"
+    }
+  },
+  "seed": [
+    {
+      "id": "sess_maya_magic",
+      "userId": "user_maya",
+      "loginRequestId": "login_req_maya",
+      "status": "active",
+      "createdAt": "2026-05-20T16:03:00.000Z"
+    }
+  ]
+}

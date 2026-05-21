@@ -1,0 +1,54 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Regression records discovered during eval review.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "evalRunId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "evalRun",
+        "to": "evalRuns",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "testCaseId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "testCase",
+        "to": "testCases",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "severity": {
+      "type": "enum",
+      "values": ["low", "medium", "high"],
+      "default": "medium"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["open", "accepted", "fixed"],
+      "default": "open"
+    },
+    "summary": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "regression_refund_concision",
+      "evalRunId": "run_support_triage_v2",
+      "testCaseId": "case_refund_priority",
+      "severity": "low",
+      "status": "open",
+      "summary": "Candidate answer was less concise on the refund case even though it passed."
+    }
+  ]
+}

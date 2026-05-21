@@ -1,0 +1,62 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "External OAuth/OIDC account links. Seed data excludes provider tokens.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "userId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "user",
+        "to": "users",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "provider": {
+      "type": "enum",
+      "values": ["google", "github", "microsoft"],
+      "default": "google"
+    },
+    "providerSubject": {
+      "type": "string"
+    },
+    "emailVerified": {
+      "type": "boolean",
+      "default": false
+    },
+    "scopes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "linkedAt": {
+      "type": "datetime"
+    }
+  },
+  "seed": [
+    {
+      "id": "acct_iris_google",
+      "userId": "user_iris",
+      "provider": "google",
+      "providerSubject": "google-subject-iris",
+      "emailVerified": true,
+      "scopes": ["openid", "email", "profile"],
+      "linkedAt": "2026-05-05T16:30:00.000Z"
+    },
+    {
+      "id": "acct_sam_github",
+      "userId": "user_sam",
+      "provider": "github",
+      "providerSubject": "github-subject-sam",
+      "emailVerified": true,
+      "scopes": ["read:user", "user:email"],
+      "linkedAt": "2026-05-07T14:20:00.000Z"
+    }
+  ]
+}

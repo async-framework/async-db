@@ -1,0 +1,49 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Approval policy records for risky tool use.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "toolId": {
+      "type": "string",
+      "nullable": true,
+      "relation": {
+        "name": "tool",
+        "to": "tools",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "riskLevel": {
+      "type": "enum",
+      "values": ["low", "medium", "high"],
+      "default": "medium"
+    },
+    "approvalRequired": {
+      "type": "boolean",
+      "default": true
+    },
+    "rule": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "policy_high_risk_prod",
+      "toolId": "tool_prod_database_export",
+      "riskLevel": "high",
+      "approvalRequired": true,
+      "rule": "High-risk production tools require human approval before execution."
+    },
+    {
+      "id": "policy_low_risk_read",
+      "toolId": null,
+      "riskLevel": "low",
+      "approvalRequired": false,
+      "rule": "Low-risk read tools can run with an active execute scope."
+    }
+  ]
+}

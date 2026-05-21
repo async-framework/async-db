@@ -4,6 +4,32 @@
 
 Use this when local fixtures need related records but you still want plain ids in JSON. It demonstrates to-one relation metadata, explicit REST `expand`, and nested `select`.
 
+## Why This Shape?
+
+- `posts` and `users` are separate because many posts can share one author.
+- The post record stores `authorId` as a plain scalar id so source data stays simple.
+- The schema adds relation metadata so async/db knows how to resolve that id when requested.
+
+## Data Model Diagram
+
+```mermaid
+erDiagram
+  posts["posts"] {
+    string id PK
+    string authorId FK
+  }
+  users["users"] {
+    string id PK
+  }
+  posts }o--|| users : "author"
+```
+
+## Relations To Notice
+
+- `posts.authorId` relates to `users.id` and exposes the relation name `author`.
+- REST expansion is explicit: use `expand=author` before selecting `author.name`.
+- Relation expansion is intentionally depth 1 in this version.
+
 ## Files To Inspect
 
 - [db/users.schema.jsonc](./db/users.schema.jsonc): target collection.

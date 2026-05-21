@@ -1,0 +1,6 @@
+Month,Region,New Revenue,Expansion Revenue,Churned Revenue,Accounts,Forecast Locked
+2026-01,North America,48200,13200,4200,48,true
+2026-01,Europe,31800,8400,2600,31,true
+2026-01,Asia Pacific,22600,5100,1900,22,true
+2026-02,North America,51400,14800,3800,51,false
+2026-02,Europe,33600,9100,2100,33,false

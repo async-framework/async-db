@@ -1,0 +1,52 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Scheduled refresh checks for sources or memory spaces.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "memorySpaceId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "memorySpace",
+        "to": "memorySpaces",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "sourceId": {
+      "type": "string",
+      "nullable": true,
+      "relation": {
+        "name": "source",
+        "to": "sources",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "status": {
+      "type": "enum",
+      "values": ["queued", "running", "completed", "failed"],
+      "default": "queued"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "scheduledFor": {
+      "type": "datetime"
+    }
+  },
+  "seed": [
+    {
+      "id": "refresh_support_hours",
+      "memorySpaceId": "space_support_ops",
+      "sourceId": "source_support_playbook",
+      "status": "queued",
+      "reason": "Coverage hours memory has conflicting evidence and needs review.",
+      "scheduledFor": "2026-05-20T16:00:00.000Z"
+    }
+  ]
+}

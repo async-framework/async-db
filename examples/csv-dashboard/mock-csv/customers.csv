@@ -1,0 +1,6 @@
+Customer ID,Name,Segment,Region,Plan,Monthly Spend,Health Score,Active
+c_100,Ada Lovelace,Startup,West,team,240,94,true
+c_101,Grace Hopper,Enterprise,East,enterprise,1280,89,true
+c_102,Katherine Johnson,Midmarket,South,team,540,91,true
+c_103,Dorothy Vaughan,Startup,West,starter,120,76,false
+c_104,Mary Jackson,Enterprise,North,enterprise,1440,97,true

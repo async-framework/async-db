@@ -1,0 +1,52 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Media assets selected by pages and blocks.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "kind": {
+      "type": "enum",
+      "values": ["image", "video", "icon"],
+      "default": "image"
+    },
+    "url": {
+      "type": "string",
+      "required": true
+    },
+    "alt": {
+      "type": "string",
+      "required": true
+    },
+    "focalPoint": {
+      "type": "enum",
+      "values": ["center", "top", "right", "bottom", "left"],
+      "default": "center"
+    }
+  },
+  "seed": [
+    {
+      "id": "media_home_hero",
+      "kind": "image",
+      "url": "/images/page-builder/home-hero.jpg",
+      "alt": "Marketing homepage preview",
+      "focalPoint": "center"
+    },
+    {
+      "id": "media_product_hero",
+      "kind": "image",
+      "url": "/images/page-builder/product-hero.jpg",
+      "alt": "Product workflow screen",
+      "focalPoint": "right"
+    },
+    {
+      "id": "media_customer_quote",
+      "kind": "image",
+      "url": "/images/page-builder/customer-quote.jpg",
+      "alt": "Customer portrait",
+      "focalPoint": "top"
+    }
+  ]
+}

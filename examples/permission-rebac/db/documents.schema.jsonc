@@ -1,0 +1,32 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Documents whose access depends on relationships.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enum",
+      "values": ["draft", "published"],
+      "default": "draft"
+    }
+  },
+  "seed": [
+    {
+      "id": "doc_roadmap",
+      "title": "Product roadmap",
+      "status": "draft"
+    },
+    {
+      "id": "doc_handbook",
+      "title": "Team handbook",
+      "status": "published"
+    }
+  ]
+}

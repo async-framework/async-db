@@ -1,0 +1,30 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "color": {
+      "type": "string",
+      "required": true
+    }
+  },
+  "seed": [
+    {
+      "id": "label-bug",
+      "name": "bug",
+      "color": "#dc2626"
+    },
+    {
+      "id": "label-docs",
+      "name": "docs",
+      "color": "#2563eb"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "title": "Blog",
+  "description": "Model posts with authors, tags, related posts, Markdown body fields, and image metadata.",
+  "tags": ["content", "relations", "markdown"]
+}

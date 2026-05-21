@@ -1,0 +1,37 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Users referenced by document ACL entries.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "team": {
+      "type": "enum",
+      "values": ["finance", "ops"],
+      "required": true
+    }
+  },
+  "seed": [
+    {
+      "id": "user_finance_owner",
+      "name": "Fran Finance",
+      "team": "finance"
+    },
+    {
+      "id": "user_finance_reader",
+      "name": "Riley Reader",
+      "team": "finance"
+    },
+    {
+      "id": "user_ops_writer",
+      "name": "Owen Ops",
+      "team": "ops"
+    }
+  ]
+}

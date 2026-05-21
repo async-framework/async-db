@@ -1,0 +1,6 @@
+Order ID,Customer,Region,Status,Items,Subtotal,Discount,Shipped
+ord_9001,Ada Lovelace,West,paid,3,420,20,true
+ord_9002,Grace Hopper,East,paid,8,1840,120,true
+ord_9003,Katherine Johnson,South,pending,2,310,0,false
+ord_9004,Dorothy Vaughan,West,cancelled,1,90,0,false
+ord_9005,Mary Jackson,North,paid,5,760,60,true

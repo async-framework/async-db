@@ -1,0 +1,56 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Inventory rows linked to products.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "productId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "product",
+        "to": "products",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "location": {
+      "type": "enum",
+      "values": ["warehouse", "showroom"],
+      "required": true
+    },
+    "stockOnHand": {
+      "type": "number",
+      "default": 0
+    },
+    "stockReserved": {
+      "type": "number",
+      "default": 0
+    },
+    "updatedAt": {
+      "type": "datetime",
+      "required": true
+    }
+  },
+  "seed": [
+    {
+      "id": "inv_fixture_kit_warehouse",
+      "productId": "prod_fixture_kit",
+      "location": "warehouse",
+      "stockOnHand": 24,
+      "stockReserved": 3,
+      "updatedAt": "2026-05-01T10:00:00.000Z"
+    },
+    {
+      "id": "inv_schema_guide_showroom",
+      "productId": "prod_schema_guide",
+      "location": "showroom",
+      "stockOnHand": 7,
+      "stockReserved": 1,
+      "updatedAt": "2026-05-02T10:00:00.000Z"
+    }
+  ]
+}

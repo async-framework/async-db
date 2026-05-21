@@ -1,0 +1,5 @@
+{
+  "title": "CSV Dashboard",
+  "description": "Drop CSV files into an empty runtime dashboard, then inspect generated resource details, charts, and table previews.",
+  "tags": ["csv", "dashboard", "runtime"]
+}

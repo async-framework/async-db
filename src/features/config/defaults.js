@@ -10,6 +10,8 @@ export const DEFAULT_CONFIG = {
     viewerManifest: null,
     operationRegistry: null,
     operationRefs: null,
+    diagramMermaid: null,
+    diagramModel: null,
     honoStarterDir: './db-api',
   },
   schemaOutFile: null,
@@ -17,6 +19,7 @@ export const DEFAULT_CONFIG = {
   schemaManifest: {},
   sources: {
     readers: [],
+    derived: [],
     writePolicy: 'preserve',
   },
   stores: {

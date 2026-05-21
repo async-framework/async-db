@@ -1,0 +1,45 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Roles collect permissions so users do not need individual grants.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "string"
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "App-owned permission keys such as documents:read."
+    }
+  },
+  "seed": [
+    {
+      "id": "role_admin",
+      "name": "Admin",
+      "description": "Can manage every example document.",
+      "permissions": ["documents:read", "documents:edit", "documents:delete"]
+    },
+    {
+      "id": "role_editor",
+      "name": "Editor",
+      "description": "Can read and edit documents.",
+      "permissions": ["documents:read", "documents:edit"]
+    },
+    {
+      "id": "role_viewer",
+      "name": "Viewer",
+      "description": "Can read documents only.",
+      "permissions": ["documents:read"]
+    }
+  ]
+}

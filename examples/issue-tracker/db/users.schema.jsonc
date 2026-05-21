@@ -1,0 +1,31 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    }
+  },
+  "seed": [
+    {
+      "id": "u_1",
+      "name": "Ada Lovelace",
+      "email": "ada@example.com"
+    },
+    {
+      "id": "u_2",
+      "name": "Grace Hopper",
+      "email": "grace@example.com"
+    }
+  ]
+}

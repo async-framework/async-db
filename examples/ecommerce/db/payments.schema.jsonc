@@ -1,0 +1,59 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Payment records linked to orders.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "orderId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "order",
+        "to": "orders",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "status": {
+      "type": "enum",
+      "values": ["authorized", "captured", "failed", "refunded"],
+      "required": true
+    },
+    "provider": {
+      "type": "enum",
+      "values": ["stripe", "manual"],
+      "required": true
+    },
+    "amountCents": {
+      "type": "number",
+      "required": true,
+      "min": 0
+    },
+    "currency": {
+      "type": "string",
+      "default": "USD"
+    },
+    "providerRef": {
+      "type": "string"
+    },
+    "capturedAt": {
+      "type": "datetime",
+      "nullable": true
+    }
+  },
+  "seed": [
+    {
+      "id": "pay_1001",
+      "orderId": "ord_1001",
+      "status": "captured",
+      "provider": "manual",
+      "amountCents": 6671,
+      "currency": "USD",
+      "providerRef": "manual_1001",
+      "capturedAt": "2026-05-11T12:02:00.000Z"
+    }
+  ]
+}

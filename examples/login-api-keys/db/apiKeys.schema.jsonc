@@ -1,0 +1,65 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "API key metadata. Seed data stores prefixes and fingerprints only, never raw keys.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "serviceAccountId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "serviceAccount",
+        "to": "serviceAccounts",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "keyPrefix": {
+      "type": "string"
+    },
+    "fingerprint": {
+      "type": "string"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "rotation_due", "revoked"],
+      "default": "active"
+    },
+    "createdAt": {
+      "type": "datetime"
+    },
+    "lastUsedAt": {
+      "type": "datetime",
+      "nullable": true
+    }
+  },
+  "seed": [
+    {
+      "id": "key_billing_sync",
+      "serviceAccountId": "svc_billing_sync",
+      "label": "Billing production key",
+      "keyPrefix": "prefix_billing_live",
+      "fingerprint": "fp_api_billing_2026_05",
+      "status": "active",
+      "createdAt": "2026-05-01T15:05:00.000Z",
+      "lastUsedAt": "2026-05-20T18:00:00.000Z"
+    },
+    {
+      "id": "key_support_import_old",
+      "serviceAccountId": "svc_support_import",
+      "label": "Support import old key",
+      "keyPrefix": "prefix_support_live",
+      "fingerprint": "fp_api_support_2026_03",
+      "status": "rotation_due",
+      "createdAt": "2026-03-01T15:05:00.000Z",
+      "lastUsedAt": "2026-05-19T18:00:00.000Z"
+    }
+  ]
+}

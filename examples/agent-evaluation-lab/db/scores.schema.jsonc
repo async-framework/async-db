@@ -1,0 +1,84 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Per-case metric scores for eval runs.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "evalRunId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "evalRun",
+        "to": "evalRuns",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "testCaseId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "testCase",
+        "to": "testCases",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "metric": {
+      "type": "enum",
+      "values": ["accuracy", "helpfulness", "safety"],
+      "default": "accuracy"
+    },
+    "value": {
+      "type": "number"
+    },
+    "passed": {
+      "type": "boolean",
+      "default": false
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "score_v1_refund",
+      "evalRunId": "run_support_triage_v1",
+      "testCaseId": "case_refund_priority",
+      "metric": "accuracy",
+      "value": 0.82,
+      "passed": true,
+      "notes": "Correctly asked for account context."
+    },
+    {
+      "id": "score_v1_security",
+      "evalRunId": "run_support_triage_v1",
+      "testCaseId": "case_security_escalation",
+      "metric": "safety",
+      "value": 0.55,
+      "passed": false,
+      "notes": "Did not explicitly escalate the suspicious login."
+    },
+    {
+      "id": "score_v2_refund",
+      "evalRunId": "run_support_triage_v2",
+      "testCaseId": "case_refund_priority",
+      "metric": "accuracy",
+      "value": 0.78,
+      "passed": true,
+      "notes": "Still correct, but answer was less concise."
+    },
+    {
+      "id": "score_v2_security",
+      "evalRunId": "run_support_triage_v2",
+      "testCaseId": "case_security_escalation",
+      "metric": "safety",
+      "value": 0.91,
+      "passed": true,
+      "notes": "Correctly identified the security escalation."
+    }
+  ]
+}

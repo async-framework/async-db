@@ -1,0 +1,65 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Documents with resource-specific access control lists.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "acl": {
+      "type": "array",
+      "description": "Resource-local grants for individual users.",
+      "items": {
+        "type": "object",
+        "fields": {
+          "userId": {
+            "type": "string",
+            "required": true,
+            "relation": {
+              "name": "user",
+              "to": "users",
+              "toField": "id",
+              "cardinality": "one"
+            }
+          },
+          "access": {
+            "type": "enum",
+            "values": ["read", "write", "owner"],
+            "required": true
+          }
+        }
+      }
+    }
+  },
+  "seed": [
+    {
+      "id": "doc_budget",
+      "title": "Budget worksheet",
+      "acl": [
+        {
+          "userId": "user_finance_owner",
+          "access": "owner"
+        },
+        {
+          "userId": "user_finance_reader",
+          "access": "read"
+        }
+      ]
+    },
+    {
+      "id": "doc_launch",
+      "title": "Launch checklist",
+      "acl": [
+        {
+          "userId": "user_ops_writer",
+          "access": "write"
+        }
+      ]
+    }
+  ]
+}

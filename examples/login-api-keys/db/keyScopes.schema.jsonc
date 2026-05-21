@@ -1,0 +1,57 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Scope grants attached to API keys.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "apiKeyId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "apiKey",
+        "to": "apiKeys",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "resource": {
+      "type": "string"
+    },
+    "action": {
+      "type": "enum",
+      "values": ["read", "write"],
+      "default": "read"
+    },
+    "environment": {
+      "type": "enum",
+      "values": ["dev", "staging", "prod"],
+      "default": "dev"
+    }
+  },
+  "seed": [
+    {
+      "id": "scope_billing_read",
+      "apiKeyId": "key_billing_sync",
+      "resource": "invoices",
+      "action": "read",
+      "environment": "prod"
+    },
+    {
+      "id": "scope_billing_write",
+      "apiKeyId": "key_billing_sync",
+      "resource": "payments",
+      "action": "write",
+      "environment": "prod"
+    },
+    {
+      "id": "scope_support_import",
+      "apiKeyId": "key_support_import_old",
+      "resource": "tickets",
+      "action": "write",
+      "environment": "staging"
+    }
+  ]
+}

@@ -18,8 +18,7 @@ export default defineConfig({
       if (resourceName === 'projects' && fieldName === 'status') {
         return {
           ...defaultManifest,
-          ui: {
-            ...defaultManifest.ui,
+          schemaUi: {
             component: 'segmented-control',
           },
         };
@@ -28,8 +27,7 @@ export default defineConfig({
       if (resourceName === 'users' && fieldName === 'bio') {
         return {
           ...defaultManifest,
-          ui: {
-            ...defaultManifest.ui,
+          schemaUi: {
             component: 'markdown',
           },
         };

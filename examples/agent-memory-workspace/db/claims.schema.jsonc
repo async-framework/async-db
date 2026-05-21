@@ -1,0 +1,71 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Extracted statements that can support or conflict with memories.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "chunkId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "chunk",
+        "to": "chunks",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "memoryId": {
+      "type": "string",
+      "nullable": true,
+      "relation": {
+        "name": "memory",
+        "to": "memories",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "text": {
+      "type": "string",
+      "required": true
+    },
+    "confidence": {
+      "type": "enum",
+      "values": ["low", "medium", "high"],
+      "default": "medium"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["proposed", "accepted", "conflict"],
+      "default": "proposed"
+    }
+  },
+  "seed": [
+    {
+      "id": "claim_support_hours",
+      "chunkId": "chunk_support_hours",
+      "memoryId": "mem_support_hours",
+      "text": "Support coverage runs from 8 AM to 6 PM Pacific on business days.",
+      "confidence": "high",
+      "status": "accepted"
+    },
+    {
+      "id": "claim_security_escalation",
+      "chunkId": "chunk_security_escalation",
+      "memoryId": "mem_security_escalation",
+      "text": "Security-impacting customer issues should be escalated within one business hour.",
+      "confidence": "high",
+      "status": "accepted"
+    },
+    {
+      "id": "claim_old_support_hours",
+      "chunkId": "chunk_old_support_hours",
+      "memoryId": "mem_support_hours",
+      "text": "Support coverage ended at 5 PM Pacific in an older note.",
+      "confidence": "medium",
+      "status": "conflict"
+    }
+  ]
+}

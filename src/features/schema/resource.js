@@ -2,7 +2,23 @@ import { resourceConfigValue, routePathForResource, typeNameForResource } from '
 import { inferFieldsFromData, normalizeField } from './fields.js';
 import { relationsForResource } from './relations.js';
 
-export function buildResource({ name, dataPath, dataFormat, dataHash, schemaPath, schemaSource, rawData, rawSchema, config }) {
+export function buildResource({
+  name,
+  dataPath,
+  dataFormat,
+  dataHash,
+  dataSourceFile,
+  dataDerived,
+  dataDependencies,
+  schemaPath,
+  schemaSource,
+  schemaSourceFile,
+  schemaDerived,
+  schemaDependencies,
+  rawData,
+  rawSchema,
+  config,
+}) {
   const collectionConfig = resourceConfigValue(config.collections, name) ?? {};
   if (rawSchema) {
     const kind = rawSchema.kind ?? inferKindFromData(rawData) ?? 'collection';
@@ -29,8 +45,14 @@ export function buildResource({ name, dataPath, dataFormat, dataHash, schemaPath
       dataPath,
       dataFormat,
       dataHash,
+      dataSourceFile,
+      dataDerived,
+      dataDependencies,
       schemaPath,
       schemaSource: schemaSource ?? null,
+      schemaSourceFile,
+      schemaDerived,
+      schemaDependencies,
       typeSource: 'schema',
       generatedIds: idResult.generated,
       resolvers,
@@ -54,7 +76,13 @@ export function buildResource({ name, dataPath, dataFormat, dataHash, schemaPath
     dataPath,
     dataFormat,
     dataHash,
+    dataSourceFile,
+    dataDerived,
+    dataDependencies,
     schemaPath,
+    schemaSourceFile,
+    schemaDerived,
+    schemaDependencies,
     schemaSource: null,
     typeSource: 'data',
     generatedIds: idResult.generated,

@@ -1,0 +1,160 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Pages with nested content blocks for a lightweight CMS.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enum",
+      "values": ["unpublished", "published"],
+      "default": "unpublished",
+      "description": "Whether the page should be visible in published site output."
+    },
+    "template": {
+      "type": "enum",
+      "values": ["marketing", "docs"],
+      "default": "marketing"
+    },
+    "seo": {
+      "type": "object",
+      "fields": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 160
+        }
+      }
+    },
+    "blocks": {
+      "type": "array",
+      "description": "Content blocks edited by app-owned CMS code.",
+      "items": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "type": "string",
+            "required": true
+          },
+          "kind": {
+            "type": "enum",
+            "values": ["hero", "markdown", "image", "cta"],
+            "required": true
+          },
+          "title": {
+            "type": "string"
+          },
+          "bodyMarkdown": {
+            "type": "string"
+          },
+          "mediaId": {
+            "type": "string",
+            "relation": {
+              "name": "media",
+              "to": "media",
+              "toField": "id",
+              "cardinality": "one"
+            }
+          },
+          "settings": {
+            "type": "object",
+            "fields": {
+              "theme": {
+                "type": "enum",
+                "values": ["light", "dark", "accent"],
+                "default": "light"
+              },
+              "align": {
+                "type": "enum",
+                "values": ["left", "center"],
+                "default": "left"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "seed": [
+    {
+      "id": "page_home",
+      "slug": "home",
+      "title": "Home",
+      "status": "published",
+      "template": "marketing",
+      "seo": {
+        "title": "Home",
+        "description": "A tiny page-builder record backed by async/db."
+      },
+      "blocks": [
+        {
+          "id": "block_home_hero",
+          "kind": "hero",
+          "title": "Build With Local Data",
+          "bodyMarkdown": "Start with fixture-backed records before wiring production storage.",
+          "mediaId": "asset_home_hero",
+          "settings": {
+            "theme": "accent",
+            "align": "center"
+          }
+        },
+        {
+          "id": "block_home_cta",
+          "kind": "cta",
+          "title": "Open the viewer",
+          "bodyMarkdown": "Use the built-in viewer while the app CMS is still forming.",
+          "settings": {
+            "theme": "dark",
+            "align": "left"
+          }
+        }
+      ]
+    },
+    {
+      "id": "page_docs",
+      "slug": "docs",
+      "title": "Docs",
+      "status": "unpublished",
+      "template": "docs",
+      "seo": {
+        "title": "Docs",
+        "description": "Documentation page assembled from simple blocks."
+      },
+      "blocks": [
+        {
+          "id": "block_docs_intro",
+          "kind": "markdown",
+          "title": "Docs intro",
+          "bodyMarkdown": "Write page copy as Markdown and keep layout choices in block settings.",
+          "settings": {
+            "theme": "light",
+            "align": "left"
+          }
+        },
+        {
+          "id": "block_docs_image",
+          "kind": "image",
+          "title": "Docs preview",
+          "mediaId": "asset_docs_card",
+          "settings": {
+            "theme": "light",
+            "align": "center"
+          }
+        }
+      ]
+    }
+  ]
+}

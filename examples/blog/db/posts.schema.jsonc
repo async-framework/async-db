@@ -1,0 +1,83 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Blog posts with Markdown bodies and editorial metadata.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "sourcePath": {
+      "type": "string",
+      "required": true,
+      "description": "Markdown source path inside db/."
+    },
+    "datePath": {
+      "type": "string",
+      "nullable": true,
+      "description": "YYYY-MM-DD derived from db/posts/{year}/{month}/{day}/."
+    },
+    "status": {
+      "type": "enum",
+      "values": ["draft", "published"],
+      "default": "draft"
+    },
+    "authorId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "author",
+        "to": "authors",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "tagIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tag ids owned by the app's blog UI."
+    },
+    "relatedPostIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Related post ids used by the app."
+    },
+    "heroImage": {
+      "type": "object",
+      "fields": {
+        "url": {
+          "type": "string",
+          "required": true
+        },
+        "alt": {
+          "type": "string",
+          "required": true
+        },
+        "credit": {
+          "type": "string"
+        }
+      }
+    },
+    "bodyMarkdown": {
+      "type": "string",
+      "description": "Post body in Markdown."
+    },
+    "publishedAt": {
+      "type": "datetime",
+      "nullable": true
+    }
+  }
+}

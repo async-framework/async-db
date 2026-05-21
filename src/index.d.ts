@@ -27,7 +27,7 @@ export type DbOutputOptions = {
   types?: string | null;
   /** Optional committed TypeScript type copy for app/CI imports. */
   committedTypes?: string | null;
-  /** Optional committed generated JSON schema manifest for admin/CMS UI generation. */
+  /** Optional committed generated JSON schema manifest for app-owned model metadata. */
   schemaManifest?: string | null;
   /** Optional committed generated JSON viewer manifest for custom data UIs. */
   viewerManifest?: string | null;
@@ -35,6 +35,10 @@ export type DbOutputOptions = {
   operationRegistry?: string | null;
   /** Optional client-safe registered operation refs output path. */
   operationRefs?: string | null;
+  /** Optional committed Mermaid ER diagram output path. */
+  diagramMermaid?: string | null;
+  /** Optional committed JSON diagram model output path. */
+  diagramModel?: string | null;
   /** Output folder for generated Hono starter code. Defaults to "./db-api". */
   honoStarterDir?: string;
 };
@@ -363,9 +367,37 @@ export type DbSourceReader = {
   read(context: DbSourceReaderContext): DbSourceReaderResult | Promise<DbSourceReaderResult>;
 };
 
+export type DbDerivedSourceFile = {
+  /** Source-dir-relative dependency path, such as "data/users.json". */
+  path: string;
+  /** Repo-relative dependency path, such as "db/data/users.json". */
+  file: string;
+  /** Absolute dependency file path. */
+  sourceFile: string;
+  /** SHA-256 hash of the dependency file bytes. */
+  hash: string;
+  readText(): Promise<string>;
+  readBuffer(): Promise<Buffer>;
+};
+
+export type DbDerivedSourceContext = {
+  config: DbOptions;
+  name: string;
+  files: DbDerivedSourceFile[];
+};
+
+export type DbDerivedSource = {
+  name: string;
+  resourceName?: string;
+  dependsOn: string | string[];
+  read(context: DbDerivedSourceContext): DbSourceReaderResult | Promise<DbSourceReaderResult>;
+};
+
 export type DbSourcesOptions = {
   /** Custom source readers. They run before built-in JSON, JSONC, CSV, and .schema.mjs readers. */
   readers?: DbSourceReader[];
+  /** Virtual resources derived from dependency files under the fixture source folder. */
+  derived?: DbDerivedSource[];
   /** How db handles writes back to source fixtures. Defaults to "preserve". */
   writePolicy?: 'preserve' | 'allow';
 };
@@ -810,6 +842,9 @@ export function generateSchemaManifest(config: DbOptions, options?: { outFile?: 
 export function renderSchemaManifest(resources: unknown[], config?: DbOptions): unknown;
 export function generateViewerManifest(config: DbOptions, options?: { outFile?: string }): Promise<{ manifest: unknown; content: string; outFiles: string[] }>;
 export function renderViewerManifest(resources: unknown[], config?: DbOptions): unknown;
+export function generateDiagram(config: DbOptions, options?: { format?: 'mermaid' | 'json'; fields?: 'compact' | 'all' | 'none'; outFile?: string }): Promise<{ model: unknown; content: string; format: 'mermaid' | 'json'; outFiles: string[] }>;
+export function renderDiagramModel(resources: unknown[], config?: DbOptions, options?: { fields?: 'compact' | 'all' | 'none' }): unknown;
+export function renderMermaidDiagram(model: unknown, options?: { direction?: 'TB' | 'BT' | 'LR' | 'RL' }): string;
 export function hashOperation(operation: DbOperationTemplate): string;
 export function buildOperationManifest(
   config: DbOptions,

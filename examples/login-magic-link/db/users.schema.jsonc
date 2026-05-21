@@ -1,0 +1,39 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Users who sign in with short-lived links or codes.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "disabled"],
+      "default": "active"
+    }
+  },
+  "seed": [
+    {
+      "id": "user_maya",
+      "email": "maya@example.com",
+      "name": "Maya Chen",
+      "status": "active"
+    },
+    {
+      "id": "user_noah",
+      "email": "noah@example.com",
+      "name": "Noah Reed",
+      "status": "active"
+    }
+  ]
+}

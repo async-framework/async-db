@@ -1,0 +1,54 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Versioned prompts used by eval runs.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "evalSuiteId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "evalSuite",
+        "to": "evalSuites",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "version": {
+      "type": "string"
+    },
+    "promptText": {
+      "type": "string"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["draft", "active", "archived"],
+      "default": "draft"
+    }
+  },
+  "seed": [
+    {
+      "id": "prompt_triage_v1",
+      "evalSuiteId": "suite_support_triage",
+      "name": "Support triage prompt",
+      "version": "v1",
+      "promptText": "Classify the customer request and suggest the next support action.",
+      "status": "archived"
+    },
+    {
+      "id": "prompt_triage_v2",
+      "evalSuiteId": "suite_support_triage",
+      "name": "Support triage prompt",
+      "version": "v2",
+      "promptText": "Classify the request, identify escalation risk, and name the safest next action.",
+      "status": "active"
+    }
+  ]
+}

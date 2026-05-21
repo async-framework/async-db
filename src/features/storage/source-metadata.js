@@ -8,6 +8,9 @@ export function updateSourceMetadataResource(sourceMetadata, config, resource) {
     path: resource.dataPath ? relativePath(config, resource.dataPath) : null,
     format: resource.dataFormat,
     hash: resource.dataHash,
+    derived: resource.dataDerived === true ? true : undefined,
+    source: resource.dataDerived === true ? resource.dataSourceFile : undefined,
+    dependencies: resource.dataDependencies,
   };
 
   sourceMetadata.resources[resource.name] = {
@@ -21,7 +24,10 @@ export function updateSourceMetadataResource(sourceMetadata, config, resource) {
 function sameSource(previous, next) {
   return previous?.path === next.path
     && previous?.format === next.format
-    && previous?.hash === next.hash;
+    && previous?.hash === next.hash
+    && previous?.derived === next.derived
+    && previous?.source === next.source
+    && JSON.stringify(previous?.dependencies ?? null) === JSON.stringify(next.dependencies ?? null);
 }
 
 function relativePath(config, filePath) {

@@ -1,0 +1,90 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Customers who can place ecommerce orders.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "segment": {
+      "type": "enum",
+      "values": ["retail", "wholesale", "vip"],
+      "default": "retail"
+    },
+    "defaultShippingAddress": {
+      "type": "object",
+      "fields": {
+        "name": {
+          "type": "string",
+          "required": true
+        },
+        "line1": {
+          "type": "string",
+          "required": true
+        },
+        "city": {
+          "type": "string",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "required": true
+        },
+        "postalCode": {
+          "type": "string",
+          "required": true
+        },
+        "country": {
+          "type": "string",
+          "required": true
+        }
+      }
+    },
+    "createdAt": {
+      "type": "datetime",
+      "required": true
+    }
+  },
+  "seed": [
+    {
+      "id": "cust_ada",
+      "email": "ada@example.com",
+      "name": "Ada Lovelace",
+      "segment": "vip",
+      "defaultShippingAddress": {
+        "name": "Ada Lovelace",
+        "line1": "12 Loop Lane",
+        "city": "San Francisco",
+        "region": "CA",
+        "postalCode": "94107",
+        "country": "US"
+      },
+      "createdAt": "2026-05-01T10:00:00.000Z"
+    },
+    {
+      "id": "cust_grace",
+      "email": "grace@example.com",
+      "name": "Grace Hopper",
+      "segment": "retail",
+      "defaultShippingAddress": {
+        "name": "Grace Hopper",
+        "line1": "34 Compiler Court",
+        "city": "Arlington",
+        "region": "VA",
+        "postalCode": "22201",
+        "country": "US"
+      },
+      "createdAt": "2026-05-02T10:00:00.000Z"
+    }
+  ]
+}

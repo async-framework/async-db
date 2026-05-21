@@ -1,0 +1,61 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Sessions created from external account sign-ins.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "userId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "user",
+        "to": "users",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "externalAccountId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "externalAccount",
+        "to": "externalAccounts",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "revoked"],
+      "default": "active"
+    },
+    "createdAt": {
+      "type": "datetime"
+    },
+    "lastSeenAt": {
+      "type": "datetime",
+      "nullable": true
+    }
+  },
+  "seed": [
+    {
+      "id": "sess_iris_google",
+      "userId": "user_iris",
+      "externalAccountId": "acct_iris_google",
+      "status": "active",
+      "createdAt": "2026-05-20T15:00:00.000Z",
+      "lastSeenAt": "2026-05-20T17:00:00.000Z"
+    },
+    {
+      "id": "sess_sam_github",
+      "userId": "user_sam",
+      "externalAccountId": "acct_sam_github",
+      "status": "revoked",
+      "createdAt": "2026-05-18T12:00:00.000Z",
+      "lastSeenAt": "2026-05-18T12:45:00.000Z"
+    }
+  ]
+}

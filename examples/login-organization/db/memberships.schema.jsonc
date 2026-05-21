@@ -1,0 +1,63 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "User membership records that determine organization login access.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "userId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "user",
+        "to": "users",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "organizationId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "organization",
+        "to": "organizations",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "role": {
+      "type": "enum",
+      "values": ["owner", "admin", "member"],
+      "default": "member"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "pending", "removed"],
+      "default": "active"
+    },
+    "joinedAt": {
+      "type": "datetime",
+      "nullable": true
+    }
+  },
+  "seed": [
+    {
+      "id": "mbr_nina_acme",
+      "userId": "user_nina",
+      "organizationId": "org_acme",
+      "role": "owner",
+      "status": "active",
+      "joinedAt": "2026-04-01T15:00:00.000Z"
+    },
+    {
+      "id": "mbr_owen_northstar",
+      "userId": "user_owen",
+      "organizationId": "org_northstar",
+      "role": "admin",
+      "status": "active",
+      "joinedAt": "2026-04-10T15:00:00.000Z"
+    }
+  ]
+}

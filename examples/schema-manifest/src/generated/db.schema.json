@@ -9,22 +9,13 @@
           "type": "string",
           "required": true,
           "nullable": false,
-          "description": "Stable project id.",
-          "ui": {
-            "label": "Id",
-            "component": "text",
-            "readonly": true
-          }
+          "description": "Stable project id."
         },
         "name": {
           "type": "string",
           "required": true,
           "nullable": false,
-          "description": "Project display name.",
-          "ui": {
-            "label": "Name",
-            "component": "text"
-          }
+          "description": "Project display name."
         },
         "ownerId": {
           "type": "string",
@@ -36,11 +27,6 @@
             "to": "users",
             "toField": "id",
             "cardinality": "one"
-          },
-          "ui": {
-            "label": "Owner Id",
-            "component": "relationSelect",
-            "optionsFrom": "users"
           }
         },
         "status": {
@@ -55,8 +41,7 @@
             "paused",
             "done"
           ],
-          "ui": {
-            "label": "Status",
+          "schemaUi": {
             "component": "segmented-control"
           }
         },
@@ -65,11 +50,7 @@
           "required": false,
           "nullable": false,
           "description": "Internal project notes.",
-          "maxLength": 500,
-          "ui": {
-            "label": "Notes",
-            "component": "textarea"
-          }
+          "maxLength": 500
         }
       },
       "description": "Projects used to demonstrate generated form metadata.",
@@ -83,41 +64,27 @@
           "type": "string",
           "required": true,
           "nullable": false,
-          "description": "Stable user id.",
-          "ui": {
-            "label": "Id",
-            "component": "text",
-            "readonly": true
-          }
+          "description": "Stable user id."
         },
         "name": {
           "type": "string",
           "required": true,
           "nullable": false,
-          "description": "Display name.",
-          "ui": {
-            "label": "Name",
-            "component": "text"
-          }
+          "description": "Display name."
         },
         "email": {
           "type": "string",
           "required": true,
           "nullable": false,
           "description": "Email shown in admin forms.",
-          "unique": true,
-          "ui": {
-            "label": "Email",
-            "component": "email"
-          }
+          "unique": true
         },
         "bio": {
           "type": "string",
           "required": false,
           "nullable": false,
           "description": "Markdown biography for profile previews.",
-          "ui": {
-            "label": "Bio",
+          "schemaUi": {
             "component": "markdown"
           }
         }

@@ -1,0 +1,5 @@
+{
+  "title": "Password Login",
+  "description": "Model password login records with users, credential fingerprints, sessions, and reset requests.",
+  "tags": ["login", "auth", "password"]
+}

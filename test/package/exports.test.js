@@ -66,6 +66,20 @@ test('public declarations expose request tracing options and events', async () =
   assert.match(honoDeclarations, /trace\?: DbTraceOptions;/);
 });
 
+test('public declarations expose derived source options', async () => {
+  const declarations = await readFile(path.resolve('src/index.d.ts'), 'utf8');
+
+  assert.match(declarations, /export type DbDerivedSourceFile = \{/);
+  assert.match(declarations, /path: string;/);
+  assert.match(declarations, /readText\(\): Promise<string>;/);
+  assert.match(declarations, /export type DbDerivedSourceContext = \{/);
+  assert.match(declarations, /files: DbDerivedSourceFile\[\];/);
+  assert.match(declarations, /export type DbDerivedSource = \{/);
+  assert.match(declarations, /dependsOn: string \| string\[\];/);
+  assert.match(declarations, /read\(context: DbDerivedSourceContext\): DbSourceReaderResult \| Promise<DbSourceReaderResult>;/);
+  assert.match(declarations, /derived\?: DbDerivedSource\[\];/);
+});
+
 test('public declarations expose browser cache options', async () => {
   const declarations = await readFile(path.resolve('src/index.d.ts'), 'utf8');
   const viteDeclarations = await readFile(path.resolve('src/vite.d.ts'), 'utf8');

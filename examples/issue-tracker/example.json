@@ -1,0 +1,5 @@
+{
+  "title": "Issue Tracker",
+  "description": "Model projects, issues, comments, labels, assignees, and workflow status.",
+  "tags": ["workflow", "relations", "crud"]
+}

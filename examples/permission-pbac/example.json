@@ -1,0 +1,5 @@
+{
+  "title": "Permission PBAC",
+  "description": "Model centralized policy-based access control with policies, users, resources, and a simple HTML decision view.",
+  "tags": ["permissions", "pbac", "html"]
+}

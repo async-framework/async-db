@@ -1,0 +1,75 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Navigation menus that point at CMS pages or external links.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "location": {
+      "type": "enum",
+      "values": ["header", "footer"],
+      "required": true
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "fields": {
+          "label": {
+            "type": "string",
+            "required": true
+          },
+          "pageId": {
+            "type": "string"
+          },
+          "href": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      }
+    }
+  },
+  "seed": [
+    {
+      "id": "menu_header",
+      "label": "Header",
+      "location": "header",
+      "items": [
+        {
+          "label": "Home",
+          "pageId": "page_home"
+        },
+        {
+          "label": "Product",
+          "pageId": "page_product"
+        },
+        {
+          "label": "Contact",
+          "href": "/contact"
+        }
+      ]
+    },
+    {
+      "id": "menu_footer",
+      "label": "Footer",
+      "location": "footer",
+      "items": [
+        {
+          "label": "Privacy",
+          "href": "/privacy"
+        },
+        {
+          "label": "Status",
+          "href": "/status"
+        }
+      ]
+    }
+  ]
+}

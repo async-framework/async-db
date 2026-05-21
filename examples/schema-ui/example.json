@@ -1,5 +1,5 @@
 {
   "title": "Schema UI",
-  "description": "Generate simple admin/CMS view and editor HTML from the committed schema manifest using string templates.",
+  "description": "Render a small flat CMS-style UI from model facts plus app-owned schemaUi hints.",
   "tags": ["manifest", "cms", "templates"]
 }

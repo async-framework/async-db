@@ -1,0 +1,78 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Evaluation attempts for a suite, model, and prompt.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "evalSuiteId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "evalSuite",
+        "to": "evalSuites",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "modelId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "model",
+        "to": "models",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "promptId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "prompt",
+        "to": "prompts",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "status": {
+      "type": "enum",
+      "values": ["queued", "running", "completed", "failed"],
+      "default": "queued"
+    },
+    "startedAt": {
+      "type": "datetime"
+    },
+    "completedAt": {
+      "type": "datetime",
+      "nullable": true
+    },
+    "summary": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "run_support_triage_v1",
+      "evalSuiteId": "suite_support_triage",
+      "modelId": "model_baseline",
+      "promptId": "prompt_triage_v1",
+      "status": "completed",
+      "startedAt": "2026-05-15T16:00:00.000Z",
+      "completedAt": "2026-05-15T16:05:00.000Z",
+      "summary": "Baseline handled billing but missed the security escalation expectation."
+    },
+    {
+      "id": "run_support_triage_v2",
+      "evalSuiteId": "suite_support_triage",
+      "modelId": "model_candidate",
+      "promptId": "prompt_triage_v2",
+      "status": "completed",
+      "startedAt": "2026-05-16T16:00:00.000Z",
+      "completedAt": "2026-05-16T16:04:00.000Z",
+      "summary": "Candidate improved escalation handling but introduced one regression note."
+    }
+  ]
+}

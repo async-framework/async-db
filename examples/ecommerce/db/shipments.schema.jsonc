@@ -1,0 +1,79 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Shipment records linked to orders.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "orderId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "order",
+        "to": "orders",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "status": {
+      "type": "enum",
+      "values": ["pending", "label_created", "shipped", "delivered"],
+      "default": "pending"
+    },
+    "carrier": {
+      "type": "string"
+    },
+    "trackingNumber": {
+      "type": "string",
+      "nullable": true
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "fields": {
+          "variantId": {
+            "type": "string",
+            "required": true
+          },
+          "quantity": {
+            "type": "number",
+            "required": true,
+            "min": 1
+          }
+        }
+      }
+    },
+    "shippedAt": {
+      "type": "datetime",
+      "nullable": true
+    },
+    "deliveredAt": {
+      "type": "datetime",
+      "nullable": true
+    }
+  },
+  "seed": [
+    {
+      "id": "ship_1001",
+      "orderId": "ord_1001",
+      "status": "label_created",
+      "carrier": "ExampleShip",
+      "trackingNumber": "EX1001",
+      "items": [
+        {
+          "variantId": "var_fixture_kit_standard",
+          "quantity": 1
+        },
+        {
+          "variantId": "var_schema_guide_pdf",
+          "quantity": 1
+        }
+      ],
+      "shippedAt": null,
+      "deliveredAt": null
+    }
+  ]
+}

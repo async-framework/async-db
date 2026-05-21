@@ -1,0 +1,5 @@
+{
+  "title": "Permission ABAC",
+  "description": "Model attribute-based access control with user, file, and environment attributes plus a simple HTML decision view.",
+  "tags": ["permissions", "abac", "html"]
+}

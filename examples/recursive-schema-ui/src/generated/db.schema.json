@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "collections": {
+    "pages": {
+      "kind": "collection",
+      "name": "pages",
+      "fields": {
+        "id": {
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "Stable page id."
+        },
+        "title": {
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "Page title shown in the CMS list."
+        },
+        "status": {
+          "type": "enum",
+          "required": false,
+          "nullable": false,
+          "description": "Publication state.",
+          "default": "draft",
+          "values": [
+            "draft",
+            "review",
+            "published"
+          ],
+          "schemaUi": {
+            "component": "segmented-control"
+          }
+        },
+        "authorId": {
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "Page author.",
+          "relation": {
+            "name": "author",
+            "to": "users",
+            "toField": "id",
+            "cardinality": "one"
+          }
+        },
+        "summary": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "description": "Short page summary.",
+          "maxLength": 160
+        },
+        "bodyMarkdown": {
+          "type": "string",
+          "required": false,
+          "nullable": false,
+          "description": "Markdown body content.",
+          "schemaUi": {
+            "label": "Body",
+            "component": "markdown"
+          }
+        },
+        "blocks": {
+          "type": "array",
+          "required": false,
+          "nullable": false,
+          "description": "Nested page blocks rendered by the recursive example UI.",
+          "items": {
+            "type": "object",
+            "required": false,
+            "nullable": false,
+            "fields": {
+              "kind": {
+                "type": "enum",
+                "required": true,
+                "nullable": false,
+                "description": "Block renderer key owned by the app.",
+                "values": [
+                  "hero",
+                  "markdown"
+                ]
+              },
+              "title": {
+                "type": "string",
+                "required": false,
+                "nullable": false,
+                "description": "Block heading."
+              },
+              "bodyMarkdown": {
+                "type": "string",
+                "required": false,
+                "nullable": false,
+                "description": "Block body markdown.",
+                "schemaUi": {
+                  "label": "Block body",
+                  "component": "markdown"
+                }
+              },
+              "settings": {
+                "type": "object",
+                "required": false,
+                "nullable": false,
+                "fields": {
+                  "color": {
+                    "type": "string",
+                    "required": false,
+                    "nullable": false,
+                    "description": "Theme token for this block.",
+                    "schemaUi": {
+                      "label": "Accent color"
+                    }
+                  },
+                  "featured": {
+                    "type": "boolean",
+                    "required": false,
+                    "nullable": false,
+                    "description": "Whether this block is highlighted."
+                  }
+                }
+              }
+            }
+          },
+          "schemaUi": {
+            "component": "object-array",
+            "label": "Content blocks"
+          }
+        }
+      },
+      "description": "CMS pages rendered by a tiny schema-driven UI example.",
+      "idField": "id",
+      "schemaUi": {
+        "title": "Pages",
+        "description": "CMS pages edited from generated schema metadata.",
+        "listLabelField": "title"
+      }
+    },
+    "users": {
+      "kind": "collection",
+      "name": "users",
+      "fields": {
+        "id": {
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "Stable author id."
+        },
+        "name": {
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "Author display name."
+        },
+        "email": {
+          "type": "string",
+          "required": true,
+          "nullable": false,
+          "description": "Author email address.",
+          "unique": true
+        }
+      },
+      "description": "Authors that can own CMS pages.",
+      "idField": "id",
+      "schemaUi": {
+        "hidden": true,
+        "title": "Authors",
+        "listLabelField": "name"
+      }
+    }
+  },
+  "documents": {}
+}

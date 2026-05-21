@@ -1,0 +1,35 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Named memory workspaces for an agentic app.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "owner": {
+      "type": "string"
+    },
+    "purpose": {
+      "type": "string"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "archived"],
+      "default": "active"
+    }
+  },
+  "seed": [
+    {
+      "id": "space_support_ops",
+      "name": "Support Ops Memory",
+      "owner": "Support Operations",
+      "purpose": "Durable facts about support process, hours, and escalation paths.",
+      "status": "active"
+    }
+  ]
+}

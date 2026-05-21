@@ -20,7 +20,7 @@ export default defineConfig({
       }
 
       return mergeManifest(defaultManifest, {
-        editor: {
+        schemaUi: {
           title: 'Pages',
           description: 'CMS pages edited from generated schema metadata.',
         },
@@ -34,7 +34,7 @@ export default defineConfig({
 
       if (fieldName === 'bodyMarkdown') {
         return mergeManifest(defaultManifest, {
-          ui: {
+          schemaUi: {
             label: 'Body',
             component: 'markdown',
           },
@@ -43,7 +43,7 @@ export default defineConfig({
 
       if (fieldName === 'status') {
         return mergeManifest(defaultManifest, {
-          ui: {
+          schemaUi: {
             component: 'segmented-control',
           },
         });

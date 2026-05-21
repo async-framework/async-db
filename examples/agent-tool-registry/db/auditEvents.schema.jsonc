@@ -1,0 +1,67 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Audit events for scopes, requests, and tool calls.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "agentId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "agent",
+        "to": "agents",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "toolId": {
+      "type": "string",
+      "nullable": true,
+      "relation": {
+        "name": "tool",
+        "to": "tools",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "eventType": {
+      "type": "enum",
+      "values": ["scope_granted", "request_created", "call_blocked", "call_completed"],
+      "default": "request_created"
+    },
+    "severity": {
+      "type": "enum",
+      "values": ["info", "warn", "high"],
+      "default": "info"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "occurredAt": {
+      "type": "datetime"
+    }
+  },
+  "seed": [
+    {
+      "id": "audit_scope_fixture_search",
+      "agentId": "agent_data_auditor",
+      "toolId": "tool_fixture_search",
+      "eventType": "scope_granted",
+      "severity": "info",
+      "summary": "Fixture Search execute scope granted for local development.",
+      "occurredAt": "2026-05-12T15:45:00.000Z"
+    },
+    {
+      "id": "audit_prod_export_blocked",
+      "agentId": "agent_data_auditor",
+      "toolId": "tool_prod_database_export",
+      "eventType": "call_blocked",
+      "severity": "high",
+      "summary": "Production export call blocked until approval is granted.",
+      "occurredAt": "2026-05-12T17:20:00.000Z"
+    }
+  ]
+}

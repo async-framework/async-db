@@ -1,0 +1,100 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "CMS pages rendered by a tiny schema-driven UI example.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true,
+      "description": "Stable page id."
+    },
+    "title": {
+      "type": "string",
+      "required": true,
+      "description": "Page title shown in the CMS list."
+    },
+    "status": {
+      "type": "enum",
+      "values": ["draft", "review", "published"],
+      "default": "draft",
+      "description": "Publication state."
+    },
+    "authorId": {
+      "type": "string",
+      "required": true,
+      "description": "Page author.",
+      "relation": {
+        "name": "author",
+        "to": "users",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 160,
+      "description": "Short page summary."
+    },
+    "bodyMarkdown": {
+      "type": "string",
+      "description": "Markdown body content."
+    },
+    "blocks": {
+      "type": "array",
+      "description": "Nested page blocks rendered by the recursive example UI.",
+      "items": {
+        "type": "object",
+        "fields": {
+          "kind": {
+            "type": "enum",
+            "values": ["hero", "markdown"],
+            "required": true,
+            "description": "Block renderer key owned by the app."
+          },
+          "title": {
+            "type": "string",
+            "description": "Block heading."
+          },
+          "bodyMarkdown": {
+            "type": "string",
+            "description": "Block body markdown."
+          },
+          "settings": {
+            "type": "object",
+            "fields": {
+              "color": {
+                "type": "string",
+                "description": "Theme token for this block."
+              },
+              "featured": {
+                "type": "boolean",
+                "description": "Whether this block is highlighted."
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "seed": [
+    {
+      "id": "page_home",
+      "title": "Home",
+      "status": "draft",
+      "authorId": "u_1",
+      "summary": "A small page record used by the schema UI example.",
+      "bodyMarkdown": "# Welcome\n\nThis body is edited with a markdown template.",
+      "blocks": [
+        {
+          "kind": "hero",
+          "title": "Hero",
+          "bodyMarkdown": "Nested **hero** copy.",
+          "settings": {
+            "color": "teal",
+            "featured": true
+          }
+        }
+      ]
+    }
+  ]
+}

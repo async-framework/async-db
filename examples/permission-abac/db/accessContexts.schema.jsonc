@@ -1,0 +1,38 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Environment attributes used by app-owned access checks.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "businessHours": {
+      "type": "boolean",
+      "required": true
+    },
+    "network": {
+      "type": "enum",
+      "values": ["office", "public"],
+      "required": true
+    }
+  },
+  "seed": [
+    {
+      "id": "ctx_business_office",
+      "label": "Business hours from office network",
+      "businessHours": true,
+      "network": "office"
+    },
+    {
+      "id": "ctx_after_hours_public",
+      "label": "After hours from public network",
+      "businessHours": false,
+      "network": "public"
+    }
+  ]
+}

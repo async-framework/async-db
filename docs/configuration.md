@@ -26,6 +26,7 @@ See [db.config.example.mjs](../db.config.example.mjs) for a commented config wit
 | --- | --- | --- |
 | Fixture folder | `./db` | `dbDir` |
 | Custom source formats | Built-in readers | `sources.readers` |
+| Virtual resources derived from fixture files | Off | `sources.derived` |
 | Nested resource names | Fixture basename | `resources.naming` or `resources.customizeResource` |
 | Runtime store behavior | JSON files under `.db/state` | `stores.default` or `resources.<name>.store` |
 | Index intent metadata | Off | `resources.<name>.indexes` |
@@ -68,6 +69,7 @@ export default defineConfig({
   sources: {
     writePolicy: 'preserve',
     readers: [],
+    derived: [],
   },
 
   stores: {
@@ -165,6 +167,13 @@ export default defineConfig({
 ```
 
 Existing `sourceDir` configs still work; `dbDir` is the shorter fixture-folder name. If both are provided, `sourceDir` wins for backwards compatibility.
+
+`sources.readers` and `sources.derived` solve different source problems:
+readers parse a matched source file into raw db input, while derived sources
+compute a virtual resource from dependency files under the fixture folder. Use a
+reader for custom formats such as Markdown or pipe-delimited data. Use a derived
+source when a resource such as `dataSources` should be rebuilt from sibling
+fixtures without committing a generated fixture file.
 
 ## Source And Store Binding
 

@@ -1,0 +1,33 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Humans who own service accounts.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "disabled"],
+      "default": "active"
+    }
+  },
+  "seed": [
+    {
+      "id": "user_platform_owner",
+      "email": "platform-owner@example.com",
+      "name": "Platform Owner",
+      "status": "active"
+    }
+  ]
+}

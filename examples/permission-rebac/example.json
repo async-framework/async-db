@@ -1,0 +1,5 @@
+{
+  "title": "Permission ReBAC",
+  "description": "Model relationship-based access control with relationship tuples and a simple HTML decision view.",
+  "tags": ["permissions", "rebac", "html"]
+}

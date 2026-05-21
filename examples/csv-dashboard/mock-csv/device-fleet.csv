@@ -1,0 +1,6 @@
+Device ID,Owner,Device Type,OS Version,Location,Battery Percent,Open Alerts,Compliant
+dev_01,Ada,MacBook,15.5,San Francisco,82,0,true
+dev_02,Grace,ThinkPad,Windows 11,New York,64,2,false
+dev_03,Katherine,iPad,18.4,Houston,91,0,true
+dev_04,Dorothy,Mac mini,15.5,Remote,100,1,true
+dev_05,Mary,Surface,Windows 11,Chicago,58,3,false

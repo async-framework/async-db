@@ -1,0 +1,42 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Agents that can own tasks and produce runs.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "role": {
+      "type": "string"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "paused"],
+      "default": "active"
+    },
+    "modelHint": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "agent_ops_planner",
+      "name": "Ops Planner",
+      "role": "Plans operational changes and asks for approval before action.",
+      "status": "active",
+      "modelHint": "planning"
+    },
+    {
+      "id": "agent_data_importer",
+      "name": "Data Importer",
+      "role": "Prepares local fixture imports and validates results.",
+      "status": "active",
+      "modelHint": "data"
+    }
+  ]
+}

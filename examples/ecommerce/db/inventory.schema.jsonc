@@ -1,0 +1,62 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Inventory rows for variant/location pairs.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "variantId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "variant",
+        "to": "productVariants",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "location": {
+      "type": "enum",
+      "values": ["warehouse", "showroom"],
+      "required": true
+    },
+    "stockOnHand": {
+      "type": "number",
+      "default": 0
+    },
+    "stockReserved": {
+      "type": "number",
+      "default": 0
+    },
+    "reorderPoint": {
+      "type": "number",
+      "default": 0
+    },
+    "updatedAt": {
+      "type": "datetime",
+      "required": true
+    }
+  },
+  "seed": [
+    {
+      "id": "inv_fixture_kit_warehouse",
+      "variantId": "var_fixture_kit_standard",
+      "location": "warehouse",
+      "stockOnHand": 24,
+      "stockReserved": 4,
+      "reorderPoint": 5,
+      "updatedAt": "2026-05-01T10:00:00.000Z"
+    },
+    {
+      "id": "inv_schema_guide_showroom",
+      "variantId": "var_schema_guide_pdf",
+      "location": "showroom",
+      "stockOnHand": 12,
+      "stockReserved": 1,
+      "reorderPoint": 3,
+      "updatedAt": "2026-05-02T10:00:00.000Z"
+    }
+  ]
+}

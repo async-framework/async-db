@@ -1,0 +1,51 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Tools available to agents through app-owned grants.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "category": {
+      "type": "enum",
+      "values": ["read", "write", "admin"],
+      "default": "read"
+    },
+    "riskLevel": {
+      "type": "enum",
+      "values": ["low", "medium", "high"],
+      "default": "low"
+    },
+    "description": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "tool_release_notes",
+      "name": "Release Notes Writer",
+      "category": "write",
+      "riskLevel": "medium",
+      "description": "Drafts release notes from approved records."
+    },
+    {
+      "id": "tool_prod_database_export",
+      "name": "Production Database Export",
+      "category": "admin",
+      "riskLevel": "high",
+      "description": "Exports a filtered production report when approved."
+    },
+    {
+      "id": "tool_fixture_search",
+      "name": "Fixture Search",
+      "category": "read",
+      "riskLevel": "low",
+      "description": "Reads local fixture records for context."
+    }
+  ]
+}

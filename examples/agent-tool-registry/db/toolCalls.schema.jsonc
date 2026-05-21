@@ -1,0 +1,78 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Tool calls that were planned, blocked, or completed.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "toolRequestId": {
+      "type": "string",
+      "nullable": true,
+      "relation": {
+        "name": "toolRequest",
+        "to": "toolRequests",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "agentId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "agent",
+        "to": "agents",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "toolId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "tool",
+        "to": "tools",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "status": {
+      "type": "enum",
+      "values": ["planned", "succeeded", "blocked", "failed"],
+      "default": "planned"
+    },
+    "inputSummary": {
+      "type": "string"
+    },
+    "outputSummary": {
+      "type": "string"
+    },
+    "calledAt": {
+      "type": "datetime",
+      "nullable": true
+    }
+  },
+  "seed": [
+    {
+      "id": "call_release_notes",
+      "toolRequestId": "req_release_notes_publish",
+      "agentId": "agent_release_helper",
+      "toolId": "tool_release_notes",
+      "status": "succeeded",
+      "inputSummary": "Draft release notes from approved changelog records.",
+      "outputSummary": "Draft created for human review.",
+      "calledAt": "2026-05-12T16:20:00.000Z"
+    },
+    {
+      "id": "call_prod_database_export",
+      "toolRequestId": "req_prod_database_export",
+      "agentId": "agent_data_auditor",
+      "toolId": "tool_prod_database_export",
+      "status": "blocked",
+      "inputSummary": "Export filtered account report.",
+      "outputSummary": "Blocked until approval request is approved.",
+      "calledAt": null
+    }
+  ]
+}

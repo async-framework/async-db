@@ -1,0 +1,62 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Navigation menus assembled from page records.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "location": {
+      "type": "enum",
+      "values": ["header", "footer"],
+      "required": true
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "fields": {
+          "label": {
+            "type": "string",
+            "required": true
+          },
+          "pageId": {
+            "type": "string",
+            "relation": {
+              "name": "page",
+              "to": "pages",
+              "toField": "id",
+              "cardinality": "one"
+            }
+          },
+          "externalUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      }
+    }
+  },
+  "seed": [
+    {
+      "id": "menu_header",
+      "label": "Header",
+      "location": "header",
+      "items": [
+        {
+          "label": "Home",
+          "pageId": "page_home"
+        },
+        {
+          "label": "Docs",
+          "pageId": "page_docs"
+        }
+      ]
+    }
+  ]
+}

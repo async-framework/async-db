@@ -1,0 +1,75 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Evidence links between memories and source chunks.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "memoryId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "memory",
+        "to": "memories",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "sourceId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "source",
+        "to": "sources",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "chunkId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "chunk",
+        "to": "chunks",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "quote": {
+      "type": "string"
+    },
+    "relevance": {
+      "type": "enum",
+      "values": ["supporting", "conflicting"],
+      "default": "supporting"
+    }
+  },
+  "seed": [
+    {
+      "id": "cite_support_hours",
+      "memoryId": "mem_support_hours",
+      "sourceId": "source_support_playbook",
+      "chunkId": "chunk_support_hours",
+      "quote": "Standard support coverage runs from 8 AM to 6 PM Pacific.",
+      "relevance": "supporting"
+    },
+    {
+      "id": "cite_security_escalation",
+      "memoryId": "mem_security_escalation",
+      "sourceId": "source_escalation_ticket",
+      "chunkId": "chunk_security_escalation",
+      "quote": "Escalated within one business hour.",
+      "relevance": "supporting"
+    },
+    {
+      "id": "cite_old_support_hours",
+      "memoryId": "mem_support_hours",
+      "sourceId": "source_escalation_ticket",
+      "chunkId": "chunk_old_support_hours",
+      "quote": "A previous note said support coverage ended at 5 PM Pacific.",
+      "relevance": "conflicting"
+    }
+  ]
+}

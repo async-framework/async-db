@@ -1,0 +1,46 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Users with attributes used by ABAC decisions.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "department": {
+      "type": "enum",
+      "values": ["finance", "engineering"],
+      "required": true
+    },
+    "clearance": {
+      "type": "enum",
+      "values": ["internal", "confidential"],
+      "required": true
+    },
+    "employmentStatus": {
+      "type": "enum",
+      "values": ["active", "contractor"],
+      "required": true
+    }
+  },
+  "seed": [
+    {
+      "id": "user_finance_manager",
+      "name": "Finley Finance",
+      "department": "finance",
+      "clearance": "confidential",
+      "employmentStatus": "active"
+    },
+    {
+      "id": "user_engineer",
+      "name": "Evan Engineer",
+      "department": "engineering",
+      "clearance": "internal",
+      "employmentStatus": "active"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { loadProjectSchema, makeGeneratedSchema } from '../../schema.js';
+import { generateConfiguredDiagrams } from '../../diagram.js';
 import { generateSchemaManifest } from '../../schema-manifest.js';
 import { generateTypes } from '../../types.js';
 import { generateViewerManifest } from '../../viewer-manifest.js';
@@ -20,7 +21,7 @@ export async function syncDb(config, options = {}) {
   const fatalErrors = errors.filter((diagnostic) => diagnostic.code === 'RESOURCE_ALIAS_COLLISION');
 
   for (const resource of project.resources) {
-    logs.push(`Loaded ${path.relative(config.cwd, resource.schemaPath ?? resource.dataPath)}`);
+    logs.push(`Loaded ${resourceSourceLabel(config, resource)}`);
   }
 
   if (fatalErrors.length > 0 || (errors.length > 0 && options.allowErrors !== true)) {
@@ -59,6 +60,13 @@ export async function syncDb(config, options = {}) {
     }
   }
 
+  if (config.outputs?.diagramMermaid || config.outputs?.diagramModel) {
+    const result = await generateConfiguredDiagrams(config, { project });
+    for (const outFile of result.outFiles) {
+      logs.push(`Generated ${path.relative(config.cwd, outFile)}`);
+    }
+  }
+
   const sourceMetadataPath = path.join(config.stateDir, 'state', '.sources.json');
   const sourceMetadata = await readJsonState(sourceMetadataPath, { resources: {} });
   sourceMetadata.resources ??= {};
@@ -74,6 +82,15 @@ export async function syncDb(config, options = {}) {
     ...project,
     logs,
   };
+}
+
+function resourceSourceLabel(config, resource) {
+  const sourcePath = resource.schemaPath ?? resource.dataPath;
+  if (sourcePath) {
+    return path.relative(config.cwd, sourcePath);
+  }
+
+  return resource.schemaSourceFile ?? resource.dataSourceFile ?? resource.name;
 }
 
 async function preserveGeneratedAt(schemaOutFile, schema) {

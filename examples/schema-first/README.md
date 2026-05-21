@@ -4,6 +4,31 @@
 
 Use this when you know the local contract before you have real records. It defines resources with `.schema.jsonc`, including a type-only collection with no seed records.
 
+## Why This Shape?
+
+- `users` shows a schema-backed collection with seed records when the contract and starter data are both known.
+- `settings` is a singleton document because there is only one settings record.
+- `auditEvents` is schema-only so generated types and empty runtime state exist before any events are written.
+- There are no cross-resource relations in this example; the point is defining resources before or alongside seed data.
+
+## Data Model Diagram
+
+```mermaid
+erDiagram
+  auditEvents["auditEvents"] {
+    string id PK
+  }
+  settings["settings"] {
+  }
+  users["users"] {
+    string id PK
+  }
+```
+
+## Relations To Notice
+
+There are no schema-declared relations in this example; each resource can be inspected independently.
+
 ## Files To Inspect
 
 - [db/users.schema.jsonc](./db/users.schema.jsonc): collection with seed data.

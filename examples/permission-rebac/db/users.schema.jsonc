@@ -1,0 +1,31 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Users that appear as subjects in relationship tuples.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "required": true
+    }
+  },
+  "seed": [
+    {
+      "id": "user_ada",
+      "name": "Ada Owner",
+      "email": "ada.owner@example.com"
+    },
+    {
+      "id": "user_grace",
+      "name": "Grace Collaborator",
+      "email": "grace.collab@example.com"
+    }
+  ]
+}

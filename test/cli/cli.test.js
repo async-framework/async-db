@@ -99,7 +99,8 @@ test('CLI schema manifest --out writes relative to --cwd', async () => {
   const manifest = JSON.parse(await readFile(path.join(cwd, 'src/generated/db.schema.json'), 'utf8'));
 
   assert.match(stdout, /Generated src\/generated\/db\.schema\.json/);
-  assert.equal(manifest.collections.users.fields.email.ui.component, 'email');
+  assert.equal(manifest.collections.users.fields.email.type, 'string');
+  assert.equal('ui' in manifest.collections.users.fields.email, false);
 });
 
 test('CLI viewer manifest --out writes relative to --cwd', async () => {
@@ -123,7 +124,74 @@ test('CLI viewer manifest --out writes relative to --cwd', async () => {
   assert.equal(manifest.api.manifest, '/__db/manifest');
   assert.equal(manifest.api.manifestJson, '/__db/manifest.json');
   assert.equal(manifest.api.manifestMarkdown, '/__db/manifest.md');
-  assert.equal(manifest.collections.users.fields.email.ui.component, 'email');
+  assert.equal(manifest.collections.users.fields.email.type, 'string');
+  assert.equal('ui' in manifest.collections.users.fields.email, false);
+});
+
+test('CLI diagram prints Mermaid ER output by default', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'groups.schema.jsonc', `{
+    "kind": "collection",
+    "idField": "id",
+    "fields": {
+      "id": { "type": "string", "required": true }
+    }
+  }`);
+  await writeFixture(cwd, 'users.schema.jsonc', `{
+    "kind": "collection",
+    "idField": "id",
+    "fields": {
+      "id": { "type": "string", "required": true },
+      "groupId": { "type": "string", "required": true, "relation": { "name": "group", "to": "groups" } },
+      "email": { "type": "string" }
+    }
+  }`);
+
+  const { stdout, stderr } = await execFileAsync(process.execPath, [
+    path.resolve('src/cli.js'),
+    'diagram',
+    '--cwd',
+    cwd,
+  ]);
+
+  assert.match(stdout, /^erDiagram\n/);
+  assert.match(stdout, /users \}o--\|\| groups : "group"/);
+  assert.equal(stderr, '');
+});
+
+test('CLI diagram prints JSON model and writes output files', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'users.json', JSON.stringify([{ id: 'u_1', email: 'ada@example.com' }]));
+
+  const printed = await execFileAsync(process.execPath, [
+    path.resolve('src/cli.js'),
+    'diagram',
+    '--cwd',
+    cwd,
+    '--format',
+    'json',
+  ]);
+  const model = JSON.parse(printed.stdout);
+  assert.equal(model.kind, 'db.diagramModel');
+  assert.equal(model.resources[0].name, 'users');
+  assert.equal(model.resources[0].fields.some((field) => field.name === 'email'), false);
+
+  const written = await execFileAsync(process.execPath, [
+    path.resolve('src/cli.js'),
+    'diagram',
+    '--cwd',
+    cwd,
+    '--format',
+    'json',
+    '--fields',
+    'all',
+    '--out',
+    './src/generated/db.diagram.json',
+  ]);
+  const saved = JSON.parse(await readFile(path.join(cwd, 'src/generated/db.diagram.json'), 'utf8'));
+
+  assert.match(written.stdout, /Generated src\/generated\/db\.diagram\.json/);
+  assert.equal(saved.resources[0].fields.some((field) => field.name === 'email'), true);
 });
 
 test('CLI schema infer prints data-inferred resources while ignoring explicit schemas', async () => {
@@ -730,6 +798,7 @@ test('CLI subcommands print focused help without running the command', async () 
   await assertCliHelp(['types', '--help'], /Usage:\n  async-db types \[--watch\] \[--out <file>\]/);
   await assertCliHelp(['doctor', '--help'], /Usage:\n  async-db doctor \[--strict\] \[--json\]/);
   await assertCliHelp(['viewer', '--help'], /Usage:\n  async-db viewer manifest \[--out <file>\]/);
+  await assertCliHelp(['diagram', '--help'], /Usage:\n  async-db diagram \[--format mermaid\|json\] \[--out <file>\] \[--fields compact\|all\|none\]/);
   await assertCliHelp(['serve', '--help'], /Usage:\n  async-db serve \[--host <host>\] \[--port <port>\]/);
   await assertCliHelp(['operations', '--help'], /async-db operations contract \[--out <file>\] \[--check\]/);
   await assertCliHelp(['generate', 'hono', '--help'], /Usage:\n  async-db generate hono/);
@@ -744,6 +813,7 @@ test('CLI subcommand help does not load project config', async () => {
   await assertCliHelp(['types', '--help'], /Usage:\n  async-db types \[--watch\] \[--out <file>\]/, cwd);
   await assertCliHelp(['doctor', '--help'], /Usage:\n  async-db doctor \[--strict\] \[--json\]/, cwd);
   await assertCliHelp(['viewer', '--help'], /Usage:\n  async-db viewer manifest \[--out <file>\]/, cwd);
+  await assertCliHelp(['diagram', '--help'], /Usage:\n  async-db diagram \[--format mermaid\|json\] \[--out <file>\] \[--fields compact\|all\|none\]/, cwd);
   await assertCliHelp(['serve', '--help'], /Usage:\n  async-db serve \[--host <host>\] \[--port <port>\]/, cwd);
   await assertCliHelp(['operations', '--help'], /async-db operations contract \[--out <file>\] \[--check\]/, cwd);
   await assertCliHelp(['generate', 'hono', '--help'], /Usage:\n  async-db generate hono/, cwd);

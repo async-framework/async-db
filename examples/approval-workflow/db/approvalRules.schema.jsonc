@@ -1,0 +1,99 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Approval gates for each change request.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "changeRequestId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "changeRequest",
+        "to": "changeRequests",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "requirementKind": {
+      "type": "enum",
+      "values": ["team", "member"],
+      "default": "team"
+    },
+    "teamId": {
+      "type": "string",
+      "nullable": true,
+      "relation": {
+        "name": "team",
+        "to": "teams",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "memberId": {
+      "type": "string",
+      "nullable": true,
+      "relation": {
+        "name": "member",
+        "to": "members",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "minApprovals": {
+      "type": "number",
+      "default": 1
+    },
+    "description": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "rule_launch_product",
+      "changeRequestId": "cr_launch_policy",
+      "label": "Product owner approval",
+      "requirementKind": "team",
+      "teamId": "team_product_ops",
+      "memberId": null,
+      "minApprovals": 1,
+      "description": "Someone from Product Ops must approve the policy update."
+    },
+    {
+      "id": "rule_launch_security",
+      "changeRequestId": "cr_launch_policy",
+      "label": "Security approval",
+      "requirementKind": "team",
+      "teamId": "team_security",
+      "memberId": null,
+      "minApprovals": 1,
+      "description": "Security must confirm the launch checklist covers risk review."
+    },
+    {
+      "id": "rule_vendor_security",
+      "changeRequestId": "cr_vendor_access",
+      "label": "Security approval",
+      "requirementKind": "team",
+      "teamId": "team_security",
+      "memberId": null,
+      "minApprovals": 1,
+      "description": "Security must approve the access scope."
+    },
+    {
+      "id": "rule_vendor_compliance",
+      "changeRequestId": "cr_vendor_access",
+      "label": "Compliance reviewer",
+      "requirementKind": "member",
+      "teamId": null,
+      "memberId": "mem_omar",
+      "minApprovals": 1,
+      "description": "Omar must confirm the vendor access request is audit-ready."
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "title": "Agent Tool Registry",
+  "description": "Model agent tool access, approval requests, risk policies, calls, and audit events.",
+  "tags": ["agentic", "tools", "governance"]
+}

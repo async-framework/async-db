@@ -1,0 +1,61 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Replies within forum topics.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "topicId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "topic",
+        "to": "topics",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "authorId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "author",
+        "to": "users",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "bodyMarkdown": {
+      "type": "string",
+      "required": true
+    },
+    "createdAt": {
+      "type": "datetime",
+      "required": true
+    },
+    "editedAt": {
+      "type": "datetime",
+      "nullable": true
+    }
+  },
+  "seed": [
+    {
+      "id": "post_1",
+      "topicId": "topic_welcome",
+      "authorId": "user_ada",
+      "bodyMarkdown": "Welcome to the async/db forum example.",
+      "createdAt": "2026-05-01T09:00:00.000Z",
+      "editedAt": null
+    },
+    {
+      "id": "post_2",
+      "topicId": "topic_sync_help",
+      "authorId": "user_grace",
+      "bodyMarkdown": "Run `async-db sync` after changing fixtures to refresh generated metadata.",
+      "createdAt": "2026-05-02T11:30:00.000Z",
+      "editedAt": null
+    }
+  ]
+}

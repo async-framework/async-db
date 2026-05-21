@@ -1,0 +1,6 @@
+Ticket ID,Queue,Priority,Status,First Response Minutes,Resolution Hours,CSAT,Escalated
+t_700,Product Support,high,open,18,12,4.8,true
+t_701,Billing,medium,resolved,34,7,4.4,false
+t_702,Security,urgent,open,6,20,4.1,true
+t_703,Product Support,low,resolved,52,5,4.9,false
+t_704,Integrations,medium,pending,27,16,4.2,false

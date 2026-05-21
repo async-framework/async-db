@@ -1,0 +1,54 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "People who write posts.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true,
+      "description": "Stable author id."
+    },
+    "name": {
+      "type": "string",
+      "required": true,
+      "description": "Public author name."
+    },
+    "bioMarkdown": {
+      "type": "string",
+      "description": "Short author bio in Markdown."
+    },
+    "avatarImage": {
+      "type": "object",
+      "fields": {
+        "url": {
+          "type": "string",
+          "required": true
+        },
+        "alt": {
+          "type": "string",
+          "required": true
+        }
+      }
+    }
+  },
+  "seed": [
+    {
+      "id": "author_ada",
+      "name": "Ada Lovelace",
+      "bioMarkdown": "Writes about local data workflows.",
+      "avatarImage": {
+        "url": "/images/authors/ada.png",
+        "alt": "Ada Lovelace"
+      }
+    },
+    {
+      "id": "author_grace",
+      "name": "Grace Hopper",
+      "bioMarkdown": "Documents practical developer tooling.",
+      "avatarImage": {
+        "url": "/images/authors/grace.png",
+        "alt": "Grace Hopper"
+      }
+    }
+  ]
+}

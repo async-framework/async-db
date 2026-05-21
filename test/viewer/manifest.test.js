@@ -33,8 +33,7 @@ test('viewer manifest exposes custom-viewer metadata without runtime internals',
         if (fieldName === 'status') {
           return {
             ...defaultManifest,
-            ui: {
-              ...defaultManifest.ui,
+            schemaUi: {
               component: 'segmented-control',
             },
           };
@@ -46,7 +45,7 @@ test('viewer manifest exposes custom-viewer metadata without runtime internals',
         if (resourceName === 'projects') {
           return {
             ...defaultManifest,
-            editor: {
+            schemaUi: {
               title: 'Projects',
             },
           };
@@ -154,10 +153,11 @@ test('viewer manifest exposes custom-viewer metadata without runtime internals',
   assert.equal(manifest.collections.projects.kind, 'collection');
   assert.equal(manifest.collections.projects.typeName, 'Project');
   assert.equal(manifest.collections.projects.routePath, '/projects');
-  assert.equal(manifest.collections.projects.editor.title, 'Projects');
+  assert.equal(manifest.collections.projects.schemaUi.title, 'Projects');
   assert.equal(manifest.collections.projects.fields.status.default, 'planned');
-  assert.equal(manifest.collections.projects.fields.status.ui.component, 'segmented-control');
-  assert.equal(manifest.collections.projects.fields.ownerId.ui.optionsFrom, 'users');
+  assert.equal(manifest.collections.projects.fields.status.schemaUi.component, 'segmented-control');
+  assert.equal(manifest.collections.projects.fields.ownerId.relation.to, 'users');
+  assert.equal('ui' in manifest.collections.projects.fields.ownerId, false);
   assert.deepEqual(manifest.collections.projects.relations, [{
     name: 'owner',
     sourceResource: 'projects',
@@ -240,7 +240,8 @@ test('viewerManifestOutFile writes a committed manifest during sync', async () =
   assert.equal(manifest.api.manifestJson, '/__db/manifest.json');
   assert.equal(manifest.api.manifestHtml, '/__db/manifest.html');
   assert.equal(manifest.api.manifestMarkdown, '/__db/manifest.md');
-  assert.equal(manifest.collections.users.fields.email.ui.component, 'email');
+  assert.equal(manifest.collections.users.fields.email.type, 'string');
+  assert.equal('ui' in manifest.collections.users.fields.email, false);
   assert.equal('seed' in manifest.collections.users, false);
   assert.equal('source' in manifest.collections.users, false);
 });

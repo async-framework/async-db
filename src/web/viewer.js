@@ -78,6 +78,7 @@ export function renderDbViewer(options = {}) {
           </div>
           <div class="${rowClass}" role="tablist" aria-label="db viewer sections">
             <button type="button" class="${activeTabClass}" data-tab="data">Data</button>
+            <button type="button" class="${tabClass}" data-tab="model">Model</button>
             <button type="button" class="${tabClass}" data-tab="rest">REST</button>
             <button type="button" class="${tabClass}" data-tab="graphql">GraphQL</button>
             <button type="button" class="${tabClass}" data-tab="schema">Schema</button>
@@ -100,6 +101,32 @@ export function renderDbViewer(options = {}) {
               </div>
               <div class="${panelBodyClass}">
                 <pre id="json-output" class="${codeClass}">{}</pre>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="tab-model" data-tab-panel class="hidden">
+          <div class="${viewerGridClass}">
+            <div class="${panelClass}">
+              <div class="${panelHeadClass}">
+                <h3 class="text-sm font-bold tracking-normal text-slate-950">Data Model</h3>
+                <div class="${rowClass}">
+                  <button type="button" data-copy-target="model-mermaid" class="${buttonClass}">Copy Mermaid</button>
+                  <button type="button" data-copy-target="model-json" class="${buttonClass}">Copy JSON</button>
+                </div>
+              </div>
+              <div class="${panelBodyClass}">
+                <div id="model-graph" class="min-h-[360px] overflow-auto rounded-md border border-slate-200 bg-slate-50 p-3"></div>
+              </div>
+            </div>
+            <div class="${panelClass}">
+              <div class="${panelHeadClass}">
+                <h3 class="text-sm font-bold tracking-normal text-slate-950">Diagram Source</h3>
+              </div>
+              <div class="${panelBodyClass} ${stackClass}">
+                <pre id="model-mermaid" class="${codeClass}">erDiagram</pre>
+                <pre id="model-json" class="${codeClass}">{}</pre>
               </div>
             </div>
           </div>
@@ -218,6 +245,7 @@ export function renderDbViewer(options = {}) {
     const state = {
       manifest: null,
       schema: null,
+      model: null,
       resources: [],
       selected: null,
       selectedData: null,
@@ -238,6 +266,9 @@ export function renderDbViewer(options = {}) {
       restPath: document.getElementById('rest-path'),
       restBody: document.getElementById('rest-body'),
       restOutput: document.getElementById('rest-output'),
+      modelGraph: document.getElementById('model-graph'),
+      modelMermaid: document.getElementById('model-mermaid'),
+      modelJson: document.getElementById('model-json'),
       graphqlExamples: document.getElementById('graphql-examples'),
       graphqlQuery: document.getElementById('graphql-query'),
       graphqlVariables: document.getElementById('graphql-variables'),
@@ -310,9 +341,11 @@ export function renderDbViewer(options = {}) {
         ...Object.entries(manifest.collections || {}).map(([name, resource]) => ({ name, ...resource })),
         ...Object.entries(manifest.documents || {}).map(([name, resource]) => ({ name, ...resource })),
       ];
+      state.model = diagramModelFromManifest(manifest);
       renderStatus();
       renderDiagnostics();
       renderResourceList();
+      renderModel();
       els.subtitle.textContent = state.resources.length + ' resources loaded';
       const resourceName = resolveInitialResourceName(preferredResourceName);
       if (resourceName) {
@@ -462,6 +495,133 @@ export function renderDbViewer(options = {}) {
         return '<tr><td class="' + TD_CLASS + '">' + escapeHtml(name) + '</td><td class="' + TD_CLASS + '">' + escapeHtml(fieldType(field)) + '</td><td class="' + TD_CLASS + '">' + escapeHtml(field.required ? 'yes' : 'no') + '</td><td class="' + TD_CLASS + '">' + escapeHtml(relationTextForField(name)) + '</td><td class="' + TD_CLASS + '">' + escapeHtml(field.description || '') + '</td></tr>';
       }).join('');
       els.fieldView.innerHTML = relationSummary(state.selected) + '<div class="' + TABLE_WRAP_CLASS + '"><table class="' + TABLE_CLASS + '"><thead><tr><th class="' + TH_CLASS + '">Field</th><th class="' + TH_CLASS + '">Type</th><th class="' + TH_CLASS + '">Required</th><th class="' + TH_CLASS + '">Relation</th><th class="' + TH_CLASS + '">Description</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    }
+
+    function renderModel() {
+      const model = state.model || diagramModelFromManifest(state.manifest || {});
+      els.modelMermaid.textContent = renderMermaidDiagram(model);
+      els.modelJson.textContent = pretty(model);
+      els.modelGraph.innerHTML = renderModelSvg(model);
+    }
+
+    function diagramModelFromManifest(manifest) {
+      const resources = [
+        ...Object.entries(manifest.collections || {}).map(([name, resource]) => diagramResource(name, resource)),
+        ...Object.entries(manifest.documents || {}).map(([name, resource]) => diagramResource(name, resource)),
+      ].sort((left, right) => left.name.localeCompare(right.name));
+      const resourceNames = new Set(resources.map((resource) => resource.name));
+      const relations = [
+        ...Object.values(manifest.collections || {}),
+        ...Object.values(manifest.documents || {}),
+      ].flatMap((resource) => resource.relations || [])
+        .filter((relation) => resourceNames.has(relation.sourceResource) && resourceNames.has(relation.targetResource))
+        .map((relation) => ({
+          name: relation.name,
+          sourceResource: relation.sourceResource,
+          sourceField: relation.sourceField,
+          targetResource: relation.targetResource,
+          targetField: relation.targetField,
+          cardinality: relation.cardinality || 'one',
+          required: Boolean(fieldForRelation(manifest, relation)?.required),
+        }))
+        .sort(compareDiagramRelations);
+
+      return {
+        kind: 'db.diagramModel',
+        version: 1,
+        resources,
+        relations,
+      };
+    }
+
+    function diagramResource(name, resource) {
+      const idField = resource.kind === 'collection' ? resource.idField || 'id' : null;
+      const fields = Object.entries(resource.fields || {})
+        .filter(([fieldName, field]) => fieldName === idField || Boolean(field.relation))
+        .map(([fieldName, field]) => ({
+          name: fieldName,
+          type: field.type || 'unknown',
+          required: Boolean(field.required),
+          nullable: Boolean(field.nullable),
+          key: fieldName === idField ? 'PK' : field.relation ? 'FK' : undefined,
+        }))
+        .sort((left, right) => diagramFieldSort(left, right, idField));
+
+      return {
+        name,
+        kind: resource.kind,
+        typeName: resource.typeName || name,
+        ...(resource.kind === 'collection' ? { idField } : {}),
+        fields,
+      };
+    }
+
+    function renderMermaidDiagram(model) {
+      const lines = ['erDiagram'];
+      for (const resource of model.resources || []) {
+        const entityId = mermaidEntityId(resource.name);
+        lines.push('  ' + entityId + '["' + escapeMermaidLabel(resource.name) + '"] {');
+        for (const field of resource.fields || []) {
+          lines.push('    ' + mermaidType(field.type) + ' ' + mermaidAttributeName(field.name) + (field.key ? ' ' + field.key : ''));
+        }
+        lines.push('  }');
+      }
+      for (const relation of model.relations || []) {
+        lines.push('  ' + mermaidEntityId(relation.sourceResource) + ' ' + (relation.required ? '}o--||' : '}o--o|') + ' ' + mermaidEntityId(relation.targetResource) + ' : "' + escapeMermaidLabel(relation.name) + '"');
+      }
+      return lines.join('\\n') + '\\n';
+    }
+
+    function renderModelSvg(model) {
+      const resources = model.resources || [];
+      if (resources.length === 0) {
+        return '<div class="' + MUTED_CLASS + '">No resources found.</div>';
+      }
+
+      const columns = Math.min(3, Math.max(1, Math.ceil(Math.sqrt(resources.length))));
+      const nodeWidth = 220;
+      const nodeHeight = 132;
+      const gapX = 72;
+      const gapY = 72;
+      const margin = 36;
+      const positions = new Map(resources.map((resource, index) => {
+        const column = index % columns;
+        const row = Math.floor(index / columns);
+        return [resource.name, {
+          x: margin + column * (nodeWidth + gapX),
+          y: margin + row * (nodeHeight + gapY),
+        }];
+      }));
+      const rows = Math.ceil(resources.length / columns);
+      const width = margin * 2 + columns * nodeWidth + Math.max(0, columns - 1) * gapX;
+      const height = margin * 2 + rows * nodeHeight + Math.max(0, rows - 1) * gapY;
+      const relationLines = (model.relations || []).map((relation) => {
+        const source = positions.get(relation.sourceResource);
+        const target = positions.get(relation.targetResource);
+        if (!source || !target) {
+          return '';
+        }
+        const x1 = source.x + nodeWidth / 2;
+        const y1 = source.y + nodeHeight / 2;
+        const x2 = target.x + nodeWidth / 2;
+        const y2 = target.y + nodeHeight / 2;
+        const labelX = (x1 + x2) / 2;
+        const labelY = (y1 + y2) / 2 - 6;
+        return '<line x1="' + x1 + '" y1="' + y1 + '" x2="' + x2 + '" y2="' + y2 + '" stroke="#047857" stroke-width="2" stroke-linecap="round"></line><text x="' + labelX + '" y="' + labelY + '" text-anchor="middle" fill="#047857" font-size="12" font-weight="700">' + escapeHtml(relation.name) + '</text>';
+      }).join('');
+      const nodes = resources.map((resource) => {
+        const position = positions.get(resource.name);
+        const fieldLines = (resource.fields || []).slice(0, 4).map((field, index) => {
+          const y = position.y + 56 + index * 16;
+          return '<text x="' + (position.x + 14) + '" y="' + y + '" fill="#334155" font-size="12" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">' + escapeHtml(field.name + ': ' + field.type + (field.key ? ' ' + field.key : '')) + '</text>';
+        }).join('');
+        const more = (resource.fields || []).length > 4
+          ? '<text x="' + (position.x + 14) + '" y="' + (position.y + 120) + '" fill="#64748b" font-size="12">+' + ((resource.fields || []).length - 4) + ' more</text>'
+          : '';
+        return '<g><rect x="' + position.x + '" y="' + position.y + '" width="' + nodeWidth + '" height="' + nodeHeight + '" rx="8" fill="#ffffff" stroke="#cbd5e1"></rect><text x="' + (position.x + 14) + '" y="' + (position.y + 26) + '" fill="#0f172a" font-size="15" font-weight="700">' + escapeHtml(resource.name) + '</text><text x="' + (position.x + 14) + '" y="' + (position.y + 43) + '" fill="#64748b" font-size="12">' + escapeHtml(resource.kind + ' · ' + resource.typeName) + '</text>' + fieldLines + more + '</g>';
+      }).join('');
+
+      return '<svg role="img" aria-label="Data model diagram" viewBox="0 0 ' + width + ' ' + height + '" width="' + width + '" height="' + height + '" class="max-w-none">' + relationLines + nodes + '</svg>';
     }
 
     function exampleView(example, kind) {
@@ -699,6 +859,12 @@ export function renderDbViewer(options = {}) {
       return (resource?.relations || []).find((relation) => relation.sourceField === fieldName) || null;
     }
 
+    function fieldForRelation(manifest, relation) {
+      return manifest.collections?.[relation.sourceResource]?.fields?.[relation.sourceField]
+        || manifest.documents?.[relation.sourceResource]?.fields?.[relation.sourceField]
+        || null;
+    }
+
     function relationTextForField(fieldName) {
       const relation = relationForField(state.selected, fieldName);
       return relation ? relation.name + ' -> ' + relation.targetResource + '.' + relation.targetField : '';
@@ -737,6 +903,42 @@ export function renderDbViewer(options = {}) {
         lines.push('', pretty(example.body));
       }
       return lines.join('\\n');
+    }
+
+    function diagramFieldSort(left, right, idField) {
+      if (left.name === idField) {
+        return -1;
+      }
+      if (right.name === idField) {
+        return 1;
+      }
+      return left.name.localeCompare(right.name);
+    }
+
+    function compareDiagramRelations(left, right) {
+      return left.sourceResource.localeCompare(right.sourceResource)
+        || left.name.localeCompare(right.name)
+        || left.targetResource.localeCompare(right.targetResource)
+        || left.sourceField.localeCompare(right.sourceField);
+    }
+
+    function mermaidType(type) {
+      const value = String(type || 'unknown').replace(/[^A-Za-z0-9_()[\\]-]/g, '_');
+      return /^[A-Za-z]/.test(value) ? value : 'field_' + value;
+    }
+
+    function mermaidAttributeName(name) {
+      const value = String(name || 'field').replace(/[^A-Za-z0-9_*()[\\]-]/g, '_');
+      return /^[A-Za-z_*]/.test(value) ? value : 'field_' + value;
+    }
+
+    function mermaidEntityId(name) {
+      const value = String(name || 'resource').replace(/[^A-Za-z0-9_]/g, '_');
+      return /^[A-Za-z]/.test(value) ? value : 'resource_' + value;
+    }
+
+    function escapeMermaidLabel(value) {
+      return String(value).replaceAll('"', '\\\\"');
     }
 
     function resolveInitialResourceName(preferredResourceName) {

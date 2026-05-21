@@ -214,8 +214,7 @@ export default {
       if (fieldName.endsWith('Markdown')) {
         return {
           ...defaultManifest,
-          ui: {
-            ...defaultManifest.ui,
+          schemaUi: {
             component: 'markdown',
           },
         };
@@ -440,6 +439,21 @@ type DbSourceReaderResult =
 Custom readers run before built-in readers. Returning `null` lets later readers try; the first non-null result owns the file. Reader context includes repo-relative file path, absolute source path, parsed fixture path metadata, config, source hash, `readText()`, and `readBuffer()`.
 
 Readers must return raw data or raw schema only. Resource normalization, diagnostics, type generation, schema manifest output, REST/GraphQL metadata, generated ids, and runtime sync stay centralized in db. A reader may return multiple sources from one file, but each result must include `resourceName`; otherwise db reports a structured diagnostic.
+
+Projects may add `sources.derived` in `db.config.mjs` to compute virtual data or schema sources from dependency files under the fixture folder:
+
+```ts
+type DbDerivedSource = {
+  name: string;
+  resourceName?: string;
+  dependsOn: string | string[];
+  read(context: DbDerivedSourceContext): DbSourceReaderResult | Promise<DbSourceReaderResult>;
+};
+```
+
+Derived sources run after normal source files. `dependsOn` patterns are source-dir-relative paths and support exact paths, `*`, and `**` in v1. The derived context includes config, source name, and sorted dependency files with source-dir-relative path, repo-relative file, absolute sourceFile, SHA-256 hash, `readText()`, and `readBuffer()`. A single result may omit `resourceName`; it defaults to `resourceName ?? name`. Multi-source results must name every result.
+
+Derived resources use composite dependency hashes and no writable source path. They participate in schema inference, type generation, generated schema metadata, REST/GraphQL metadata, viewer output, duplicate-resource diagnostics, and runtime sync like normal resources. `.db/state/.sources.json` records `derived: true`, the composite hash, and dependency paths/hashes. The `sourceFile` store must reject derived resources because there is no single plain JSON fixture to update.
 
 ## Type-Only Fixtures
 
@@ -807,7 +821,7 @@ record shape as `GET /db/users/u_1.json`. Setting `server.dataPath: false`
 should disable the alias while keeping scoped REST under `/__db/rest` and
 standalone root REST routes.
 
-The viewer manifest should be the shared JSON contract used by the built-in viewer and custom data viewers. `/manifest.json` should return JSON by default. `/manifest.html` should render a formatted JSON viewer with dark mode as the default, dark/light/system controls, copy, and pretty/raw formatting controls. `/manifest.md` should render Markdown with the manifest JSON in a fenced code block for AI clients. `/manifest` should choose among registered media types from `Accept`, and explicit `/manifest.<extension>` routes should use the matching registered response format. The manifest should include API links, capabilities, diagnostics, configured viewer links, response format metadata, collections, documents, field metadata, UI hints, and relation hints. It must not include seed records, source paths, source hashes, runtime state paths, or GraphQL SDL. Custom viewers should use the manifest for UI metadata and fetch actual records from REST or GraphQL.
+The viewer manifest should be the shared JSON contract used by the built-in viewer and custom data viewers. `/manifest.json` should return JSON by default. `/manifest.html` should render a formatted JSON viewer with dark mode as the default, dark/light/system controls, copy, and pretty/raw formatting controls. `/manifest.md` should render Markdown with the manifest JSON in a fenced code block for AI clients. `/manifest` should choose among registered media types from `Accept`, and explicit `/manifest.<extension>` routes should use the matching registered response format. The manifest should include API links, capabilities, diagnostics, configured viewer links, response format metadata, collections, documents, field metadata, relation hints, and app-owned custom metadata added through manifest hooks. It must not include seed records, source paths, source hashes, runtime state paths, or GraphQL SDL. Custom viewers should use the manifest for model metadata and fetch actual records from REST or GraphQL.
 
 The viewer should support:
 
@@ -1094,9 +1108,9 @@ export type User = {
 
 Use schema field descriptions to emit JSDoc comments.
 
-## Schema manifest output and model-driven admin UIs
+## Schema manifest output and app-owned metadata
 
-Add optional JSON schema manifest generation for local-first admin/CMS UIs that render forms from db models instead of duplicating per-resource form configuration.
+Add optional JSON schema manifest generation for apps that need importable model metadata at runtime, such as custom admin panels, documentation pages, form builders, or developer tools.
 
 This is separate from `.db/schema.generated.json`. The existing generated schema file remains runtime/server metadata and may include diagnostics, source paths, seeds, REST route lists, and GraphQL SDL. The committed manifest is a small importable artifact for applications.
 
@@ -1141,35 +1155,30 @@ The manifest should have this top-level shape:
 }
 ```
 
-Each resource entry should include `kind`, `name`, `idField` for collections, optional `description`, and `fields`. Each field should include normalized field metadata such as `type`, `required`, `nullable`, `default`, `values`, nested object `fields`, array `items`, `relation`, constraints, and inferred `ui` defaults.
+Each resource entry should include `kind`, `name`, `idField` for collections, optional `description`, and `fields`. Each field should include normalized field metadata such as `type`, `required`, `nullable`, `default`, `values`, nested object `fields`, array `items`, `relation`, and constraints.
 
 The manifest must not include seed records, source hashes, source paths, runtime state, diagnostics, REST route lists, or GraphQL SDL.
 
-Default UI inference should be deterministic and safe:
+Manifest metadata must not change fixtures, seed data, runtime state, validation, REST, or GraphQL behavior.
 
-```txt
-boolean -> toggle
-small enum -> radio
-larger enum -> select
-email-like field name -> email
-url-like field name -> url
-image/avatar/photo-like field name -> image
-description/body/content/notes/bio/markdown-like field name -> textarea
-array<string> -> tags
-array<enum> -> multiSelect
-object with declared fields -> fieldset
-open object or unknown field -> json
-relation field -> relationSelect with optionsFrom
-collection id field -> readonly
-```
-
-Manifest defaults are metadata only. They must not change fixtures, seed data, runtime state, validation, REST, or GraphQL behavior.
-
-Apps can customize or omit field entries with a visitor hook:
+Apps can attach their own JSON-serializable metadata or omit field entries with visitor hooks. async/db preserves custom keys but does not interpret app-owned namespaces such as `schemaUi`, `admin`, `docs`, or `forms`:
 
 ```js
 export default {
   schemaManifest: {
+    customizeResource({ resourceName, defaultManifest }) {
+      if (resourceName === 'users') {
+        return {
+          ...defaultManifest,
+          schemaUi: {
+            hidden: true,
+          },
+        };
+      }
+
+      return defaultManifest;
+    },
+
     customizeField({ field, fieldName, resource, resourceName, path, file, sourceFile, defaultManifest }) {
       if (resourceName === 'users' && fieldName === 'passwordHash') {
         return null;
@@ -1178,8 +1187,7 @@ export default {
       if (fieldName.endsWith('Markdown')) {
         return {
           ...defaultManifest,
-          ui: {
-            ...defaultManifest.ui,
+          schemaUi: {
             component: 'markdown',
           },
         };
@@ -1193,7 +1201,7 @@ export default {
 
 The visitor return value must be JSON-serializable. Functions, classes, symbols, bigint values, non-finite numbers, and non-plain objects should fail generation with a diagnostic that includes resource and field path. Returning `null` omits the field from the manifest.
 
-The intended first use is permissioned admin CRUD for resources such as dashboards, users, and permission policies. Admin screens can map manifest field metadata to reusable create/edit/view components while policy checks decide whether fields are hidden, readonly, or editable for a given session.
+Example admin screens can map manifest field metadata to reusable create/edit/view components while app code decides whether fields are hidden, readonly, or editable for a given session. These conventions live in app or example code, not in async/db core.
 
 Support schema-only fixtures.
 

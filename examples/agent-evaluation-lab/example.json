@@ -1,0 +1,5 @@
+{
+  "title": "Agent Evaluation Lab",
+  "description": "Model prompt and model evaluations with test cases, scores, runs, and regressions.",
+  "tags": ["agentic", "evals", "quality"]
+}

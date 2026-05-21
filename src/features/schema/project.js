@@ -1,5 +1,5 @@
 import { buildResource } from './resource.js';
-import { duplicateResourceDiagnostics, listSourceFiles, readSourceFile, trackResourceSource } from './sources.js';
+import { duplicateResourceDiagnostics, listSourceFiles, readDerivedSources, readSourceFile, trackResourceSource } from './sources.js';
 import { makeGeneratedSchema } from './generated.js';
 import { resourceAliasCollisionGroups } from '../../names.js';
 import { validateProjectRelations } from './relations.js';
@@ -26,6 +26,17 @@ export async function loadProjectSchema(config) {
     }
   }
 
+  const derivedResult = await readDerivedSources(config, files);
+  diagnostics.push(...derivedResult.diagnostics);
+  for (const source of derivedResult.sources) {
+    trackResourceSource(resourceSources, source.name, source.file, source.kind);
+    if (source.kind === 'schema') {
+      schemaFiles.set(source.name, source);
+    } else {
+      dataFiles.set(source.name, source);
+    }
+  }
+
   const resourceNames = [...new Set([...dataFiles.keys(), ...schemaFiles.keys()])].sort();
   const resources = [];
   diagnostics.push(...duplicateResourceDiagnostics(resourceSources));
@@ -49,8 +60,14 @@ export async function loadProjectSchema(config) {
       dataPath: dataSource?.sourceFile,
       dataFormat: dataSource?.format,
       dataHash: dataSource?.hash,
+      dataSourceFile: dataSource?.file,
+      dataDerived: dataSource?.derived === true,
+      dataDependencies: dataSource?.dependencies,
       schemaPath: schemaSource?.sourceFile,
       schemaSource: schemaSource?.format,
+      schemaSourceFile: schemaSource?.file,
+      schemaDerived: schemaSource?.derived === true,
+      schemaDependencies: schemaSource?.dependencies,
       rawData,
       rawSchema,
       config,

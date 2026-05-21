@@ -1,0 +1,54 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Password login session records with metadata only.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "userId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "user",
+        "to": "users",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "revoked", "expired"],
+      "default": "active"
+    },
+    "createdAt": {
+      "type": "datetime"
+    },
+    "lastSeenAt": {
+      "type": "datetime",
+      "nullable": true
+    },
+    "deviceLabel": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "sess_ada_laptop",
+      "userId": "user_ada",
+      "status": "active",
+      "createdAt": "2026-05-19T16:20:00.000Z",
+      "lastSeenAt": "2026-05-20T18:00:00.000Z",
+      "deviceLabel": "Ada laptop"
+    },
+    {
+      "id": "sess_grace_old",
+      "userId": "user_grace",
+      "status": "revoked",
+      "createdAt": "2026-05-12T14:00:00.000Z",
+      "lastSeenAt": "2026-05-12T14:15:00.000Z",
+      "deviceLabel": "Old browser session"
+    }
+  ]
+}

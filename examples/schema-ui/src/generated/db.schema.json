@@ -9,22 +9,13 @@
           "type": "string",
           "required": true,
           "nullable": false,
-          "description": "Stable page id.",
-          "ui": {
-            "label": "Id",
-            "component": "text",
-            "readonly": true
-          }
+          "description": "Stable page id."
         },
         "title": {
           "type": "string",
           "required": true,
           "nullable": false,
-          "description": "Page title shown in the CMS list.",
-          "ui": {
-            "label": "Title",
-            "component": "text"
-          }
+          "description": "Page title shown in the CMS list."
         },
         "status": {
           "type": "enum",
@@ -37,8 +28,7 @@
             "review",
             "published"
           ],
-          "ui": {
-            "label": "Status",
+          "schemaUi": {
             "component": "segmented-control"
           }
         },
@@ -52,11 +42,6 @@
             "to": "users",
             "toField": "id",
             "cardinality": "one"
-          },
-          "ui": {
-            "label": "Author Id",
-            "component": "relationSelect",
-            "optionsFrom": "users"
           }
         },
         "summary": {
@@ -64,18 +49,14 @@
           "required": false,
           "nullable": false,
           "description": "Short page summary.",
-          "maxLength": 160,
-          "ui": {
-            "label": "Summary",
-            "component": "textarea"
-          }
+          "maxLength": 160
         },
         "bodyMarkdown": {
           "type": "string",
           "required": false,
           "nullable": false,
           "description": "Markdown body content.",
-          "ui": {
+          "schemaUi": {
             "label": "Body",
             "component": "markdown"
           }
@@ -83,7 +64,7 @@
       },
       "description": "CMS pages rendered by a tiny schema-driven UI example.",
       "idField": "id",
-      "editor": {
+      "schemaUi": {
         "title": "Pages",
         "description": "CMS pages edited from generated schema metadata."
       }
@@ -96,33 +77,20 @@
           "type": "string",
           "required": true,
           "nullable": false,
-          "description": "Stable author id.",
-          "ui": {
-            "label": "Id",
-            "component": "text",
-            "readonly": true
-          }
+          "description": "Stable author id."
         },
         "name": {
           "type": "string",
           "required": true,
           "nullable": false,
-          "description": "Author display name.",
-          "ui": {
-            "label": "Name",
-            "component": "text"
-          }
+          "description": "Author display name."
         },
         "email": {
           "type": "string",
           "required": true,
           "nullable": false,
           "description": "Author email address.",
-          "unique": true,
-          "ui": {
-            "label": "Email",
-            "component": "email"
-          }
+          "unique": true
         }
       },
       "description": "Authors that can own CMS pages.",

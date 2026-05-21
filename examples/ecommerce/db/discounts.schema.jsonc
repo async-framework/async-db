@@ -1,0 +1,70 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Promotion codes used by checkout logic.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "code": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "kind": {
+      "type": "enum",
+      "values": ["percentage", "fixed", "freeShipping"],
+      "required": true
+    },
+    "value": {
+      "type": "number",
+      "default": 0
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    },
+    "minSubtotalCents": {
+      "type": "number",
+      "default": 0
+    },
+    "appliesToProductIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "startsAt": {
+      "type": "datetime"
+    },
+    "endsAt": {
+      "type": "datetime",
+      "nullable": true
+    }
+  },
+  "seed": [
+    {
+      "id": "disc_save10",
+      "code": "SAVE10",
+      "kind": "percentage",
+      "value": 10,
+      "active": true,
+      "minSubtotalCents": 2500,
+      "appliesToProductIds": ["prod_fixture_kit", "prod_schema_guide"],
+      "startsAt": "2026-05-01T00:00:00.000Z",
+      "endsAt": null
+    },
+    {
+      "id": "disc_freeship",
+      "code": "FREESHIP",
+      "kind": "freeShipping",
+      "value": 0,
+      "active": true,
+      "minSubtotalCents": 5000,
+      "appliesToProductIds": [],
+      "startsAt": "2026-05-01T00:00:00.000Z",
+      "endsAt": null
+    }
+  ]
+}

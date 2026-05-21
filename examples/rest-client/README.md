@@ -4,6 +4,28 @@
 
 Use this when you want to call db from app or test code instead of typing `curl` commands. It demonstrates `createDbClient()`, direct REST calls, and a REST batch request.
 
+## Why This Shape?
+
+- `users` is a schema-backed collection so client reads and writes have a small contract to target.
+- `settings` is a singleton document so the client demo shows both collection and document routes.
+- The demo script is separate from fixtures because it represents app or test code consuming REST.
+- There are no cross-resource relations in this example; it focuses on direct reads and REST batching rather than expansion.
+
+## Data Model Diagram
+
+```mermaid
+erDiagram
+  settings["settings"] {
+  }
+  users["users"] {
+    string id PK
+  }
+```
+
+## Relations To Notice
+
+There are no schema-declared relations in this example; each resource can be inspected independently.
+
 ## Files To Inspect
 
 - [db/users.schema.jsonc](./db/users.schema.jsonc): schema-backed collection with defaults and unique email validation.

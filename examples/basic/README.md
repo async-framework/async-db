@@ -4,27 +4,39 @@
 
 Start here when you want the smallest schema-backed db workflow. It demonstrates sync, committed generated types, the viewer, fixture-like `.json` REST reads, and creating a record.
 
+## Why This Shape?
+
+- `users` is a schema-backed collection because it demonstrates a normal editable table with seed records, defaults, and write validation.
+- `settings` is a singleton document because the app has one settings object, not many settings rows.
+- `operations/get-user.jsonc` is separate from fixtures because registered operations describe approved request templates, not stored data.
+- There are no cross-resource relations in this example; it keeps the first workflow focused on one collection, one document, and one write path.
+
+## Data Model Diagram
+
+```mermaid
+erDiagram
+  settings["settings"] {
+  }
+  users["users"] {
+    string id PK
+  }
+```
+
+## Relations To Notice
+
+There are no schema-declared relations in this example; each resource can be inspected independently.
+
 ## Files To Inspect
 
-- [db/users.schema.jsonc](./db/users.schema.jsonc): schema-backed collection with seed data.
-- [db/settings.json](./db/settings.json): singleton document inferred from data.
-- [db/operations/get-user.jsonc](./db/operations/get-user.jsonc): optional registered REST operation template.
-- [src/generated/db.types.ts](./src/generated/db.types.ts): committed generated types.
+- [db/settings.json](./db/settings.json): source data or schema for this example.
+- [db/users.schema.jsonc](./db/users.schema.jsonc): source data or schema for this example.
+- [db.config.mjs](./db.config.mjs): example configuration for fixture discovery, outputs, and local runtime behavior.
 
 ## Run It
 
-From the repository root, use the repo-internal CLI path:
-
 ```bash
 node ./src/cli.js sync --cwd ./examples/basic
-node ./src/cli.js operations build --cwd ./examples/basic
 node ./src/cli.js serve --cwd ./examples/basic
-```
-
-Open the viewer:
-
-```txt
-http://127.0.0.1:7331/__db
 ```
 
 ## Expected Result

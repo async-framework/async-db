@@ -1,0 +1,45 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Forum users who create topics and posts.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "handle": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "displayName": {
+      "type": "string",
+      "required": true
+    },
+    "role": {
+      "type": "enum",
+      "values": ["member", "moderator"],
+      "default": "member"
+    },
+    "joinedAt": {
+      "type": "datetime",
+      "required": true
+    }
+  },
+  "seed": [
+    {
+      "id": "user_ada",
+      "handle": "ada",
+      "displayName": "Ada Lovelace",
+      "role": "moderator",
+      "joinedAt": "2026-04-15T16:00:00.000Z"
+    },
+    {
+      "id": "user_grace",
+      "handle": "grace",
+      "displayName": "Grace Hopper",
+      "role": "member",
+      "joinedAt": "2026-04-20T16:00:00.000Z"
+    }
+  ]
+}

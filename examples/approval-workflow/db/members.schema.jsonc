@@ -1,0 +1,70 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "People who can request changes, review them, or own follow-up actions.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "title": {
+      "type": "string"
+    },
+    "primaryTeamId": {
+      "type": "string",
+      "relation": {
+        "name": "primaryTeam",
+        "to": "teams",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "seed": [
+    {
+      "id": "mem_ana",
+      "name": "Ana Martinez",
+      "email": "ana@example.com",
+      "title": "Product Operations Lead",
+      "primaryTeamId": "team_product_ops",
+      "active": true
+    },
+    {
+      "id": "mem_max",
+      "name": "Max Chen",
+      "email": "max@example.com",
+      "title": "Product Reviewer",
+      "primaryTeamId": "team_product_ops",
+      "active": true
+    },
+    {
+      "id": "mem_lina",
+      "name": "Lina Patel",
+      "email": "lina@example.com",
+      "title": "Security Reviewer",
+      "primaryTeamId": "team_security",
+      "active": true
+    },
+    {
+      "id": "mem_omar",
+      "name": "Omar Reed",
+      "email": "omar@example.com",
+      "title": "Compliance Reviewer",
+      "primaryTeamId": "team_compliance",
+      "active": true
+    }
+  ]
+}

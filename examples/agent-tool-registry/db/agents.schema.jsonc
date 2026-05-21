@@ -1,0 +1,37 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Agents that can request scoped tool access.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "ownerTeam": {
+      "type": "string"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "paused"],
+      "default": "active"
+    }
+  },
+  "seed": [
+    {
+      "id": "agent_release_helper",
+      "name": "Release Helper",
+      "ownerTeam": "Platform",
+      "status": "active"
+    },
+    {
+      "id": "agent_data_auditor",
+      "name": "Data Auditor",
+      "ownerTeam": "Operations",
+      "status": "active"
+    }
+  ]
+}

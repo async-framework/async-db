@@ -34,7 +34,7 @@ db/*.json, *.jsonc, *.csv, *.schema.json(c), *.schema.mjs
 
 ## Core Boundaries
 
-- Source discovery and loading live under `src/features/schema/sources.js`. Built-in readers handle JSON, JSONC, CSV, and schema files; custom readers normalize into the same data/schema source shape.
+- Source discovery and loading live under `src/features/schema/sources.js`. Built-in readers handle JSON, JSONC, CSV, and schema files; custom readers normalize matched files into the same data/schema source shape. Derived sources run after normal files and add virtual data/schema sources with composite dependency hashes.
 - Field normalization, inference, relations, and resource construction live under `src/features/schema/`.
 - Validation and diagnostics live under `src/features/schema/validation.js` and nearby schema feature modules.
 - Sync lives under `src/features/sync/`. It writes generated schema, generated types, optional schema manifests, source metadata, and hydrates runtime store state.
@@ -46,7 +46,7 @@ db/*.json, *.jsonc, *.csv, *.schema.json(c), *.schema.mjs
 
 | Change | Start with |
 | --- | --- |
-| Source discovery or custom readers | `src/features/schema/sources.js` |
+| Source discovery, custom readers, or derived sources | `src/features/schema/sources.js` |
 | Schema inference or field normalization | `src/features/schema/fields.js`, `src/features/schema/resource.js` |
 | Schema validation or diagnostics | `src/features/schema/validation.js` |
 | Runtime store hydration or generated outputs | `src/features/sync/index.js`, `src/types.js`, `src/schema-manifest.js` |
@@ -78,6 +78,8 @@ Examples that intentionally commit generated outputs:
 examples/advanced/src/generated/db.types.ts
 examples/basic/src/generated/db.types.ts
 examples/schema-first/src/generated/db.types.ts
+examples/recursive-schema-ui/src/generated/db.schema.json
+examples/recursive-schema-ui/src/generated/db.types.ts
 examples/schema-manifest/src/generated/db.schema.json
 examples/schema-manifest/src/generated/db.types.ts
 examples/schema-ui/src/generated/db.schema.json

@@ -1,0 +1,46 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Organizations or workspaces that scope login access.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "plan": {
+      "type": "enum",
+      "values": ["free", "team", "enterprise"],
+      "default": "team"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "suspended"],
+      "default": "active"
+    }
+  },
+  "seed": [
+    {
+      "id": "org_acme",
+      "slug": "acme",
+      "name": "Acme Analytics",
+      "plan": "team",
+      "status": "active"
+    },
+    {
+      "id": "org_northstar",
+      "slug": "northstar",
+      "name": "Northstar Labs",
+      "plan": "enterprise",
+      "status": "active"
+    }
+  ]
+}

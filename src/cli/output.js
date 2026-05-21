@@ -33,6 +33,7 @@ Usage:
   async-db operations build [--out <file>] [--refs-out <file>]
   async-db operations contract [--out <file>] [--check]
   async-db viewer manifest [--out <file>]
+  async-db diagram [--format mermaid|json] [--out <file>] [--fields compact|all|none]
   async-db doctor [--strict] [--json]
   async-db check [--strict] [--json]
   async-db create <collection> <json>
@@ -122,6 +123,21 @@ Options:
   --out <file>   Write generated viewer manifest output to this path
   --cwd <dir>     Project directory
   --config <file> Config file path
+`);
+}
+
+export function printDiagramHelp() {
+  console.log(`async-db diagram
+
+Usage:
+  async-db diagram [--format mermaid|json] [--out <file>] [--fields compact|all|none]
+
+Options:
+  --format <format>  Output mermaid or json, defaulting to mermaid
+  --fields <mode>    Include compact, all, or no fields, defaulting to compact
+  --out <file>       Write generated diagram output to this path
+  --cwd <dir>        Project directory
+  --config <file>    Config file path
 `);
 }
 

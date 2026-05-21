@@ -1,0 +1,5 @@
+{
+  "title": "Forums",
+  "description": "Model a minimal discussion forum with users, categories, topics, and posts.",
+  "tags": ["forums", "relations", "mvp"]
+}

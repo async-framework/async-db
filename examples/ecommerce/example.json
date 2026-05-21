@@ -1,0 +1,5 @@
+{
+  "title": "Ecommerce",
+  "description": "Model checkout data with customers, carts, discounts, orders, payments, shipments, products, variants, and inventory.",
+  "tags": ["ecommerce", "orders", "checkout"]
+}

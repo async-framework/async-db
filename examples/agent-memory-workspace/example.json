@@ -1,0 +1,5 @@
+{
+  "title": "Agent Memory Workspace",
+  "description": "Model durable agent memory with sources, chunks, claims, citations, conflicts, and refresh jobs.",
+  "tags": ["agentic", "memory", "provenance"]
+}

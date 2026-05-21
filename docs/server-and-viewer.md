@@ -84,11 +84,11 @@ The manifest includes:
 
 - API links for the viewer, manifest, manifest JSON/HTML/Markdown routes, schema, events, batch, import, GraphQL, and each REST resource
 - built-in and configured custom viewer links
-- resource and field metadata, including generated UI hints and relation hints
+- resource and field metadata, including relation hints and app-owned custom metadata from manifest hooks
 - viewer capabilities such as writes, batching, CSV import, GraphQL, and live events
 - diagnostics suitable for display in a custom UI
 
-The manifest does not include seed records, source paths, source hashes, runtime state paths, or GraphQL SDL. Custom viewers should fetch `manifest.json` for UI metadata and route links, then fetch actual records from REST or GraphQL. `api.formats` lists the registered response formats, media types, and manifest paths for custom viewers and tools.
+The manifest does not include seed records, source paths, source hashes, runtime state paths, or GraphQL SDL. Custom viewers should fetch `manifest.json` for model metadata, app-owned custom metadata, and route links, then fetch actual records from REST or GraphQL. `api.formats` lists the registered response formats, media types, and manifest paths for custom viewers and tools.
 
 Add custom viewer links when a project ships its own data UI:
 

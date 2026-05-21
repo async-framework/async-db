@@ -1,0 +1,48 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Sessions scoped to an organization membership.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "userId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "user",
+        "to": "users",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "organizationId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "organization",
+        "to": "organizations",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "expired"],
+      "default": "active"
+    },
+    "createdAt": {
+      "type": "datetime"
+    }
+  },
+  "seed": [
+    {
+      "id": "sess_nina_acme",
+      "userId": "user_nina",
+      "organizationId": "org_acme",
+      "status": "active",
+      "createdAt": "2026-05-20T16:00:00.000Z"
+    }
+  ]
+}

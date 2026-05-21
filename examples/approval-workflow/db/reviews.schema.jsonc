@@ -1,0 +1,90 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Human review decisions for change requests.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "changeRequestId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "changeRequest",
+        "to": "changeRequests",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "reviewerId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "reviewer",
+        "to": "members",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "teamId": {
+      "type": "string",
+      "nullable": true,
+      "relation": {
+        "name": "team",
+        "to": "teams",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "decision": {
+      "type": "enum",
+      "values": ["approved", "changes_requested", "commented"],
+      "default": "commented"
+    },
+    "bodyMarkdown": {
+      "type": "string"
+    },
+    "submittedAt": {
+      "type": "datetime"
+    }
+  },
+  "seed": [
+    {
+      "id": "review_launch_product",
+      "changeRequestId": "cr_launch_policy",
+      "reviewerId": "mem_max",
+      "teamId": "team_product_ops",
+      "decision": "approved",
+      "bodyMarkdown": "Product Ops is aligned with the new checklist language.",
+      "submittedAt": "2026-05-02T15:45:00.000Z"
+    },
+    {
+      "id": "review_launch_security",
+      "changeRequestId": "cr_launch_policy",
+      "reviewerId": "mem_lina",
+      "teamId": "team_security",
+      "decision": "approved",
+      "bodyMarkdown": "Security controls are represented clearly.",
+      "submittedAt": "2026-05-02T18:20:00.000Z"
+    },
+    {
+      "id": "review_vendor_security",
+      "changeRequestId": "cr_vendor_access",
+      "reviewerId": "mem_lina",
+      "teamId": "team_security",
+      "decision": "changes_requested",
+      "bodyMarkdown": "Please narrow the access window and add a named owner.",
+      "submittedAt": "2026-05-04T16:05:00.000Z"
+    },
+    {
+      "id": "review_vendor_comment",
+      "changeRequestId": "cr_vendor_access",
+      "reviewerId": "mem_ana",
+      "teamId": "team_product_ops",
+      "decision": "commented",
+      "bodyMarkdown": "Product Ops can update the request once Security confirms the exact scope.",
+      "submittedAt": "2026-05-04T16:25:00.000Z"
+    }
+  ]
+}

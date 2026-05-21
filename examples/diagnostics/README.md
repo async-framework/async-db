@@ -4,25 +4,41 @@
 
 Use this when you want to see how db reports local fixture drift. It intentionally includes schema/data mismatches so the viewer can show source diagnostics while valid resources still work.
 
+## Why This Shape?
+
+- `users` has both schema and data files so the example can show mixed-mode drift when a fixture contains an unknown field.
+- `projects` is schema-backed and intentionally includes a nested mismatch so diagnostics cover more than top-level fields.
+- The resources are separate so one broken source can report diagnostics without making unrelated resources unusable.
+- There are no cross-resource relations in this example; the focus is schema/data validation and partial recovery.
+
+## Data Model Diagram
+
+```mermaid
+erDiagram
+  projects["projects"] {
+    string id PK
+  }
+  users["users"] {
+    string id PK
+  }
+```
+
+## Relations To Notice
+
+There are no schema-declared relations in this example; each resource can be inspected independently.
+
 ## Files To Inspect
 
-- [db/users.schema.jsonc](./db/users.schema.jsonc): schema-backed collection.
-- [db/users.json](./db/users.json): contains an extra `twitterHandle` field.
-- [db/projects.schema.jsonc](./db/projects.schema.jsonc): contains a nested field mismatch.
+- [db/projects.schema.jsonc](./db/projects.schema.jsonc): source data or schema for this example.
+- [db/users.json](./db/users.json): source data or schema for this example.
+- [db/users.schema.jsonc](./db/users.schema.jsonc): source data or schema for this example.
+- [db.config.mjs](./db.config.mjs): example configuration for fixture discovery, outputs, and local runtime behavior.
 
 ## Run It
-
-From the repository root, use the repo-internal CLI path:
 
 ```bash
 node ./src/cli.js sync --cwd ./examples/diagnostics
 node ./src/cli.js serve --cwd ./examples/diagnostics
-```
-
-Open the viewer:
-
-```txt
-http://127.0.0.1:7331/__db
 ```
 
 ## Expected Result

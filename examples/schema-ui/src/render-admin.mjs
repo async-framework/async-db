@@ -52,13 +52,24 @@ const fieldTemplates = [
     },
   },
   {
+    component: 'select',
+    view({ fieldName, field }) {
+      return `<span data-field="${escapeHtml(fieldName)}">{{ ${escapeHtml(fieldName)} }}</span>${hint(field)}`;
+    },
+    editor({ fieldName, field }) {
+      return `<select name="${escapeHtml(fieldName)}" ${required(field)}>${options(field).map((value) => (
+        `<option value="${escapeHtml(value)}">${escapeHtml(value)}</option>`
+      )).join('')}</select>${hint(field)}`;
+    },
+  },
+  {
     component: 'relationSelect',
     view({ fieldName, field }) {
       const relation = field.relation?.name ?? fieldName;
       return `<a href="#${escapeHtml(relation)}-{{ ${escapeHtml(fieldName)} }}">{{ ${escapeHtml(relation)} label }}</a>${hint(field)}`;
     },
     editor({ fieldName, field }) {
-      const source = field.ui?.optionsFrom ?? field.relation?.to ?? 'records';
+      const source = field.relation?.to ?? 'records';
       return `<select name="${escapeHtml(fieldName)}" data-options-from="${escapeHtml(source)}" ${required(field)}></select>${hint(field)}`;
     },
   },
@@ -97,8 +108,8 @@ ${collections.map(renderCollection).join('\n')}
 }
 
 function renderCollection(resource) {
-  const title = resource.editor?.title ?? resource.name;
-  const description = resource.editor?.description ?? resource.description ?? '';
+  const title = resource.schemaUi?.title ?? resource.schemaUi?.label ?? resource.name;
+  const description = resource.schemaUi?.description ?? resource.description ?? '';
   const fields = Object.entries(resource.fields ?? {});
   return `    <section data-resource="${escapeHtml(resource.name)}">
       <header>
@@ -117,9 +128,9 @@ ${fields.map(([fieldName, field]) => renderField('editor', fieldName, field)).jo
 }
 
 function renderField(mode, fieldName, field) {
-  const component = field.ui?.component ?? 'text';
+  const component = componentForField(fieldName, field);
   const template = templateByComponent.get(component) ?? fallbackTemplate;
-  const label = field.ui?.label ?? labelFromFieldName(fieldName);
+  const label = field.schemaUi?.label ?? labelFromFieldName(fieldName);
   const body = template[mode]({ fieldName, field });
 
   return `        <template data-mode="${mode}" data-component="${escapeHtml(component)}" data-field="${escapeHtml(fieldName)}">
@@ -128,12 +139,30 @@ function renderField(mode, fieldName, field) {
         </template>`;
 }
 
+function componentForField(fieldName, field) {
+  if (typeof field.schemaUi?.component === 'string') {
+    return field.schemaUi.component;
+  }
+  if (field.relation?.to) {
+    return 'relationSelect';
+  }
+
+  const name = fieldName.toLowerCase();
+  if (name.includes('email')) {
+    return 'email';
+  }
+  if (name.includes('summary') || name.includes('body') || name.includes('description')) {
+    return 'textarea';
+  }
+  return 'text';
+}
+
 function required(field) {
   return field.required ? 'required' : '';
 }
 
 function legend(field) {
-  return `<legend>${escapeHtml(field.ui?.label ?? 'Choose one')}</legend>`;
+  return `<legend>${escapeHtml(field.schemaUi?.label ?? 'Choose one')}</legend>`;
 }
 
 function options(field) {

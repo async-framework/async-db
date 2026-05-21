@@ -1,0 +1,59 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Small excerpts from sources that claims can cite.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "sourceId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "source",
+        "to": "sources",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "sequence": {
+      "type": "number"
+    },
+    "heading": {
+      "type": "string"
+    },
+    "textExcerpt": {
+      "type": "string"
+    },
+    "tokenEstimate": {
+      "type": "number"
+    }
+  },
+  "seed": [
+    {
+      "id": "chunk_support_hours",
+      "sourceId": "source_support_playbook",
+      "sequence": 1,
+      "heading": "Coverage hours",
+      "textExcerpt": "Standard support coverage runs from 8 AM to 6 PM Pacific on business days.",
+      "tokenEstimate": 24
+    },
+    {
+      "id": "chunk_security_escalation",
+      "sourceId": "source_escalation_ticket",
+      "sequence": 1,
+      "heading": "Security escalation",
+      "textExcerpt": "Security-impacting customer issues should be escalated within one business hour.",
+      "tokenEstimate": 22
+    },
+    {
+      "id": "chunk_old_support_hours",
+      "sourceId": "source_escalation_ticket",
+      "sequence": 2,
+      "heading": "Older coverage note",
+      "textExcerpt": "A previous note said support coverage ended at 5 PM Pacific.",
+      "tokenEstimate": 18
+    }
+  ]
+}

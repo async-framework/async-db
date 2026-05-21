@@ -1,0 +1,72 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Human approval requests for risky tool usage.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "agentId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "agent",
+        "to": "agents",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "toolId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "tool",
+        "to": "tools",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "requestedBy": {
+      "type": "string"
+    },
+    "riskLevel": {
+      "type": "enum",
+      "values": ["low", "medium", "high"],
+      "default": "medium"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["pending", "approved", "denied"],
+      "default": "pending"
+    },
+    "justification": {
+      "type": "string"
+    },
+    "requestedAt": {
+      "type": "datetime"
+    }
+  },
+  "seed": [
+    {
+      "id": "req_prod_database_export",
+      "agentId": "agent_data_auditor",
+      "toolId": "tool_prod_database_export",
+      "requestedBy": "Data Operations",
+      "riskLevel": "high",
+      "status": "pending",
+      "justification": "Need a filtered account report for review, but production export requires approval.",
+      "requestedAt": "2026-05-12T17:15:00.000Z"
+    },
+    {
+      "id": "req_release_notes_publish",
+      "agentId": "agent_release_helper",
+      "toolId": "tool_release_notes",
+      "requestedBy": "Platform",
+      "riskLevel": "medium",
+      "status": "approved",
+      "justification": "Release notes draft can be created in staging.",
+      "requestedAt": "2026-05-12T16:00:00.000Z"
+    }
+  ]
+}

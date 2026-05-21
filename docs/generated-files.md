@@ -69,13 +69,14 @@ Selected examples intentionally commit generated type output:
 examples/advanced/src/generated/db.types.ts
 examples/basic/src/generated/db.types.ts
 examples/schema-first/src/generated/db.types.ts
+examples/recursive-schema-ui/src/generated/db.types.ts
 examples/schema-manifest/src/generated/db.types.ts
 examples/schema-ui/src/generated/db.types.ts
 ```
 
 ## Schema Manifest Output
 
-Use `outputs.schemaManifest` when a local admin, CMS, or form-building UI needs runtime schema metadata:
+Use `outputs.schemaManifest` when an app needs importable model metadata for custom admin panels, docs, forms, or developer tools:
 
 ```js
 import { defineConfig } from '@async/db/config';
@@ -93,9 +94,11 @@ export default defineConfig({
 npm run db -- schema manifest --out ./src/generated/db.schema.json
 ```
 
-The manifest includes normalized resource and field metadata such as `type`, `required`, `nullable`, `default`, `values`, nested `fields`, array `items`, relations, and generated UI defaults. The manifest file is metadata output only. Schema field defaults still drive configured runtime behavior such as create-time defaults and safe additive store hydration.
+The manifest includes normalized resource and field metadata such as `type`, `required`, `nullable`, `default`, `values`, nested `fields`, array `items`, and relations. The manifest file is metadata output only. Schema field defaults still drive configured runtime behavior such as create-time defaults and safe additive store hydration.
 
-The manifests at [examples/schema-manifest/src/generated/db.schema.json](../examples/schema-manifest/src/generated/db.schema.json) and [examples/schema-ui/src/generated/db.schema.json](../examples/schema-ui/src/generated/db.schema.json) are intentionally committed.
+Apps can attach their own JSON metadata with `schemaManifest.customizeResource()` and `schemaManifest.customizeField()`. async/db preserves custom keys but does not interpret namespaces such as `schemaUi`, `admin`, `docs`, or `forms`.
+
+The manifests at [examples/schema-manifest/src/generated/db.schema.json](../examples/schema-manifest/src/generated/db.schema.json), [examples/schema-ui/src/generated/db.schema.json](../examples/schema-ui/src/generated/db.schema.json), and [examples/recursive-schema-ui/src/generated/db.schema.json](../examples/recursive-schema-ui/src/generated/db.schema.json) are intentionally committed.
 
 ## Viewer Manifest Output
 
@@ -117,7 +120,7 @@ export default defineConfig({
 npm run db -- viewer manifest --out ./src/generated/db.viewer.json
 ```
 
-The viewer manifest includes field metadata, UI hints, relation hints, diagnostics, capabilities, configured viewer links, and API links such as `/__db/manifest`, `/__db/manifest.json`, `/__db/manifest.html`, `/__db/manifest.md`, `/__db/batch`, `/graphql`, and scoped REST resource routes under `/__db/rest`. It does not include seed records, source paths, source hashes, runtime state paths, or GraphQL SDL. Fetch actual records from REST or GraphQL.
+The viewer manifest includes field metadata, relation hints, custom manifest metadata, diagnostics, capabilities, configured viewer links, and API links such as `/__db/manifest`, `/__db/manifest.json`, `/__db/manifest.html`, `/__db/manifest.md`, `/__db/batch`, `/graphql`, and scoped REST resource routes under `/__db/rest`. It does not include seed records, source paths, source hashes, runtime state paths, or GraphQL SDL. Fetch actual records from REST or GraphQL.
 
 ## Operation Registry And Client Contract
 

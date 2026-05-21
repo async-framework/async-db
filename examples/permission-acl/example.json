@@ -1,0 +1,5 @@
+{
+  "title": "Permission ACL",
+  "description": "Model access control lists attached to resources and render a simple HTML decision view.",
+  "tags": ["permissions", "acl", "html"]
+}

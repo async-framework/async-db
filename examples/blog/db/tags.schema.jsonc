@@ -1,0 +1,32 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Tags used to group posts.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    }
+  },
+  "seed": [
+    {
+      "id": "tag-guides",
+      "label": "Guides",
+      "slug": "guides"
+    },
+    {
+      "id": "tag-release-notes",
+      "label": "Release Notes",
+      "slug": "release-notes"
+    }
+  ]
+}

@@ -25,7 +25,7 @@ test('computed fields normalize as serializable metadata with generated types', 
   assert.doesNotMatch(JSON.stringify(project.schema.resources.users.fields.fullName), /resolve/);
   assert.equal(manifest.manifest.collections.users.fields.fullName.computed, true);
   assert.equal(manifest.manifest.collections.users.fields.fullName.readOnly, true);
-  assert.equal(manifest.manifest.collections.users.fields.fullName.ui.readonly, true);
+  assert.equal('ui' in manifest.manifest.collections.users.fields.fullName, false);
   assert.doesNotMatch(JSON.stringify(manifest.manifest.collections.users.fields.fullName), /resolve/);
   assert.match(generatedTypes, /fullName\?: string;/);
 });

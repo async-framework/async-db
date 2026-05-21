@@ -1,0 +1,48 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Audit events for API key use and rotation.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "apiKeyId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "apiKey",
+        "to": "apiKeys",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "eventType": {
+      "type": "enum",
+      "values": ["used", "rotation_due", "revoked"],
+      "default": "used"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "occurredAt": {
+      "type": "datetime"
+    }
+  },
+  "seed": [
+    {
+      "id": "audit_billing_used",
+      "apiKeyId": "key_billing_sync",
+      "eventType": "used",
+      "summary": "Billing sync key used for invoice read.",
+      "occurredAt": "2026-05-20T18:00:00.000Z"
+    },
+    {
+      "id": "audit_support_rotation_due",
+      "apiKeyId": "key_support_import_old",
+      "eventType": "rotation_due",
+      "summary": "Support import key is older than the rotation policy.",
+      "occurredAt": "2026-05-20T12:00:00.000Z"
+    }
+  ]
+}

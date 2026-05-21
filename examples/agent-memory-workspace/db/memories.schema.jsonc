@@ -1,0 +1,62 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Durable facts an agent can reuse with provenance.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "memorySpaceId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "memorySpace",
+        "to": "memorySpaces",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "summary": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "enum",
+      "values": ["low", "medium", "high"],
+      "default": "medium"
+    },
+    "freshness": {
+      "type": "enum",
+      "values": ["fresh", "stale", "review_needed"],
+      "default": "fresh"
+    },
+    "lastVerifiedAt": {
+      "type": "datetime",
+      "nullable": true
+    }
+  },
+  "seed": [
+    {
+      "id": "mem_support_hours",
+      "memorySpaceId": "space_support_ops",
+      "title": "Support coverage hours",
+      "summary": "Support coverage runs 8 AM to 6 PM Pacific on business days.",
+      "confidence": "high",
+      "freshness": "review_needed",
+      "lastVerifiedAt": "2026-05-01T15:30:00.000Z"
+    },
+    {
+      "id": "mem_security_escalation",
+      "memorySpaceId": "space_support_ops",
+      "title": "Security escalation timing",
+      "summary": "Security-impacting customer issues should be escalated within one business hour.",
+      "confidence": "high",
+      "freshness": "fresh",
+      "lastVerifiedAt": "2026-05-05T19:00:00.000Z"
+    }
+  ]
+}

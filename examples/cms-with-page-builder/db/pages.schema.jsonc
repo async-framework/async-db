@@ -1,0 +1,184 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "CMS pages assembled from ordered page-builder block instances.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enum",
+      "values": ["unpublished", "published"],
+      "default": "unpublished",
+      "description": "Whether the page should be visible in published site output."
+    },
+    "templateId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "template",
+        "to": "pageTemplates",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "seoTitle": {
+      "type": "string"
+    },
+    "seoDescription": {
+      "type": "string",
+      "maxLength": 160
+    },
+    "blocks": {
+      "type": "array",
+      "description": "Ordered block instances edited by a page-builder UI.",
+      "items": {
+        "type": "object",
+        "fields": {
+          "id": {
+            "type": "string",
+            "required": true
+          },
+          "sortOrder": {
+            "type": "number",
+            "required": true
+          },
+          "kind": {
+            "type": "enum",
+            "values": ["hero", "featureGrid", "logoCloud", "testimonial", "cta"],
+            "required": true
+          },
+          "libraryBlockId": {
+            "type": "string",
+            "required": true
+          },
+          "variant": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "eyebrow": {
+            "type": "string"
+          },
+          "bodyMarkdown": {
+            "type": "string"
+          },
+          "mediaId": {
+            "type": "string",
+            "nullable": true
+          },
+          "ctaLabel": {
+            "type": "string",
+            "nullable": true
+          },
+          "ctaHref": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      }
+    }
+  },
+  "seed": [
+    {
+      "id": "page_home",
+      "slug": "home",
+      "title": "Homepage",
+      "status": "published",
+      "templateId": "template_marketing_landing",
+      "seoTitle": "Async DB Marketing Home",
+      "seoDescription": "A marketing homepage assembled from reusable page-builder blocks.",
+      "blocks": [
+        {
+          "id": "home_hero",
+          "sortOrder": 1,
+          "kind": "hero",
+          "libraryBlockId": "block_hero",
+          "variant": "split",
+          "eyebrow": "Local-first CMS",
+          "title": "Launch pages from fixture data",
+          "bodyMarkdown": "Use page records, block definitions, and media metadata before a production CMS exists.",
+          "mediaId": "media_home_hero",
+          "ctaLabel": "View pages",
+          "ctaHref": "/pages"
+        },
+        {
+          "id": "home_features",
+          "sortOrder": 2,
+          "kind": "featureGrid",
+          "libraryBlockId": "block_feature_grid",
+          "variant": "cards",
+          "title": "Reusable blocks",
+          "bodyMarkdown": "Editors choose known block shapes while every page remains plain JSON data."
+        },
+        {
+          "id": "home_cta",
+          "sortOrder": 3,
+          "kind": "cta",
+          "libraryBlockId": "block_cta",
+          "variant": "compact",
+          "title": "Ship the first marketing page",
+          "bodyMarkdown": "Keep the data model small, then replace the renderer when your app is ready.",
+          "ctaLabel": "Open viewer",
+          "ctaHref": "/__db"
+        }
+      ]
+    },
+    {
+      "id": "page_product",
+      "slug": "product",
+      "title": "Product Page",
+      "status": "unpublished",
+      "templateId": "template_product_page",
+      "seoTitle": "Async DB Product Page",
+      "seoDescription": "A product page with blocks, template constraints, and unpublished state.",
+      "blocks": [
+        {
+          "id": "product_hero",
+          "sortOrder": 1,
+          "kind": "hero",
+          "libraryBlockId": "block_hero",
+          "variant": "split",
+          "eyebrow": "Product story",
+          "title": "Show the workflow before the backend is done",
+          "bodyMarkdown": "The page-builder record can feed any front-end route or static build.",
+          "mediaId": "media_product_hero",
+          "ctaLabel": "Try demo",
+          "ctaHref": "/demo"
+        },
+        {
+          "id": "product_quote",
+          "sortOrder": 2,
+          "kind": "testimonial",
+          "libraryBlockId": "block_testimonial",
+          "variant": "quote",
+          "title": "Customer proof",
+          "bodyMarkdown": "We replaced a spreadsheet of landing-page copy with records the app could read directly.",
+          "mediaId": "media_customer_quote"
+        },
+        {
+          "id": "product_cta",
+          "sortOrder": 3,
+          "kind": "cta",
+          "libraryBlockId": "block_cta",
+          "variant": "compact",
+          "title": "Ready to publish",
+          "bodyMarkdown": "Publish state stays on the page record, so preview and publish flows can use the same data.",
+          "ctaLabel": "Preview page",
+          "ctaHref": "/preview"
+        }
+      ]
+    }
+  ]
+}

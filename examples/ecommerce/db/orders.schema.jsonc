@@ -1,0 +1,176 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Placed ecommerce orders with nested line items and totals.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "orderNumber": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "customerId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "customer",
+        "to": "customers",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "cartId": {
+      "type": "string",
+      "nullable": true,
+      "relation": {
+        "name": "cart",
+        "to": "carts",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "status": {
+      "type": "enum",
+      "values": ["draft", "placed", "paid", "fulfilled", "cancelled", "refunded"],
+      "default": "draft"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "fields": {
+          "variantId": {
+            "type": "string",
+            "required": true
+          },
+          "title": {
+            "type": "string",
+            "required": true
+          },
+          "quantity": {
+            "type": "number",
+            "required": true,
+            "min": 1
+          },
+          "unitPriceCents": {
+            "type": "number",
+            "required": true,
+            "min": 0
+          },
+          "subtotalCents": {
+            "type": "number",
+            "required": true,
+            "min": 0
+          }
+        }
+      }
+    },
+    "totals": {
+      "type": "object",
+      "fields": {
+        "subtotalCents": {
+          "type": "number",
+          "required": true
+        },
+        "discountCents": {
+          "type": "number",
+          "default": 0
+        },
+        "taxCents": {
+          "type": "number",
+          "default": 0
+        },
+        "shippingCents": {
+          "type": "number",
+          "default": 0
+        },
+        "totalCents": {
+          "type": "number",
+          "required": true
+        },
+        "currency": {
+          "type": "string",
+          "default": "USD"
+        }
+      }
+    },
+    "shippingAddress": {
+      "type": "object",
+      "fields": {
+        "name": {
+          "type": "string",
+          "required": true
+        },
+        "line1": {
+          "type": "string",
+          "required": true
+        },
+        "city": {
+          "type": "string",
+          "required": true
+        },
+        "region": {
+          "type": "string",
+          "required": true
+        },
+        "postalCode": {
+          "type": "string",
+          "required": true
+        },
+        "country": {
+          "type": "string",
+          "required": true
+        }
+      }
+    },
+    "placedAt": {
+      "type": "datetime",
+      "required": true
+    }
+  },
+  "seed": [
+    {
+      "id": "ord_1001",
+      "orderNumber": "1001",
+      "customerId": "cust_ada",
+      "cartId": "cart_ada_active",
+      "status": "paid",
+      "items": [
+        {
+          "variantId": "var_fixture_kit_standard",
+          "title": "Fixture Starter Kit - Standard",
+          "quantity": 1,
+          "unitPriceCents": 4900,
+          "subtotalCents": 4900
+        },
+        {
+          "variantId": "var_schema_guide_pdf",
+          "title": "Schema Guide - PDF",
+          "quantity": 1,
+          "unitPriceCents": 1900,
+          "subtotalCents": 1900
+        }
+      ],
+      "totals": {
+        "subtotalCents": 6800,
+        "discountCents": 680,
+        "taxCents": 551,
+        "shippingCents": 0,
+        "totalCents": 6671,
+        "currency": "USD"
+      },
+      "shippingAddress": {
+        "name": "Ada Lovelace",
+        "line1": "12 Loop Lane",
+        "city": "San Francisco",
+        "region": "CA",
+        "postalCode": "94107",
+        "country": "US"
+      },
+      "placedAt": "2026-05-11T12:00:00.000Z"
+    }
+  ]
+}

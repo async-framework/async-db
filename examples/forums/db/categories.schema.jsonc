@@ -1,0 +1,37 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Forum categories that group topics.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "cat_general",
+      "slug": "general",
+      "title": "General",
+      "description": "General product discussion."
+    },
+    {
+      "id": "cat_help",
+      "slug": "help",
+      "title": "Help",
+      "description": "Questions and support threads."
+    }
+  ]
+}

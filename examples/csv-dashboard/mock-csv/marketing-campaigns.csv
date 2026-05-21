@@ -1,0 +1,6 @@
+Campaign ID,Campaign,Channel,Region,Budget,Leads,Opportunities,Live
+cmp_1,Spring Webinar,Webinar,North America,6200,184,36,true
+cmp_2,Partner Newsletter,Email,Europe,1800,96,18,false
+cmp_3,Search Retargeting,Paid Search,North America,9400,240,42,true
+cmp_4,Field Dinner,Events,West,7200,52,16,false
+cmp_5,Developer Guide,Content,Global,3200,132,22,true

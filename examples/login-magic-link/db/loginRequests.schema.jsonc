@@ -1,0 +1,66 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Passwordless login requests with code fingerprints only.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "userId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "user",
+        "to": "users",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "channel": {
+      "type": "enum",
+      "values": ["email_link", "email_code"],
+      "default": "email_link"
+    },
+    "codeFingerprint": {
+      "type": "string"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["pending", "accepted", "expired"],
+      "default": "pending"
+    },
+    "requestedAt": {
+      "type": "datetime"
+    },
+    "expiresAt": {
+      "type": "datetime"
+    },
+    "acceptedAt": {
+      "type": "datetime",
+      "nullable": true
+    }
+  },
+  "seed": [
+    {
+      "id": "login_req_maya",
+      "userId": "user_maya",
+      "channel": "email_link",
+      "codeFingerprint": "fp_magic_maya_2026_05",
+      "status": "accepted",
+      "requestedAt": "2026-05-20T16:00:00.000Z",
+      "expiresAt": "2026-05-20T16:15:00.000Z",
+      "acceptedAt": "2026-05-20T16:03:00.000Z"
+    },
+    {
+      "id": "login_req_noah",
+      "userId": "user_noah",
+      "channel": "email_code",
+      "codeFingerprint": "fp_magic_noah_2026_05",
+      "status": "pending",
+      "requestedAt": "2026-05-20T17:00:00.000Z",
+      "expiresAt": "2026-05-20T17:10:00.000Z",
+      "acceptedAt": null
+    }
+  ]
+}

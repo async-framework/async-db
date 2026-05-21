@@ -1,0 +1,76 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Issues in a lightweight tracker.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "projectId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "project",
+        "to": "projects",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "bodyMarkdown": {
+      "type": "string"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["todo", "in_progress", "done"],
+      "default": "todo"
+    },
+    "priority": {
+      "type": "enum",
+      "values": ["low", "medium", "high"],
+      "default": "medium"
+    },
+    "assigneeId": {
+      "type": "string",
+      "nullable": true,
+      "relation": {
+        "name": "assignee",
+        "to": "users",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "labelIds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "seed": [
+    {
+      "id": "issue_1",
+      "projectId": "proj_async_db",
+      "title": "Document the custom reader path",
+      "bodyMarkdown": "Add a small example that turns Markdown into records.",
+      "status": "in_progress",
+      "priority": "high",
+      "assigneeId": "u_1",
+      "labelIds": ["label-docs"]
+    },
+    {
+      "id": "issue_2",
+      "projectId": "proj_async_db",
+      "title": "Tighten CRUD example",
+      "bodyMarkdown": "Keep the admin example focused on package API writes.",
+      "status": "todo",
+      "priority": "medium",
+      "assigneeId": null,
+      "labelIds": ["label-bug"]
+    }
+  ]
+}

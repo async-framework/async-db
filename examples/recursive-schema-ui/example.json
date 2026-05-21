@@ -1,0 +1,5 @@
+{
+  "title": "Recursive Schema UI",
+  "description": "Build recursive view and edit HTML from model metadata plus app-owned schemaUi conventions.",
+  "tags": ["manifest", "cms", "recursive"]
+}

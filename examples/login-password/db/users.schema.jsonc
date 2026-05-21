@@ -1,0 +1,45 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Users who sign in with an app-owned password credential.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "locked", "disabled"],
+      "default": "active"
+    },
+    "lastLoginAt": {
+      "type": "datetime",
+      "nullable": true
+    }
+  },
+  "seed": [
+    {
+      "id": "user_ada",
+      "email": "ada@example.com",
+      "name": "Ada Lovelace",
+      "status": "active",
+      "lastLoginAt": "2026-05-19T16:20:00.000Z"
+    },
+    {
+      "id": "user_grace",
+      "email": "grace@example.com",
+      "name": "Grace Hopper",
+      "status": "locked",
+      "lastLoginAt": "2026-05-12T14:00:00.000Z"
+    }
+  ]
+}

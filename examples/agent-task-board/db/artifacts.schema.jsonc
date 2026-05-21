@@ -1,0 +1,56 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Outputs produced by agent runs.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "runId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "run",
+        "to": "runs",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "type": {
+      "type": "enum",
+      "values": ["plan", "report", "dataset", "patch"],
+      "default": "plan"
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "uri": {
+      "type": "string"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["draft", "ready", "approved"],
+      "default": "draft"
+    }
+  },
+  "seed": [
+    {
+      "id": "artifact_customer_import_plan",
+      "runId": "run_customer_import",
+      "type": "plan",
+      "title": "Customer import plan",
+      "uri": "artifact://customer-import-plan",
+      "status": "draft"
+    },
+    {
+      "id": "artifact_policy_cleanup_draft",
+      "runId": "run_policy_cleanup",
+      "type": "report",
+      "title": "Policy cleanup summary",
+      "uri": "artifact://policy-cleanup-summary",
+      "status": "ready"
+    }
+  ]
+}

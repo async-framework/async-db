@@ -1,0 +1,42 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Model records compared by eval runs.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "provider": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["candidate", "baseline", "retired"],
+      "default": "candidate"
+    }
+  },
+  "seed": [
+    {
+      "id": "model_baseline",
+      "provider": "local-fixture",
+      "name": "Baseline Assistant",
+      "version": "2026-05-01",
+      "status": "baseline"
+    },
+    {
+      "id": "model_candidate",
+      "provider": "local-fixture",
+      "name": "Candidate Assistant",
+      "version": "2026-05-15",
+      "status": "candidate"
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Evaluation groups for an agent capability.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "purpose": {
+      "type": "string"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "archived"],
+      "default": "active"
+    }
+  },
+  "seed": [
+    {
+      "id": "suite_support_triage",
+      "name": "Support Triage",
+      "purpose": "Check whether the agent classifies customer requests and escalation needs correctly.",
+      "status": "active"
+    }
+  ]
+}

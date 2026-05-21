@@ -1,0 +1,66 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Execution attempts for agent tasks.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "taskId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "task",
+        "to": "tasks",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "agentId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "agent",
+        "to": "agents",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "status": {
+      "type": "enum",
+      "values": ["queued", "running", "waiting_for_approval", "succeeded", "failed"],
+      "default": "queued"
+    },
+    "startedAt": {
+      "type": "datetime"
+    },
+    "completedAt": {
+      "type": "datetime",
+      "nullable": true
+    },
+    "summary": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "run_customer_import",
+      "taskId": "task_customer_import",
+      "agentId": "agent_data_importer",
+      "status": "running",
+      "startedAt": "2026-05-10T16:05:00.000Z",
+      "completedAt": null,
+      "summary": "Mapping fields and validating row counts before producing the import plan."
+    },
+    {
+      "id": "run_policy_cleanup",
+      "taskId": "task_policy_cleanup",
+      "agentId": "agent_ops_planner",
+      "status": "waiting_for_approval",
+      "startedAt": "2026-05-11T18:35:00.000Z",
+      "completedAt": null,
+      "summary": "Draft is ready, but publication is blocked on Product Ops approval."
+    }
+  ]
+}

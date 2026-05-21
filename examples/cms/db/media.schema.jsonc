@@ -1,0 +1,53 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Media assets selected by CMS pages and blocks.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "url": {
+      "type": "string",
+      "required": true
+    },
+    "alt": {
+      "type": "string",
+      "required": true
+    },
+    "kind": {
+      "type": "enum",
+      "values": ["image", "video"],
+      "default": "image"
+    },
+    "width": {
+      "type": "number"
+    },
+    "height": {
+      "type": "number"
+    },
+    "credit": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "asset_home_hero",
+      "url": "/images/cms/home-hero.jpg",
+      "alt": "Dashboard preview on a laptop",
+      "kind": "image",
+      "width": 1600,
+      "height": 900,
+      "credit": "Example assets"
+    },
+    {
+      "id": "asset_docs_card",
+      "url": "/images/cms/docs-card.jpg",
+      "alt": "Documentation cards",
+      "kind": "image",
+      "width": 1200,
+      "height": 800,
+      "credit": "Example assets"
+    }
+  ]
+}

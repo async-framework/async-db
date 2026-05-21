@@ -1,0 +1,92 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Central policy records interpreted by app-owned access logic.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "string",
+      "required": true
+    },
+    "effect": {
+      "type": "enum",
+      "values": ["allow", "deny"],
+      "required": true
+    },
+    "role": {
+      "type": "enum",
+      "values": ["editor", "viewer"],
+      "required": true
+    },
+    "action": {
+      "type": "enum",
+      "values": ["read", "publish", "delete"],
+      "required": true
+    },
+    "resourceKind": {
+      "type": "enum",
+      "values": ["article", "settings"],
+      "required": true
+    },
+    "condition": {
+      "type": "object",
+      "fields": {
+        "field": {
+          "type": "enum",
+          "values": ["status"]
+        },
+        "equals": {
+          "type": "string"
+        }
+      }
+    },
+    "priority": {
+      "type": "number",
+      "default": 100
+    }
+  },
+  "seed": [
+    {
+      "id": "policy_editor_publish_draft_article",
+      "description": "Editors can publish draft articles.",
+      "effect": "allow",
+      "role": "editor",
+      "action": "publish",
+      "resourceKind": "article",
+      "condition": {
+        "field": "status",
+        "equals": "draft"
+      },
+      "priority": 10
+    },
+    {
+      "id": "policy_viewer_publish_article",
+      "description": "Viewers cannot publish articles.",
+      "effect": "deny",
+      "role": "viewer",
+      "action": "publish",
+      "resourceKind": "article",
+      "condition": {
+        "field": "status",
+        "equals": "draft"
+      },
+      "priority": 5
+    },
+    {
+      "id": "policy_viewer_read_published_article",
+      "description": "Viewers can read published articles.",
+      "effect": "allow",
+      "role": "viewer",
+      "action": "read",
+      "resourceKind": "article",
+      "condition": {
+        "field": "status",
+        "equals": "published"
+      },
+      "priority": 20
+    }
+  ]
+}

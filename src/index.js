@@ -6,6 +6,7 @@ export { runDbDoctor } from './doctor.js';
 export { executeGraphql, executeGraphqlBatch, parseGraphql } from './graphql/index.js';
 export { generateHonoStarter, renderHonoStarter } from './generate/hono.js';
 export { loadProjectSchema, makeGeneratedSchema } from './schema.js';
+export { generateDiagram, renderDiagramModel, renderMermaidDiagram } from './diagram.js';
 export { generateSchemaManifest, renderSchemaManifest } from './schema-manifest.js';
 export { generateViewerManifest, renderViewerManifest } from './viewer-manifest.js';
 export { createDbRequestHandler, startDbServer } from './server.js';

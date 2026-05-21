@@ -1,0 +1,5 @@
+{
+  "title": "Docs",
+  "description": "Load Markdown source into JSON records with an example-owned .md reader.",
+  "tags": ["sources", "markdown", "docs"]
+}

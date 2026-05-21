@@ -1,0 +1,80 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Follow-up actions that become ready after approvals are satisfied.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "changeRequestId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "changeRequest",
+        "to": "changeRequests",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "ownerId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "owner",
+        "to": "members",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "kind": {
+      "type": "enum",
+      "values": ["publish_policy", "enable_access", "send_notice"],
+      "default": "send_notice"
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enum",
+      "values": ["blocked", "ready", "completed"],
+      "default": "blocked"
+    },
+    "readyAt": {
+      "type": "datetime",
+      "nullable": true
+    },
+    "completedAt": {
+      "type": "datetime",
+      "nullable": true
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "action_publish_launch_policy",
+      "changeRequestId": "cr_launch_policy",
+      "ownerId": "mem_ana",
+      "kind": "publish_policy",
+      "title": "Publish launch approval policy",
+      "status": "ready",
+      "readyAt": "2026-05-02T18:30:00.000Z",
+      "completedAt": null,
+      "notes": "All required approvals are in."
+    },
+    {
+      "id": "action_enable_vendor_access",
+      "changeRequestId": "cr_vendor_access",
+      "ownerId": "mem_lina",
+      "kind": "enable_access",
+      "title": "Enable vendor workspace access",
+      "status": "blocked",
+      "readyAt": null,
+      "completedAt": null,
+      "notes": "Waiting for revised scope and compliance approval."
+    }
+  ]
+}

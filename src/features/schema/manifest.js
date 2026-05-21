@@ -207,7 +207,6 @@ function defaultFieldManifest(fieldName, field, resource, config, diagnostics, f
     manifest.variants = variantManifestMap(field.variants, resource, config, diagnostics, fieldPath);
   }
 
-  manifest.ui = inferFieldUi(fieldName, field, resource, fieldPath);
   return manifest;
 }
 
@@ -262,106 +261,6 @@ function variantManifestMap(variants, resource, config, diagnostics, fieldPath) 
     }
     return [variantName, manifest];
   }));
-}
-
-function inferFieldUi(fieldName, field, resource, fieldPath) {
-  const ui = {
-    label: labelFromFieldName(fieldName),
-    component: componentForField(fieldName, field),
-  };
-
-  if ((resource.kind === 'collection' && fieldPath === resource.idField) || field.readOnly) {
-    ui.readonly = true;
-  }
-
-  if (field.relation?.to) {
-    ui.optionsFrom = field.relation.to;
-  }
-
-  return ui;
-}
-
-function componentForField(fieldName, field) {
-  if (field.relation) {
-    return 'relationSelect';
-  }
-
-  switch (field.type) {
-    case 'boolean':
-      return 'toggle';
-    case 'enum':
-      return Array.isArray(field.values) && field.values.length > 0 && field.values.length <= 3
-        ? 'radio'
-        : 'select';
-    case 'datetime':
-      return 'datetime';
-    case 'number':
-      return 'number';
-    case 'array':
-      return componentForArray(field.items);
-    case 'object':
-      return field.fields && Object.keys(field.fields).length > 0 ? 'fieldset' : 'json';
-    case 'string':
-      return componentForString(fieldName, field);
-    default:
-      return 'json';
-  }
-}
-
-function componentForArray(itemField = { type: 'unknown' }) {
-  if (itemField.type === 'enum') {
-    return 'multiSelect';
-  }
-
-  if (itemField.type === 'string') {
-    return 'tags';
-  }
-
-  return 'list';
-}
-
-function componentForString(fieldName, field) {
-  const normalized = normalizeName(fieldName);
-
-  if (/(^|[^a-z])email([^a-z]|$)/.test(normalized) || normalized.endsWith('email')) {
-    return 'email';
-  }
-
-  if (/(image|avatar|photo|picture|thumbnail|logo|icon)/.test(normalized)) {
-    return 'image';
-  }
-
-  if (/(^|[^a-z])(url|uri|website|link)([^a-z]|$)/.test(normalized) || normalized.endsWith('url')) {
-    return 'url';
-  }
-
-  if (/(description|body|content|notes|note|bio|summary|markdown)/.test(normalized)) {
-    return 'textarea';
-  }
-
-  if (Number.isFinite(field.maxLength) && field.maxLength >= 240) {
-    return 'textarea';
-  }
-
-  return 'text';
-}
-
-function normalizeName(fieldName) {
-  return String(fieldName)
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/[_-]+/g, ' ')
-    .toLowerCase();
-}
-
-function labelFromFieldName(fieldName) {
-  const words = normalizeName(fieldName)
-    .split(/\s+/)
-    .filter(Boolean);
-  if (words.length === 0) {
-    return String(fieldName);
-  }
-
-  return words.map((word) => `${word.charAt(0).toUpperCase()}${word.slice(1)}`).join(' ');
 }
 
 function firstNonSerializablePath(value, currentPath = '') {

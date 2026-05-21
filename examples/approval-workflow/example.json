@@ -1,0 +1,5 @@
+{
+  "title": "Approval Workflow",
+  "description": "Model invited reviewers, team gates, human approvals, and ready actions.",
+  "tags": ["workflow", "approvals", "teams"]
+}

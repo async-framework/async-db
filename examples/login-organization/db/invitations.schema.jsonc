@@ -1,0 +1,48 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Organization invitations with invite lifecycle state.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "organizationId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "organization",
+        "to": "organizations",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "email": {
+      "type": "string",
+      "required": true
+    },
+    "role": {
+      "type": "enum",
+      "values": ["admin", "member"],
+      "default": "member"
+    },
+    "status": {
+      "type": "enum",
+      "values": ["pending", "accepted", "expired"],
+      "default": "pending"
+    },
+    "invitedAt": {
+      "type": "datetime"
+    }
+  },
+  "seed": [
+    {
+      "id": "invite_acme_member",
+      "organizationId": "org_acme",
+      "email": "new-member@example.com",
+      "role": "member",
+      "status": "pending",
+      "invitedAt": "2026-05-20T15:30:00.000Z"
+    }
+  ]
+}

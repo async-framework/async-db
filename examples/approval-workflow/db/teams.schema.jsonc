@@ -1,0 +1,51 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Review groups that can request or approve change requests.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "enum",
+      "values": ["requesting", "reviewing", "governance"],
+      "default": "reviewing"
+    }
+  },
+  "seed": [
+    {
+      "id": "team_product_ops",
+      "slug": "product-ops",
+      "name": "Product Ops",
+      "description": "Owns launch process changes and operational playbooks.",
+      "kind": "requesting"
+    },
+    {
+      "id": "team_security",
+      "slug": "security",
+      "name": "Security",
+      "description": "Reviews access, risk, and control changes.",
+      "kind": "reviewing"
+    },
+    {
+      "id": "team_compliance",
+      "slug": "compliance",
+      "name": "Compliance",
+      "description": "Checks process changes against audit requirements.",
+      "kind": "governance"
+    }
+  ]
+}

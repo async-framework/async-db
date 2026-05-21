@@ -1,0 +1,5 @@
+{
+  "title": "API Key Login",
+  "description": "Model machine login with service accounts, key fingerprints, scopes, and audit events.",
+  "tags": ["login", "auth", "api-keys"]
+}

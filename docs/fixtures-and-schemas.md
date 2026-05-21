@@ -218,6 +218,58 @@ export default defineConfig({
 
 Custom readers run before built-in readers. The first reader that returns a result owns the file; returning `null` lets the next reader try. One file may return multiple sources, but every returned source must include `resourceName`.
 
+## Derived Sources
+
+Use `sources.derived` when a resource should be computed from other files under
+the fixture folder instead of parsed from one source file. Derived sources run
+after normal source files are loaded. They do not write generated fixture files;
+they return raw data or raw schema that flows through the same schema inference,
+type generation, REST, GraphQL, viewer, and runtime sync pipeline.
+
+```js
+// db.config.mjs
+// @ts-check
+import { defineConfig } from '@async/db/config';
+
+export default defineConfig({
+  sources: {
+    derived: [
+      {
+        name: 'data-sources-index',
+        resourceName: 'dataSources',
+        dependsOn: 'data/*.json',
+        async read({ files }) {
+          return {
+            kind: 'data',
+            format: 'derived-json-index',
+            data: await Promise.all(files.map(async (file) => {
+              const rows = JSON.parse(await file.readText());
+              return {
+                id: file.path.replace(/\.json$/, '').replaceAll('/', '_'),
+                path: file.path,
+                recordCount: Array.isArray(rows) ? rows.length : 1,
+              };
+            })),
+          };
+        },
+      },
+    ],
+  },
+});
+```
+
+`dependsOn` patterns are source-dir-relative paths such as `data/*.json`. v1
+supports exact paths, `*`, and `**`; negation and brace expansion are not
+supported. The `files` array is sorted and each entry exposes `path`,
+repo-relative `file`, absolute `sourceFile`, a SHA-256 `hash`, `readText()`, and
+`readBuffer()`.
+
+The derived resource's source hash is a composite of its dependency hashes. That
+means the JSON runtime mirror refreshes when one dependency changes, and
+`.db/state/.sources.json` records the derived source plus dependency paths and
+hashes. Resources derived this way are not writable through the `sourceFile`
+store because there is no single plain JSON fixture to update.
+
 ## Nested Fixture Folders
 
 Fixtures can be grouped under `db/` without changing resource names when basenames are unique:

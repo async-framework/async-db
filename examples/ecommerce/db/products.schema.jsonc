@@ -1,0 +1,91 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Storefront products that can have one or more sellable variants.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enum",
+      "values": ["draft", "active", "archived"],
+      "default": "draft"
+    },
+    "category": {
+      "type": "string",
+      "required": true
+    },
+    "basePriceCents": {
+      "type": "number",
+      "required": true,
+      "min": 0
+    },
+    "taxCode": {
+      "type": "string"
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "fields": {
+          "url": {
+            "type": "string",
+            "required": true
+          },
+          "alt": {
+            "type": "string",
+            "required": true
+          },
+          "primary": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    }
+  },
+  "seed": [
+    {
+      "id": "prod_fixture_kit",
+      "slug": "fixture-starter-kit",
+      "name": "Fixture Starter Kit",
+      "status": "active",
+      "category": "starters",
+      "basePriceCents": 4900,
+      "taxCode": "digital_good",
+      "images": [
+        {
+          "url": "/images/ecommerce/fixture-kit.png",
+          "alt": "Fixture starter kit",
+          "primary": true
+        }
+      ]
+    },
+    {
+      "id": "prod_schema_guide",
+      "slug": "schema-guide",
+      "name": "Schema Guide",
+      "status": "active",
+      "category": "guides",
+      "basePriceCents": 1900,
+      "taxCode": "book",
+      "images": [
+        {
+          "url": "/images/ecommerce/schema-guide.png",
+          "alt": "Schema guide",
+          "primary": true
+        }
+      ]
+    }
+  ]
+}

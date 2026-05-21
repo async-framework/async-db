@@ -1,0 +1,68 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Forum topics with workflow state and relations.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "categoryId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "category",
+        "to": "categories",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "authorId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "author",
+        "to": "users",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enum",
+      "values": ["open", "locked", "archived"],
+      "default": "open"
+    },
+    "pinned": {
+      "type": "boolean",
+      "default": false
+    },
+    "lastPostAt": {
+      "type": "datetime",
+      "required": true
+    }
+  },
+  "seed": [
+    {
+      "id": "topic_welcome",
+      "categoryId": "cat_general",
+      "authorId": "user_ada",
+      "title": "Welcome thread",
+      "status": "open",
+      "pinned": true,
+      "lastPostAt": "2026-05-01T09:00:00.000Z"
+    },
+    {
+      "id": "topic_sync_help",
+      "categoryId": "cat_help",
+      "authorId": "user_grace",
+      "title": "How do I refresh generated types?",
+      "status": "open",
+      "pinned": false,
+      "lastPostAt": "2026-05-02T11:30:00.000Z"
+    }
+  ]
+}

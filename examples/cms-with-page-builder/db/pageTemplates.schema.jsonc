@@ -1,0 +1,45 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Page templates constrain which block kinds are useful for a page type.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "string"
+    },
+    "allowedBlockKinds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "archived"],
+      "default": "active"
+    }
+  },
+  "seed": [
+    {
+      "id": "template_marketing_landing",
+      "name": "Marketing Landing",
+      "description": "A homepage or campaign page built from high-level marketing blocks.",
+      "allowedBlockKinds": ["hero", "featureGrid", "logoCloud", "testimonial", "cta"],
+      "status": "active"
+    },
+    {
+      "id": "template_product_page",
+      "name": "Product Page",
+      "description": "A product explainer page with hero, feature, proof, and action blocks.",
+      "allowedBlockKinds": ["hero", "featureGrid", "testimonial", "cta"],
+      "status": "active"
+    }
+  ]
+}

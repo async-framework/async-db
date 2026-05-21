@@ -1,0 +1,71 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Tool grants that connect agents to allowed access levels.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "agentId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "agent",
+        "to": "agents",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "toolId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "tool",
+        "to": "tools",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "environment": {
+      "type": "enum",
+      "values": ["dev", "staging", "prod"],
+      "default": "dev"
+    },
+    "accessLevel": {
+      "type": "enum",
+      "values": ["read", "request", "execute"],
+      "default": "read"
+    },
+    "expiresAt": {
+      "type": "datetime",
+      "nullable": true
+    }
+  },
+  "seed": [
+    {
+      "id": "scope_release_notes",
+      "agentId": "agent_release_helper",
+      "toolId": "tool_release_notes",
+      "environment": "staging",
+      "accessLevel": "execute",
+      "expiresAt": null
+    },
+    {
+      "id": "scope_data_export_request",
+      "agentId": "agent_data_auditor",
+      "toolId": "tool_prod_database_export",
+      "environment": "prod",
+      "accessLevel": "request",
+      "expiresAt": "2026-06-01T00:00:00.000Z"
+    },
+    {
+      "id": "scope_fixture_search",
+      "agentId": "agent_data_auditor",
+      "toolId": "tool_fixture_search",
+      "environment": "dev",
+      "accessLevel": "execute",
+      "expiresAt": null
+    }
+  ]
+}

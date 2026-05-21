@@ -35,16 +35,22 @@ The default server is REST-first. GraphQL is available at `/graphql`, but you do
 
 ## Examples
 
-Start with [`examples/basic`](./examples/basic) for the shortest schema-backed workflow.
+The examples are ordered as a learning path. Start with [basic](./examples/basic)
+to see the core fixture-to-viewer loop, then move through data-first schemas,
+relations, clients, manifest-driven UIs, permission models, and common app
+models.
 
 Other useful paths:
 
-- [`examples/data-first`](./examples/data-first): plain fixtures before schemas exist.
-- [`examples/rest-client`](./examples/rest-client): calling @async/db from app or test code.
-- [`examples/schema-manifest`](./examples/schema-manifest): schema metadata for admin/CMS UI.
-- [`examples/hono-auth`](./examples/hono-auth): optional Hono auth and write hooks.
+- [`examples/data-first`](./examples/data-first): the smallest data-first example when you want plain fixtures before schemas.
+- [`examples/rest-client`](./examples/rest-client): learn REST reads, query shaping, and batching from app or test code.
+- [`examples/blog`](./examples/blog): replace a small blog with fixture-backed posts, authors, tags, dated Markdown, and images.
+- [`examples/admin-panel`](./examples/admin-panel): manage database records with package API create, patch, read, and delete calls.
+- [`examples/cms-with-page-builder`](./examples/cms-with-page-builder): model marketing pages with reusable blocks, templates, media, and menus.
+- [`examples/agent-task-board`](./examples/agent-task-board): model AI-startup-style agent tasks, runs, steps, tools, artifacts, and approvals.
 
-See [Which Example Should I Start With?](#which-example-should-i-start-with) for the full examples map.
+For the complete ordered guide, see [examples/README.md](./examples/README.md)
+or [Which Example Should I Start With?](#which-example-should-i-start-with).
 
 ## Install
 
@@ -144,7 +150,7 @@ See [docs/getting-started.md](./docs/getting-started.md) for the expanded walkth
 | Optional stores | SQLite, Postgres, generic KV, and Redis-like stores plug into the same runtime store boundary without adding mandatory database client dependencies. |
 | Generated output | `.db/` is runtime output and normally stays uncommitted. |
 | Local server | Binds to `127.0.0.1:7331` by default and exposes writable local development endpoints. |
-| Trusted code | `.schema.mjs`, `db.config.mjs`, source readers, and manifest hooks execute as local project code. |
+| Trusted code | `.schema.mjs`, `db.config.mjs`, source readers, derived sources, and manifest hooks execute as local project code. |
 | Mock latency | Responses include a small `30-100ms` delay by default so loading states are visible. |
 
 @async/db is local development/test infrastructure. It is not a production database, not an auth layer, and not a broad JSON Schema compatibility project.
@@ -221,7 +227,7 @@ export default defineConfig({
       // Group fields by source folder so an admin shell can show CMS records
       // separately from operational data without hard-coding that in the UI.
       return mergeManifest(defaultManifest, {
-        editor: {
+        schemaUi: {
           group: file?.startsWith('db/cms/') ? 'CMS' : 'Data',
         },
       });
@@ -232,7 +238,7 @@ export default defineConfig({
         // Markdown body fields need a richer editor than a plain text input,
         // but the fixture record should still stay normal JSON data.
         return mergeManifest(defaultManifest, {
-          ui: { component: 'markdown' },
+          schemaUi: { component: 'markdown' },
         });
       }
 
@@ -240,7 +246,7 @@ export default defineConfig({
         // Relation ids stay as strings in fixtures, while the generated
         // manifest tells the admin UI to render a picker backed by charts.
         return mergeManifest(defaultManifest, {
-          ui: {
+          schemaUi: {
             component: 'relation-select',
             relationTo: 'charts',
           },
@@ -347,21 +353,83 @@ See [docs/generated-files.md](./docs/generated-files.md).
 
 ## Which Example Should I Start With?
 
-The examples are a learning path. Run any example with `node ./src/cli.js sync --cwd ./examples/<name>` and `node ./src/cli.js serve --cwd ./examples/<name>`, or run `npm run examples` to start every viewer from one index.
+The examples are a learning path ordered from smallest local fixture workflow to more app-like integrations. Run any example with `node ./src/cli.js sync --cwd ./examples/<name>` and `node ./src/cli.js serve --cwd ./examples/<name>`, or run `npm run examples` to start every viewer from one index.
 
-| If you want to learn... | Start with | What it shows |
+| Order | Example | What it shows |
 | --- | --- | --- |
-| The shortest schema-backed workflow | [`examples/basic`](./examples/basic) | Sync, viewer, REST create, committed generated types |
-| Plain data before schemas exist | [`examples/data-first`](./examples/data-first) | Inferred collections, documents, routes, and types |
-| Contract-first resources | [`examples/schema-first`](./examples/schema-first) | Schema-only resources, empty seed records, committed types |
-| Calling @async/db from app or test code | [`examples/rest-client`](./examples/rest-client) | `createDbClient`, direct REST calls, REST batching |
-| Related local records | [`examples/relations`](./examples/relations) | Relation metadata, `expand`, and nested `select` |
-| CSV as the source of truth | [`examples/csv`](./examples/csv) | CSV inference, source hashes, mirror refreshes |
-| Admin/CMS-style field metadata | [`examples/schema-manifest`](./examples/schema-manifest) | `outputs.schemaManifest` and manifest customization |
-| Schema JSON to simple CMS UI templates | [`examples/schema-ui`](./examples/schema-ui) | `serve.mjs` SSR view/editor HTML from manifest + mirror (`node ./examples/schema-ui/serve.mjs`); `/templates` route keeps static placeholders |
-| Diagnostics for schema/data drift | [`examples/diagnostics`](./examples/diagnostics) | Warnings surfaced without breaking unrelated resources |
-| Several advanced features together | [`examples/advanced`](./examples/advanced) | `.schema.mjs`, mixed mode, defaults, nested objects |
-| Hono auth and write hooks | [`examples/hono-auth`](./examples/hono-auth) | Optional Hono integration with auth lifecycle hooks |
+| 1 | [`examples/basic`](./examples/basic) | Learn the core loop: put data in `db/`, run `sync`, inspect the viewer, and write through REST. |
+| 2 | [`examples/data-first`](./examples/data-first) | See how @async/db infers collections, documents, routes, and types from plain fixture files. |
+| 3 | [`examples/schema-first`](./examples/schema-first) | Define resources from schemas first when you need a contract before seed data exists. |
+| 4 | [`examples/csv`](./examples/csv) | Use CSV as source data and see how source changes refresh the runtime mirror. |
+| 5 | [`examples/csv-dashboard`](./examples/csv-dashboard) | Drop CSV files into an empty runtime dashboard powered by the live manifest and REST rows. |
+| 6 | [`examples/docs`](./examples/docs) | Convert Markdown source files into normal JSON records with a custom source reader. |
+| 7 | [`examples/derived-sources`](./examples/derived-sources) | Build a virtual resource from sibling fixture files without writing a generated fixture. |
+| 8 | [`examples/relations`](./examples/relations) | Add relation metadata so REST reads can `expand` related records and select nested fields. |
+| 9 | [`examples/rest-client`](./examples/rest-client) | Call @async/db from app or test code with direct REST reads and batched requests. |
+| 10 | [`examples/schema-manifest`](./examples/schema-manifest) | Generate importable model metadata for tools, forms, or custom viewers. |
+| 11 | [`examples/schema-ui`](./examples/schema-ui) | Render a small flat admin-style page from manifest fields and runtime records. |
+| 12 | [`examples/recursive-schema-ui`](./examples/recursive-schema-ui) | Build recursive forms for nested objects and arrays, then save edits by JSON Pointer path. |
+| 13 | [`examples/admin-panel`](./examples/admin-panel) | Use the package API for lightweight settings and feature-flag CRUD. |
+| 14 | [`examples/blog`](./examples/blog) | Model content publishing with posts, authors, tags, related posts, dated Markdown files, and images. |
+| 15 | [`examples/cms`](./examples/cms) | Model CMS content with published/unpublished pages, media, menus, and blocks. |
+| 16 | [`examples/cms-with-page-builder`](./examples/cms-with-page-builder) | Model published/unpublished marketing pages with reusable page-builder blocks, templates, media, and menus. |
+| 17 | [`examples/forums`](./examples/forums) | Model a small discussion system with categories, topics, users, and replies. |
+| 18 | [`examples/issue-tracker`](./examples/issue-tracker) | Model workflow data with projects, issues, labels, assignees, comments, and priority. |
+| 19 | [`examples/approval-workflow`](./examples/approval-workflow) | Model team invitations, human reviews, approval gates, and ready actions. |
+| 20 | [`examples/catalog`](./examples/catalog) | Model product catalog data with categories, image arrays, prices, and inventory. |
+| 21 | [`examples/ecommerce`](./examples/ecommerce) | Extend catalog data into carts, discounts, orders, payments, and shipments. |
+| 22 | [`examples/diagnostics`](./examples/diagnostics) | See how @async/db reports schema/data drift without breaking unrelated resources. |
+| 23 | [`examples/advanced`](./examples/advanced) | Combine `.schema.mjs`, mixed mode, defaults, and nested objects in one project. |
+| 24 | [`examples/hono-auth`](./examples/hono-auth) | Mount @async/db behind an optional Hono app with auth and lifecycle hooks. |
+
+The early examples start with the simplest rule: one file is one resource, such
+as `db/users.json` for a `users` collection. Later content examples also show a
+mixed source layout, where a folder is the resource and each file is one record:
+`examples/docs` uses `db/docs/**/*.md` as the `docs` collection, while
+`examples/blog` uses `db/posts/YYYY/MM/DD/*.md` as the `posts` collection next
+to file-backed `authors` and `tags` collections.
+`examples/derived-sources` shows a related virtual-source pattern: `sources.derived`
+builds a `dataSources` resource from sibling `db/data/*.json` fixtures without
+writing a generated fixture file.
+
+### Agentic Examples
+
+Agentic examples are grouped separately because they teach reusable agent app
+infrastructure data shapes, not one product domain. They use seeded local data
+only: no model calls, background workers, external tools, or side effects.
+
+| Type | Example | Usually used for |
+| --- | --- | --- |
+| Task board | [`examples/agent-task-board`](./examples/agent-task-board) | Agent tasks, runs, steps, tool use, artifacts, and human approvals. |
+| Memory workspace | [`examples/agent-memory-workspace`](./examples/agent-memory-workspace) | Durable memory with sources, chunks, claims, citations, conflicts, and refresh jobs. |
+| Tool registry | [`examples/agent-tool-registry`](./examples/agent-tool-registry) | Agent tool scopes, risky tool requests, calls, policies, and audit events. |
+| Evaluation lab | [`examples/agent-evaluation-lab`](./examples/agent-evaluation-lab) | Prompt and model eval runs with test cases, scores, and regressions. |
+
+### Permission Examples
+
+Access control is listed separately because these examples teach policy data shapes, not the main @async/db learning sequence. @async/db stores the records; app code decides what those records mean.
+
+| Type | Example | Usually used for |
+| --- | --- | --- |
+| RBAC | [`examples/permission-rbac`](./examples/permission-rbac) | Role-driven web apps with admins, editors, moderators, and viewers. |
+| ABAC | [`examples/permission-abac`](./examples/permission-abac) | Granular enterprise rules based on user, resource, and environment attributes. |
+| ReBAC | [`examples/permission-rebac`](./examples/permission-rebac) | Social graphs, team membership, nested folders, and relationship-based sharing. |
+| ACL | [`examples/permission-acl`](./examples/permission-acl) | Resource-local allow lists for smaller apps or simple document sharing. |
+| PBAC | [`examples/permission-pbac`](./examples/permission-pbac) | Central policy records that app code evaluates consistently across resources. |
+
+### Login Examples
+
+Login examples are grouped separately because they teach common authentication
+record shapes. The fixtures intentionally use metadata, fingerprints, and
+prefixes instead of raw passwords, reset tokens, OAuth tokens, or API keys.
+
+| Pattern | Example | Usually used for |
+| --- | --- | --- |
+| Password login | [`examples/login-password`](./examples/login-password) | Apps that own password credentials, sessions, and reset requests. |
+| Magic link or code | [`examples/login-magic-link`](./examples/login-magic-link) | Passwordless email links or short-lived login codes. |
+| OAuth or OIDC | [`examples/login-oauth`](./examples/login-oauth) | Provider account linking with Google, GitHub, Microsoft, or similar. |
+| Organization login | [`examples/login-organization`](./examples/login-organization) | SaaS workspaces where access depends on organization membership. |
+| API keys | [`examples/login-api-keys`](./examples/login-api-keys) | Machine access with service accounts, key scopes, and audit events. |
 
 Each example README is the runnable authority for that example.
 

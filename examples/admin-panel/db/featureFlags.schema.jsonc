@@ -1,0 +1,42 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Feature flags edited through the admin panel.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "key": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "description": {
+      "type": "string"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "rolloutPercent": {
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "default": 0
+    },
+    "ownerEmail": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "flag_quick_filters",
+      "key": "quick_filters",
+      "description": "Enable quick filters in operational tables.",
+      "enabled": true,
+      "rolloutPercent": 100,
+      "ownerEmail": "ops@example.com"
+    }
+  ]
+}

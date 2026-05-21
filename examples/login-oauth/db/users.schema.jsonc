@@ -1,0 +1,39 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Local users linked to external provider accounts.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "disabled"],
+      "default": "active"
+    }
+  },
+  "seed": [
+    {
+      "id": "user_iris",
+      "email": "iris@example.com",
+      "name": "Iris Kim",
+      "status": "active"
+    },
+    {
+      "id": "user_sam",
+      "email": "sam@example.com",
+      "name": "Sam Patel",
+      "status": "active"
+    }
+  ]
+}

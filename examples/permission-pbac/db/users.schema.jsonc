@@ -1,0 +1,32 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Users with attributes referenced by central policy records.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "role": {
+      "type": "enum",
+      "values": ["editor", "viewer"],
+      "required": true
+    }
+  },
+  "seed": [
+    {
+      "id": "user_editor",
+      "name": "Eli Editor",
+      "role": "editor"
+    },
+    {
+      "id": "user_viewer",
+      "name": "Vera Viewer",
+      "role": "viewer"
+    }
+  ]
+}

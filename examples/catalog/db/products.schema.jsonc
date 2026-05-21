@@ -1,0 +1,107 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Catalog products with pricing, status, images, and category relation.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "sku": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "categoryId": {
+      "type": "string",
+      "required": true,
+      "relation": {
+        "name": "category",
+        "to": "categories",
+        "toField": "id",
+        "cardinality": "one"
+      }
+    },
+    "status": {
+      "type": "enum",
+      "values": ["draft", "active", "archived"],
+      "default": "draft"
+    },
+    "priceCents": {
+      "type": "number",
+      "required": true,
+      "min": 0
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "fields": {
+          "url": {
+            "type": "string",
+            "required": true
+          },
+          "alt": {
+            "type": "string",
+            "required": true
+          },
+          "primary": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    }
+  },
+  "seed": [
+    {
+      "id": "prod_fixture_kit",
+      "sku": "ADB-FIXTURE-KIT",
+      "slug": "fixture-starter-kit",
+      "name": "Fixture Starter Kit",
+      "categoryId": "cat_starters",
+      "status": "active",
+      "priceCents": 4900,
+      "tags": ["starter", "fixtures"],
+      "images": [
+        {
+          "url": "/images/catalog/fixture-kit.png",
+          "alt": "Fixture starter kit",
+          "primary": true
+        }
+      ]
+    },
+    {
+      "id": "prod_schema_guide",
+      "sku": "ADB-SCHEMA-GUIDE",
+      "slug": "schema-guide",
+      "name": "Schema Guide",
+      "categoryId": "cat_addons",
+      "status": "active",
+      "priceCents": 1900,
+      "tags": ["schemas", "docs"],
+      "images": [
+        {
+          "url": "/images/catalog/schema-guide.png",
+          "alt": "Schema guide booklet",
+          "primary": true
+        }
+      ]
+    }
+  ]
+}

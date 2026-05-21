@@ -32,6 +32,8 @@ test('outputs config writes committed sync artifacts', async () => {
       committedTypes: './src/generated/db.types.ts',
       schemaManifest: './src/generated/db.schema.json',
       viewerManifest: './src/generated/db.viewer.json',
+      diagramMermaid: './src/generated/db.diagram.mmd',
+      diagramModel: './src/generated/db.diagram.json',
     },
   };`);
   await writeFixture(cwd, 'users.json', JSON.stringify([
@@ -47,6 +49,8 @@ test('outputs config writes committed sync artifacts', async () => {
   assert.match(await readFile(path.join(cwd, 'src/generated/db.types.ts'), 'utf8'), /export type User =/);
   assert.equal(JSON.parse(await readFile(path.join(cwd, 'src/generated/db.schema.json'), 'utf8')).collections.users.kind, 'collection');
   assert.equal(JSON.parse(await readFile(path.join(cwd, 'src/generated/db.viewer.json'), 'utf8')).kind, 'db.viewerManifest');
+  assert.match(await readFile(path.join(cwd, 'src/generated/db.diagram.mmd'), 'utf8'), /^erDiagram/);
+  assert.equal(JSON.parse(await readFile(path.join(cwd, 'src/generated/db.diagram.json'), 'utf8')).kind, 'db.diagramModel');
 });
 
 test('openDb leaves generated files untouched when fixtures are unchanged', async () => {
@@ -419,6 +423,86 @@ test('JSON fixture hashes refresh mirror state only when the source file changes
   assert.equal(metadata.resources.users.format, 'json');
   assert.equal(metadata.resources.users.path, 'db/users.json');
   assert.match(metadata.resources.users.hash, /^[a-f0-9]{64}$/);
+});
+
+test('derived source hashes refresh mirror state when dependencies change', async () => {
+  const cwd = await makeProject();
+  await mkdir(path.join(cwd, 'db/data'), { recursive: true });
+  await writeFile(path.join(cwd, 'db/data/orders.json'), `${JSON.stringify([{ id: 'o_1', total: 42 }])}\n`);
+  await writeFile(path.join(cwd, 'db/data/users.json'), `${JSON.stringify([{ id: 'u_1', name: 'Ada' }])}\n`);
+  await writeConfig(cwd, `export default {
+    sources: {
+      derived: [
+        {
+          name: 'data-sources-index',
+          resourceName: 'dataSources',
+          dependsOn: 'data/*.json',
+          async read({ files }) {
+            return {
+              kind: 'data',
+              format: 'derived-json-index',
+              data: await Promise.all(files.map(async (file) => {
+                const rows = JSON.parse(await file.readText());
+                return {
+                  id: file.path.replace(/\\.json$/, '').replaceAll('/', '_'),
+                  path: file.path,
+                  recordCount: rows.length,
+                };
+              })),
+            };
+          },
+        },
+      ],
+    },
+  };`);
+
+  const config = await loadConfig({ cwd });
+  const firstSync = await syncDb(config);
+  const statePath = path.join(cwd, '.db/state/dataSources.json');
+  const metadataPath = path.join(cwd, '.db/state/.sources.json');
+  const firstHash = firstSync.schema.resources.dataSources.source.dataHash;
+
+  await writeFile(statePath, `${JSON.stringify([{ id: 'runtime_edit', path: 'runtime', recordCount: 99 }], null, 2)}\n`);
+  await syncDb(config);
+  assert.deepEqual(JSON.parse(await readFile(statePath, 'utf8')), [
+    {
+      id: 'runtime_edit',
+      path: 'runtime',
+      recordCount: 99,
+    },
+  ]);
+
+  await writeFile(path.join(cwd, 'db/data/users.json'), `${JSON.stringify([
+    { id: 'u_1', name: 'Ada' },
+    { id: 'u_2', name: 'Grace' },
+  ])}\n`);
+  const secondSync = await syncDb(config);
+  const secondHash = secondSync.schema.resources.dataSources.source.dataHash;
+
+  assert.notEqual(secondHash, firstHash);
+  assert.deepEqual(JSON.parse(await readFile(statePath, 'utf8')), [
+    {
+      id: 'data_orders',
+      path: 'data/orders.json',
+      recordCount: 1,
+    },
+    {
+      id: 'data_users',
+      path: 'data/users.json',
+      recordCount: 2,
+    },
+  ]);
+
+  const metadata = JSON.parse(await readFile(metadataPath, 'utf8'));
+  assert.equal(metadata.resources.dataSources.derived, true);
+  assert.equal(metadata.resources.dataSources.format, 'derived-json-index');
+  assert.equal(metadata.resources.dataSources.path, null);
+  assert.match(metadata.resources.dataSources.hash, /^[a-f0-9]{64}$/);
+  assert.deepEqual(metadata.resources.dataSources.dependencies.map((dependency) => dependency.path), [
+    'db/data/orders.json',
+    'db/data/users.json',
+  ]);
+  assert.ok(metadata.resources.dataSources.dependencies.every((dependency) => /^[a-f0-9]{64}$/.test(dependency.hash)));
 });
 
 test('sourceFile store writes generated ids back to JSON fixtures', async () => {

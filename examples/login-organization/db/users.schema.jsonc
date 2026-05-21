@@ -1,0 +1,32 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Users who can belong to organizations.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    }
+  },
+  "seed": [
+    {
+      "id": "user_nina",
+      "email": "nina@example.com",
+      "name": "Nina Alvarez"
+    },
+    {
+      "id": "user_owen",
+      "email": "owen@example.com",
+      "name": "Owen Brooks"
+    }
+  ]
+}

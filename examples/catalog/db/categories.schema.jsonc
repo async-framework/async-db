@@ -1,0 +1,37 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "description": "Product categories shown in catalog navigation.",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "string"
+    }
+  },
+  "seed": [
+    {
+      "id": "cat_starters",
+      "slug": "starters",
+      "name": "Starters",
+      "description": "Starter kits and bundles."
+    },
+    {
+      "id": "cat_addons",
+      "slug": "addons",
+      "name": "Add-ons",
+      "description": "Optional add-ons for existing projects."
+    }
+  ]
+}

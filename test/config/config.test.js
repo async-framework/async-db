@@ -30,6 +30,8 @@ test('loadConfig normalizes public outputs config and mirrors legacy fields', as
       viewerManifest: './src/generated/db.viewer.json',
       operationRegistry: './src/generated/db.operations.json',
       operationRefs: './src/generated/db.operation-refs.json',
+      diagramMermaid: './src/generated/db.diagram.mmd',
+      diagramModel: './src/generated/db.diagram.json',
       honoStarterDir: './generated/hono',
     },
   };`);
@@ -43,6 +45,8 @@ test('loadConfig normalizes public outputs config and mirrors legacy fields', as
   assert.equal(config.outputs.viewerManifest, path.join(cwd, 'src/generated/db.viewer.json'));
   assert.equal(config.outputs.operationRegistry, path.join(cwd, 'src/generated/db.operations.json'));
   assert.equal(config.outputs.operationRefs, path.join(cwd, 'src/generated/db.operation-refs.json'));
+  assert.equal(config.outputs.diagramMermaid, path.join(cwd, 'src/generated/db.diagram.mmd'));
+  assert.equal(config.outputs.diagramModel, path.join(cwd, 'src/generated/db.diagram.json'));
   assert.equal(config.outputs.honoStarterDir, path.join(cwd, 'generated/hono'));
 
   assert.equal(config.stateDir, path.join(cwd, 'var/db'));
@@ -69,6 +73,8 @@ test('public outputs config wins over legacy output keys', async () => {
       viewerManifest: './src/generated/db.viewer.json',
       operationRegistry: './src/generated/db.operations.json',
       operationRefs: './src/generated/db.operation-refs.json',
+      diagramMermaid: './src/generated/db.diagram.mmd',
+      diagramModel: './src/generated/db.diagram.json',
       honoStarterDir: './generated/hono',
     },
     types: {
@@ -95,6 +101,8 @@ test('public outputs config wins over legacy output keys', async () => {
   assert.equal(config.viewerManifestOutFile, path.join(cwd, 'src/generated/db.viewer.json'));
   assert.equal(config.operations.outFile, path.join(cwd, 'src/generated/db.operations.json'));
   assert.equal(config.operations.refsOutFile, path.join(cwd, 'src/generated/db.operation-refs.json'));
+  assert.equal(config.outputs.diagramMermaid, path.join(cwd, 'src/generated/db.diagram.mmd'));
+  assert.equal(config.outputs.diagramModel, path.join(cwd, 'src/generated/db.diagram.json'));
   assert.equal(config.generate.hono.outDir, path.join(cwd, 'generated/hono'));
 });
 

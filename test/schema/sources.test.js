@@ -654,3 +654,187 @@ test('custom multi-source readers must name every returned source', async () => 
     },
   );
 });
+
+test('derived sources can load data from sorted dependency files', async () => {
+  const cwd = await makeProject();
+  await mkdir(path.join(cwd, 'db/data'), { recursive: true });
+  await writeFile(path.join(cwd, 'db/data/orders.json'), `${JSON.stringify([{ id: 'o_1', total: 42 }])}\n`);
+  await writeFile(path.join(cwd, 'db/data/users.json'), `${JSON.stringify([{ id: 'u_1', name: 'Ada' }])}\n`);
+  await writeConfig(cwd, `export default {
+    sources: {
+      derived: [
+        {
+          name: 'data-sources-index',
+          resourceName: 'dataSources',
+          dependsOn: 'data/*.json',
+          async read({ config, files, name }) {
+            return {
+              kind: 'data',
+              format: 'derived-json-index',
+              data: await Promise.all(files.map(async (file) => {
+                const rows = JSON.parse(await file.readText());
+                return {
+                  id: file.path.replace(/\\.json$/, '').replaceAll('/', '_'),
+                  derivedBy: name,
+                  path: file.path,
+                  repoFile: file.file,
+                  absolutePath: file.sourceFile.startsWith(config.cwd),
+                  hashLooksValid: /^[a-f0-9]{64}$/.test(file.hash),
+                  recordCount: rows.length,
+                };
+              })),
+            };
+          },
+        },
+      ],
+    },
+  };`);
+
+  const config = await loadConfig({ cwd });
+  const result = await syncDb(config);
+
+  assert.equal(result.schema.resources.dataSources.kind, 'collection');
+  assert.equal(result.schema.resources.dataSources.source.dataFormat, 'derived-json-index');
+  assert.deepEqual(JSON.parse(await readFile(path.join(cwd, '.db/state/dataSources.json'), 'utf8')), [
+    {
+      id: 'data_orders',
+      derivedBy: 'data-sources-index',
+      path: 'data/orders.json',
+      repoFile: 'db/data/orders.json',
+      absolutePath: true,
+      hashLooksValid: true,
+      recordCount: 1,
+    },
+    {
+      id: 'data_users',
+      derivedBy: 'data-sources-index',
+      path: 'data/users.json',
+      repoFile: 'db/data/users.json',
+      absolutePath: true,
+      hashLooksValid: true,
+      recordCount: 1,
+    },
+  ]);
+});
+
+test('derived sources report duplicate resource names against physical sources', async () => {
+  const cwd = await makeProject();
+  await writeFixture(cwd, 'dataSources.json', JSON.stringify([{ id: 'physical' }]));
+  await writeConfig(cwd, `export default {
+    sources: {
+      derived: [
+        {
+          name: 'data-sources-index',
+          resourceName: 'dataSources',
+          dependsOn: 'data/*.json',
+          read() {
+            return {
+              kind: 'data',
+              format: 'derived-json-index',
+              data: [{ id: 'derived' }],
+            };
+          },
+        },
+      ],
+    },
+  };`);
+
+  const config = await loadConfig({ cwd });
+  const result = await loadProjectSchema(config);
+  const duplicate = result.diagnostics.find((diagnostic) => diagnostic.code === 'DUPLICATE_RESOURCE_NAME');
+
+  assert.equal(duplicate?.resource, 'dataSources');
+  assert.deepEqual(duplicate.details.files, ['db/dataSources.json', 'derived:data-sources-index']);
+});
+
+test('derived source invalid results produce derived diagnostics', async () => {
+  const cwd = await makeProject();
+  await writeConfig(cwd, `export default {
+    sources: {
+      derived: [
+        {
+          name: 'bad-index',
+          dependsOn: 'data/*.json',
+          read() {
+            return { data: [] };
+          },
+        },
+      ],
+    },
+  };`);
+
+  const config = await loadConfig({ cwd });
+  const result = await loadProjectSchema(config);
+  const diagnostic = result.diagnostics.find((candidate) => candidate.code === 'SOURCE_DERIVED_INVALID_RESULT');
+
+  assert.equal(diagnostic?.file, 'derived:bad-index');
+  assert.match(diagnostic.message, /bad-index/);
+  assert.match(diagnostic.hint, /kind: "data"/);
+});
+
+test('schema source mode filters derived data and derived schema sources', async () => {
+  const dataModeCwd = await makeProject();
+  await writeFixture(dataModeCwd, 'users.json', JSON.stringify([{ id: 'u_1', name: 'Ada' }]));
+  await writeConfig(dataModeCwd, `export default {
+    schema: {
+      source: 'data',
+    },
+    sources: {
+      derived: [
+        {
+          name: 'users-schema',
+          resourceName: 'users',
+          dependsOn: 'users.json',
+          read() {
+            return {
+              kind: 'schema',
+              schema: {
+                kind: 'collection',
+                fields: {
+                  id: { type: 'string', required: true },
+                  blocked: { type: 'string', required: true },
+                },
+              },
+            };
+          },
+        },
+      ],
+    },
+  };`);
+
+  const dataMode = await loadProjectSchema(await loadConfig({ cwd: dataModeCwd }));
+  assert.equal(dataMode.schema.resources.users.fields.blocked, undefined);
+
+  const schemaModeCwd = await makeProject();
+  await writeFixture(schemaModeCwd, 'users.schema.json', JSON.stringify({
+    kind: 'collection',
+    fields: {
+      id: { type: 'string', required: true },
+    },
+    seed: [],
+  }));
+  await writeConfig(schemaModeCwd, `export default {
+    schema: {
+      source: 'schema',
+    },
+    sources: {
+      derived: [
+        {
+          name: 'users-data',
+          resourceName: 'users',
+          dependsOn: 'users.schema.json',
+          read() {
+            return {
+              kind: 'data',
+              data: [{ id: 'u_1', name: 'Ada' }],
+            };
+          },
+        },
+      ],
+    },
+  };`);
+
+  const schemaMode = await loadProjectSchema(await loadConfig({ cwd: schemaModeCwd }));
+  assert.deepEqual(schemaMode.schema.resources.users.seed, []);
+  assert.equal(schemaMode.schema.resources.users.fields.name, undefined);
+});

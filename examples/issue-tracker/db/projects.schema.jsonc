@@ -1,0 +1,32 @@
+{
+  "kind": "collection",
+  "idField": "id",
+  "fields": {
+    "id": {
+      "type": "string",
+      "required": true
+    },
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "key": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "status": {
+      "type": "enum",
+      "values": ["active", "paused", "archived"],
+      "default": "active"
+    }
+  },
+  "seed": [
+    {
+      "id": "proj_async_db",
+      "name": "Async DB",
+      "key": "ADB",
+      "status": "active"
+    }
+  ]
+}

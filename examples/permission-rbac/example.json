@@ -1,0 +1,5 @@
+{
+  "title": "Permission RBAC",
+  "description": "Model role-based access control with users, roles, permissions, and a simple HTML decision view.",
+  "tags": ["permissions", "rbac", "html"]
+}
