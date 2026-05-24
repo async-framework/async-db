@@ -40,6 +40,8 @@ Start with [`examples/basic`](./examples/basic) for the shortest schema-backed w
 Other useful paths:
 
 - [`examples/data-first`](./examples/data-first): plain fixtures before schemas exist.
+- [`examples/content-collections`](./examples/content-collections): docs and blog folders as static content collections.
+- [`examples/computed-fields`](./examples/computed-fields): computed field patterns across several schema-backed models.
 - [`examples/rest-client`](./examples/rest-client): calling @async/db from app or test code.
 - [`examples/schema-manifest`](./examples/schema-manifest): schema metadata for admin/CMS UI.
 - [`examples/hono-auth`](./examples/hono-auth): optional Hono auth and write hooks.
@@ -353,6 +355,8 @@ The examples are a learning path. Run any example with `node ./src/cli.js sync -
 | --- | --- | --- |
 | The shortest schema-backed workflow | [`examples/basic`](./examples/basic) | Sync, viewer, REST create, committed generated types |
 | Plain data before schemas exist | [`examples/data-first`](./examples/data-first) | Inferred collections, documents, routes, and types |
+| Docs and blog folders as content collections | [`examples/content-collections`](./examples/content-collections) | `index.schema.mjs`, `files(..., { read })`, raw MDX bodies, config-owned static stores, computed fields |
+| Different computed field patterns | [`examples/computed-fields`](./examples/computed-fields) | Shorthand resolvers, `resolveMany`, formatting, and runtime-context lookups |
 | Contract-first resources | [`examples/schema-first`](./examples/schema-first) | Schema-only resources, empty seed records, committed types |
 | Calling @async/db from app or test code | [`examples/rest-client`](./examples/rest-client) | `createDbClient`, direct REST calls, REST batching |
 | Related local records | [`examples/relations`](./examples/relations) | Relation metadata, `expand`, and nested `select` |

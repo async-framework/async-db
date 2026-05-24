@@ -42,18 +42,46 @@ export type ObjectFieldOptions = FieldOptions<Record<string, unknown>> & {
 export type ResourceDefinition = {
   description?: string;
   idField?: string;
+  source?: FilesSourceDefinition | string | readonly string[];
   fields: Record<string, FieldDefinition>;
   seed?: unknown;
 };
 
+export type FilesSourceDefinition = {
+  kind: 'files';
+  patterns: readonly string[];
+  read?: 'frontmatter' | 'json' | 'jsonc' | 'text' | string;
+};
+
+export type ComputedResolverThis = {
+  get(key: string): unknown;
+  has(key: string): boolean;
+  value: unknown;
+  db: unknown;
+  resource: ResourceDefinition & { kind?: 'collection' | 'document' };
+  config: unknown;
+  services: Record<string, unknown>;
+  cache: Map<string, unknown>;
+  _internal: {
+    get(key: string): unknown;
+    has(key: string): boolean;
+    value: unknown;
+    db: unknown;
+    resource: ResourceDefinition & { kind?: 'collection' | 'document' };
+    config: unknown;
+    services: Record<string, unknown>;
+    cache: Map<string, unknown>;
+  };
+};
+
 export type ComputedFieldResolver<RecordValue = Record<string, unknown>, Value = unknown> = {
-  resolve?: (context: {
+  resolve?: (this: ComputedResolverThis, context: {
     record: RecordValue;
     db: unknown;
     resource: ResourceDefinition & { kind?: 'collection' | 'document' };
     cache: Map<string, unknown>;
   }) => Value | Promise<Value>;
-  resolveMany?: (context: {
+  resolveMany?: (this: ComputedResolverThis, context: {
     records: RecordValue[];
     db: unknown;
     resource: ResourceDefinition & { kind?: 'collection' | 'document' };
@@ -63,6 +91,7 @@ export type ComputedFieldResolver<RecordValue = Record<string, unknown>, Value =
 
 export function collection(definition: ResourceDefinition): ResourceDefinition & { kind: 'collection' };
 export function document(definition: ResourceDefinition): ResourceDefinition & { kind: 'document' };
+export function files(patterns: string | readonly string[], options?: { read?: FilesSourceDefinition['read'] }): FilesSourceDefinition;
 
 export const field: {
   string(options?: FieldOptions<string>): FieldDefinition;
@@ -77,5 +106,5 @@ export const field: {
   array(items?: FieldDefinition, options?: FieldOptions<unknown[]>): FieldDefinition;
   json(options?: FieldOptions<unknown>): FieldDefinition;
   nullable(definition: FieldDefinition, options?: Omit<FieldOptions<unknown>, 'nullable'>): FieldDefinition;
-  computed(definition: FieldDefinition, resolver?: ComputedFieldResolver): FieldDefinition;
+  computed(definition: FieldDefinition, resolver?: ComputedFieldResolver['resolve'] | ComputedFieldResolver): FieldDefinition;
 };
