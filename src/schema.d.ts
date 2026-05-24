@@ -57,8 +57,13 @@ export type ComputedResolverThis = {
   get(key: string): unknown;
   has(key: string): boolean;
   value: unknown;
+  record: unknown;
+  records: unknown[] | undefined;
+  args: unknown;
   db: unknown;
   resource: ResourceDefinition & { kind?: 'collection' | 'document' };
+  field: FieldDefinition | undefined;
+  fieldName: string | undefined;
   config: unknown;
   services: Record<string, unknown>;
   cache: Map<string, unknown>;
@@ -66,8 +71,13 @@ export type ComputedResolverThis = {
     get(key: string): unknown;
     has(key: string): boolean;
     value: unknown;
+    record: unknown;
+    records: unknown[] | undefined;
+    args: unknown;
     db: unknown;
     resource: ResourceDefinition & { kind?: 'collection' | 'document' };
+    field: FieldDefinition | undefined;
+    fieldName: string | undefined;
     config: unknown;
     services: Record<string, unknown>;
     cache: Map<string, unknown>;
@@ -80,12 +90,14 @@ export type ComputedFieldResolver<RecordValue = Record<string, unknown>, Value =
     db: unknown;
     resource: ResourceDefinition & { kind?: 'collection' | 'document' };
     cache: Map<string, unknown>;
+    [key: string]: unknown;
   }) => Value | Promise<Value>;
   resolveMany?: (this: ComputedResolverThis, context: {
     records: RecordValue[];
     db: unknown;
     resource: ResourceDefinition & { kind?: 'collection' | 'document' };
     cache: Map<string, unknown>;
+    [key: string]: unknown;
   }) => Map<string | number, Value> | Value[] | Record<string, Value> | Promise<Map<string | number, Value> | Value[] | Record<string, Value>>;
 };
 

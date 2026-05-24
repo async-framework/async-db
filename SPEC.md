@@ -1291,9 +1291,23 @@ export default {
 ```
 
 `field.computed(type, fn)` is shorthand for `{ resolve: fn }`. Normal function
-resolvers are invoked with `this` bound to a runtime resolver context for services.
-Schema/type/manifest/doctor/bundle/unbundle/generate commands may import trusted
-schema modules for metadata, but must not call computed resolvers.
+resolvers are invoked with `this` bound to a delegated runtime resolver context.
+The context exposes `this.get(name)`, `this.has(name)`, direct property aliases,
+and `this._internal` for the unoverridden internal view. Internal values include
+`db`, `resource`, `field`, `fieldName`, `config`, `services`, `cache`, `value`,
+`record`, `records`, and `args`. App-provided context values win over internal
+values with the same key. Schema/type/manifest/doctor/bundle/unbundle/generate
+commands may import trusted schema modules for metadata, but must not call
+computed resolvers.
+
+The package API should expose `loadDbSchema({ from })` for metadata-only schema
+loading from a project root, `db/` folder, `db.schema.mjs`, or individual schema
+file. Loaded schemas expose `schema.validator(resource, options)` for endpoint
+input validation and `schema.resolver(resourceOrField, options)` for direct
+computed field execution. Validators reject computed/read-only fields, default
+unknown fields to `error`, and support `strip`, `allow`, `warn`, and patch/replace
+validation modes. `openDb({ schema })` accepts a loaded schema object and opens
+runtime stores from the same locator.
 
 Folder-backed content collections use `index.schema.mjs` as an explicit marker:
 

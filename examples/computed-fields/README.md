@@ -6,10 +6,10 @@ Use this when you want to see several ways to model computed fields with `.schem
 
 ## Files To Inspect
 
-- [db/users.schema.mjs](./db/users.schema.mjs): `field.computed(type, function)` shorthand for a full name.
+- [db/users.schema.mjs](./db/users.schema.mjs): `field.computed(type, function)` shorthand using `this.value`.
 - [db/posts.schema.mjs](./db/posts.schema.mjs): object form with `resolveMany` for reading time.
 - [db/products.schema.mjs](./db/products.schema.mjs): arrow resolver for simple price formatting.
-- [db/orders.schema.mjs](./db/orders.schema.mjs): normal function resolver that uses `this.db` to read product prices.
+- [db/orders.schema.mjs](./db/orders.schema.mjs): normal function resolver that uses `this.get('db')` to read product prices.
 - [src/generated/db.types.ts](./src/generated/db.types.ts): committed generated types where computed fields are optional read-only projections.
 
 ## Run It
@@ -69,10 +69,15 @@ curl 'http://127.0.0.1:7331/db/orders.json?select=id,itemCount,totalCents,receip
 
 Each model shows a different computed-field use case:
 
-- `users.fullName` combines stored fields for display.
+- `users.fullName` combines stored fields from `this.value` for display.
 - `posts.readingTimeMinutes` uses `resolveMany` so a collection page can be computed in one batch.
 - `products.priceLabel` formats raw `priceCents` without changing the stored number.
-- `orders.totalCents` and `orders.receiptLine` use a normal resolver function so `this.db` can read related product prices.
+- `orders.totalCents` and `orders.receiptLine` use normal resolver functions so the delegated resolver context can read related product prices with `this.get('db')`.
+
+Normal function resolvers can read internal runtime values such as `db`, `value`,
+`record`, `fieldName`, and `services` with `this.get(name)`. App code can pass a
+context object to `schema.resolver(...)` to override or add values; `this._internal`
+keeps the original internal view available when a resolver needs it.
 
 Computed fields are useful for values that are cheap to derive, read-only, and easier to keep out of source fixtures. They should not replace stored data that users need to edit directly.
 

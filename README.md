@@ -17,6 +17,8 @@ Use it to:
 | --- | --- |
 | `db/*.json`, `db/*.jsonc`, `db/*.csv` | Fixture data |
 | `db/*.schema.json`, `db/*.schema.jsonc`, `db/*.schema.mjs` | Optional stricter schema contracts |
+| `db.schema.mjs` | Optional root schema registry for all resources |
+| `db/<resource>/index.schema.mjs` | Folder-backed content collection marker |
 | `.db/state/*` | Generated writable JSON store state |
 | `.db/schema.generated.json`, `.db/types/index.ts` | Generated metadata and types |
 
@@ -29,7 +31,7 @@ Most projects can start with the defaults:
 3. Run `async-db serve` to start the local API and viewer.
 4. Open `http://127.0.0.1:7331/__db`.
 5. Call REST routes like `GET /db/users.json` and `POST /db/users`.
-6. Add schema only when the fixture shape needs a clearer contract.
+6. Add per-resource schemas or `db.schema.mjs` only when the fixture shape needs a clearer contract.
 
 The default server is REST-first. GraphQL is available at `/graphql`, but you do not need it for the core workflow.
 
@@ -72,7 +74,7 @@ Replace the placeholder with the commit SHA or tag you reviewed. After package p
 npm install
 ```
 
-The package import name is `@async/db`; helpers are available from `@async/db/config`, `@async/db/schema`, and `@async/db/client`.
+The package import name is `@async/db`; helpers are available from `@async/db/config`, `@async/db/schema`, and `@async/db/client`. The root package exports runtime helpers such as `openDb()` and schema contract helpers such as `loadDbSchema()`.
 
 ## Five-Minute Start
 
@@ -145,6 +147,7 @@ See [docs/getting-started.md](./docs/getting-started.md) for the expanded walkth
 | Source writes | Only happen for resources bound to the `sourceFile` store, and only for supported writebacks such as generated ids in plain `.json` collections. |
 | Optional stores | SQLite, Postgres, generic KV, and Redis-like stores plug into the same runtime store boundary without adding mandatory database client dependencies. |
 | Generated output | `.db/` is runtime output and normally stays uncommitted. |
+| Schema contract API | `loadDbSchema({ from })` loads metadata only by default; `openDb({ schema })` opens the runtime database from the same schema locator. |
 | Local server | Binds to `127.0.0.1:7331` by default and exposes writable local development endpoints. |
 | Trusted code | `.schema.mjs`, `db.config.mjs`, source readers, and manifest hooks execute as local project code. |
 | Mock latency | Responses include a small `30-100ms` delay by default so loading states are visible. |
@@ -196,6 +199,31 @@ In mixed mode, schema files define the contract and data files provide seed reco
 Schema defaults fill omitted fields on create and safe additive runtime hydration. Updates, patches, and document puts preserve omitted fields; include a field in the write body when you want to change it.
 
 See [docs/concepts.md](./docs/concepts.md) and [docs/fixtures-and-schemas.md](./docs/fixtures-and-schemas.md).
+
+## Validate Or Resolve From Schema
+
+Use `loadDbSchema({ from })` when server code wants schema validation or field
+resolver access without opening stores:
+
+```ts
+import { loadDbSchema, openDb } from '@async/db';
+
+const schema = await loadDbSchema({ from: './db.schema.mjs' });
+const input = schema.validator('users', { unknownFields: 'strip' }).assert(await request.json());
+
+const userResolvers = schema.resolver('users', {
+  value: input,
+  context: { locale: 'en-US', nameFormatter },
+});
+
+const fullName = await userResolvers.fullName();
+const db = await openDb({ schema });
+```
+
+Validators reject computed and read-only fields. Resolver functions receive a
+delegated `this` context with `this.get(name)`, so app-provided context can
+override internal values while `this._internal` still exposes the original
+runtime view.
 
 ## Admin/CMS Schema Metadata
 

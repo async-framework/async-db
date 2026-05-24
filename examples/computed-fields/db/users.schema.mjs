@@ -22,8 +22,8 @@ export default collection({
     }),
     fullName: field.computed(field.string({
       description: 'Display name assembled from first and last name.',
-    }), function users_fullName_resolver({ record }) {
-      return `${record.firstName} ${record.lastName}`;
+    }), function users_fullName_resolver() {
+      return `${this.value.firstName} ${this.value.lastName}`;
     }),
   },
   seed: [

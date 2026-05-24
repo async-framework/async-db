@@ -550,8 +550,8 @@ export type DbOptions = {
   /** Keep valid resources available when one source file has diagnostics. */
   allowSourceErrors?: boolean;
   types?: DbGeneratedTypesOptions;
-  /** Schema config, or a loaded schema object when passed to openDb({ schema }). */
-  schema?: DbSchemaConfig | DbLoadedSchema;
+  /** Schema and validation config. */
+  schema?: DbSchemaConfig;
   defaults?: {
     /** Apply schema defaults on create through package, REST, and GraphQL writes. */
     applyOnCreate?: boolean;
@@ -653,6 +653,11 @@ export type DbOptions = {
       seed?: false | 'fixtures';
     };
   };
+};
+
+export type DbOpenOptions = Omit<DbOptions, 'schema'> & {
+  /** Schema config, or a loaded schema object returned by loadDbSchema(). */
+  schema?: DbSchemaConfig | DbLoadedSchema;
 };
 
 export type DbCollection<RecordType> = {
@@ -884,7 +889,7 @@ export type DbServer = {
   url: string;
 };
 
-export function openDb<Types extends DbTypeMap = DbTypeMap>(options?: DbOptions | string): Promise<Db<Types>>;
+export function openDb<Types extends DbTypeMap = DbTypeMap>(options?: DbOpenOptions | string): Promise<Db<Types>>;
 export function createDbClient(options?: DbClientOptions): DbClient;
 export function createIndexedDbCacheStorage(options?: {
   name?: string;
@@ -906,7 +911,7 @@ export function resolveSchemaLocator(options?: DbOptions | string): Promise<DbSc
 export function normalizeSchemaLoadMode(value?: unknown): DbSchemaLoadMode;
 export function loadProjectSchema(config: DbOptions, options?: { load?: DbSchemaLoadMode }): Promise<unknown>;
 export function runDbDoctor(config: DbOptions): Promise<DbDoctorResult>;
-export function startDbServer(options?: DbOptions & { host?: string; port?: number }): Promise<DbServer>;
+export function startDbServer(options?: DbOpenOptions & { host?: string; port?: number }): Promise<DbServer>;
 export function syncDb(config: DbOptions, options?: { allowErrors?: boolean }): Promise<unknown>;
 export function generateTypes(config: DbOptions, options?: { outFile?: string }): Promise<{ content: string; outFiles: string[] }>;
 export function generateSchemaManifest(config: DbOptions, options?: { outFile?: string }): Promise<{ manifest: unknown; content: string; outFiles: string[] }>;
@@ -949,7 +954,6 @@ export function generateHonoStarter(
     allowWarnings?: boolean;
   },
 ): Promise<{ outDir: string; files: string[]; diagnostics: unknown[] }>;
-export function startDbServer(options?: DbOptions): Promise<{ server: unknown; db: Db; url: string }>;
 export function executeGraphql(
   db: Db,
   request: string | GraphqlRequest,

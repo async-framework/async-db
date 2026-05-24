@@ -24,12 +24,12 @@ export default collection({
     totalCents: field.computed(field.number({
       description: 'Order total calculated from current product prices.',
     }), async function orders_totalCents_resolver({ record }) {
-      return orderTotalCents(this.db, record);
+      return orderTotalCents(this.get('db'), record);
     }),
     receiptLine: field.computed(field.string({
       description: 'Human-readable receipt summary.',
     }), async function orders_receiptLine_resolver({ record }) {
-      const total = await orderTotalCents(this.db, record);
+      const total = await orderTotalCents(this.get('db'), record);
       return `${record.customerName} - ${itemCount(record)} items - ${formatMoney(total)}`;
     }),
   },

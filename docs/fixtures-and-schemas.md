@@ -186,9 +186,13 @@ export default collection({
 ```
 
 `field.computed(type, fn)` is shorthand for `{ resolve: fn }`. Normal function
-resolvers receive a runtime `this` context with `db`, `resource`, `config`,
-`services`, and `cache`; arrow functions preserve JavaScript arrow semantics and
-cannot use runtime `this`.
+resolvers receive a runtime `this` context with delegated lookup through
+`this.get(name)` and `this.has(name)`. Internal values include `db`, `resource`,
+`field`, `fieldName`, `config`, `services`, `cache`, `value`, `record`,
+`records`, and `args`. App-provided context can override those names, and
+`this._internal` exposes the original internal values when a resolver needs them.
+Arrow functions preserve JavaScript arrow semantics and cannot use runtime
+`this`.
 
 Computed fields are read-only and are rejected on package API, REST, GraphQL,
 and registered operation writes. Generated schema, viewer manifest, and
@@ -204,6 +208,27 @@ GET /db/users/u_1.json?select=id,fullName
 GraphQL selections use the same projection/fanout layer. Collection reads prefer
 `resolveMany` so one resolver can handle the selected page of records; single
 reads and fields without `resolveMany` fall back to `resolve`.
+
+Server code can call the same field resolvers without opening writable stores:
+
+```ts
+import { loadDbSchema } from '@async/db';
+
+const schema = await loadDbSchema({ from: './db.schema.mjs' });
+const userResolvers = schema.resolver('users', {
+  value: input,
+  context: {
+    locale: 'en-US',
+    nameFormatter,
+  },
+});
+
+const fullName = await userResolvers.fullName();
+```
+
+Use `schema.resolver('users.fullName')` when one field resolver is enough. The
+call argument is plain JavaScript; schema authors can type and interpret it for
+their own use case.
 
 ## Folder Content Collections
 
