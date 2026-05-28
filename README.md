@@ -384,23 +384,6 @@ See [docs/server-and-viewer.md](./docs/server-and-viewer.md). When local
 routes, see the
 [Prototype To Production REST Guide](./docs/prototype-to-production.md).
 
-## Generated Files
-
-| Path | Commit? | Notes |
-| --- | --- | --- |
-| `.db/` | Normally no | Runtime stores, source metadata, generated schema, and generated types. |
-| `.db/state/*.json` | Normally no | Writable local JSON store state. |
-| `.db/types/index.ts` | Normally no | Default generated TypeScript output. |
-| `outputs.committedTypes` output | Yes, when configured | Use for stable imports before sync runs. |
-| `outputs.schemaManifest` output | Yes, when configured | Use for model-driven admin/CMS metadata. |
-| `outputs.viewerManifest` output | Yes, when configured | Use for custom data viewers that need metadata plus route links. |
-| `examples/*/src/generated/db.types.ts` | Yes, in selected examples | Intentionally committed example type output. |
-| `examples/*/src/generated/db.schema.json` | Yes, in selected examples | Intentionally committed example manifest. |
-
-Smoke commands may create `.db/` under examples. Remove generated runtime state before finalizing unless a task explicitly asks to commit it.
-
-See [docs/generated-files.md](./docs/generated-files.md).
-
 ## Which Example Should I Start With?
 
 The examples are a learning path. Run any example with `node ./src/cli.js sync --cwd ./examples/<name>` and `node ./src/cli.js serve --cwd ./examples/<name>`, or run `npm run examples` to start every viewer from one index.
@@ -437,7 +420,7 @@ Each example README is the runnable authority for that example.
 | Graduate REST prototypes to production API routes | [docs/prototype-to-production.md](./docs/prototype-to-production.md) |
 | Use the package API, CLI, or exports | [docs/package-api.md](./docs/package-api.md) |
 | Integrate with Vite, Hono, or SQLite | [docs/integrations.md](./docs/integrations.md) |
-| Validate CI and package contents | [docs/ci-and-release.md](./docs/ci-and-release.md) |
 | Understand implementation boundaries | [docs/architecture.md](./docs/architecture.md) |
+| Work on the repo or publish releases | [CONTRIBUTING.md](./CONTRIBUTING.md) |
 
 For the full product behavior and acceptance model, see [SPEC.md](./SPEC.md).
