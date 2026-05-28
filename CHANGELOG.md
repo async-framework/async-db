@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/async-framework/async-db/compare/v0.1.0...v0.2.0) (2026-05-28)
+
+
+### Features
+
+* **server:** add request tracing ([ed9b643](https://github.com/async-framework/async-db/commit/ed9b643584d067967d1a4afdbe2329787090fadf))
+
 ## [0.1.0](https://github.com/async-framework/async-db/releases/tag/v0.1.0) - 2026-05-28
 
 First public release of `@async/db`.
