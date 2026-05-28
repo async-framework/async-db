@@ -60,7 +60,7 @@ Until the package is published, install it from GitHub in the app or package tha
 ```json
 {
   "devDependencies": {
-    "@async/db": "github:PatrickJS/async-db#<reviewed-commit-sha-or-tag>"
+    "@async/db": "github:async-framework/async-db#<reviewed-commit-sha-or-tag>"
   },
   "scripts": {
     "db": "async-db",

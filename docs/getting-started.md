@@ -9,7 +9,7 @@ Until @async/db is published, install it from GitHub with a pinned, reviewed com
 ```json
 {
   "devDependencies": {
-    "@async/db": "github:PatrickJS/async-db#<reviewed-commit-sha-or-tag>"
+    "@async/db": "github:async-framework/async-db#<reviewed-commit-sha-or-tag>"
   },
   "scripts": {
     "db": "async-db",
